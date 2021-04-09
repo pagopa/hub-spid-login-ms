@@ -1,0 +1,106 @@
+{
+  "name": "@italia/spid-express",
+  "version": "1.0.0",
+  "description": "SPID (Italian Public Digital Identity System) middleware for Express",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/italia/spid-express.git"
+  },
+  "bin": {
+    "startup-idps-metadata": "dist/bin/startup-idps-metadata.js"
+  },
+  "author": "https://pagopa.gov.it",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prebuild": "shx rm -rf dist",
+    "build": "tsc",
+    "start": " node -r dotenv/config dist/server.jst",
+    "premake-certs": "shx rm -rf certs && shx mkdir certs",
+    "make-certs": "./scripts/make-certs.sh",
+    "dev": "nodemon --inspect=0.0.0.0 dist/server.js",
+    "postversion": "git push && git push --tags",
+    "test": "jest -i",
+    "lint": "tslint --project ."
+  },
+  "devDependencies": {
+    "@types/express": "4.17.0",
+    "@types/jest": "^24.0.13",
+    "@types/node": "10.14.1",
+    "@types/node-fetch": "^2.1.2",
+    "@types/node-forge": "^0.9.1",
+    "@types/passport": "^1.0.2",
+    "@types/passport-saml": "1.1.1",
+    "@types/request-ip": "0.0.35",
+    "@types/supertest": "^2.0.8",
+    "@types/xml-crypto": "^1.4.1",
+    "@types/xml2js": "^0.4.5",
+    "@types/xmldom": "^0.1.29",
+    "@types/yargs": "^15.0.4",
+    "auto-changelog": "^2.2.1",
+    "danger": "^7.0.0",
+    "danger-plugin-digitalcitizenship": "*",
+    "dotenv": "^8.2.0",
+    "express": "4.17.0",
+    "italia-tslint-rules": "*",
+    "jest": "^24.8.0",
+    "mock-redis-client": "^0.91.13",
+    "nock": "^11.7.1",
+    "nodemon": "^2.0.2",
+    "prettier": "^1.12.1",
+    "shx": "^0.3.2",
+    "supertest": "^4.0.2",
+    "ts-jest": "^24.0.2",
+    "tslint": "^5.1.0",
+    "typescript": "^3.7.0"
+  },
+  "dependencies": {
+    "@pagopa/io-spid-commons": "^6.1.0",
+    "@types/redis": "^2.8.14",
+    "crypto": "^1.0.1",
+    "date-fns": "^1.30.1",
+    "fp-ts": "1.17.0",
+    "io-ts": "1.8.5",
+    "io-ts-types": "^0.4.7",
+    "italia-ts-commons": "^5.1.4",
+    "node-fetch": "^2.6.1",
+    "node-forge": "^0.10.0",
+    "passport": "^0.4.1",
+    "passport-saml": "1.2.0",
+    "redis": "^2.8.0",
+    "winston": "^3.0.0",
+    "xml-crypto": "^1.4.0",
+    "xml2js": "^0.4.23",
+    "xmldom": "^0.1.27",
+    "yargs": "^15.3.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(js|ts)$",
+    "moduleFileExtensions": [
+      "js",
+      "node",
+      "ts"
+    ],
+    "preset": "ts-jest",
+    "testMatch": null
+  },
+  "resolutions": {
+    "fp-ts": "1.17.0"
+  },
+  "bugs": {
+    "url": "https://github.com/italia/spid-express/issues"
+  },
+  "homepage": "https://github.com/italia/spid-express#readme",
+  "keywords": [
+    "spid",
+    "node",
+    "express"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}

@@ -7,7 +7,7 @@ import { ulid } from "ulid";
 import { SpidUser } from "../spid/spid";
 
 /**
- * Generates a new support token containing the logged user's fiscalCode.
+ * Generates a new token containing the logged spid User.
  *
  * @param privateKey: The RSA's private key used to sign this JWT token
  * @param fiscalCode: The logged Spid User
@@ -25,7 +25,7 @@ export const getSpidUserJwt = (
       spidUser,
       privateKey,
       {
-        algorithm: "RS256",
+        algorithm: "ES256",
         expiresIn: `${tokenTtl} seconds`,
         issuer,
         jwtid: ulid()

@@ -1,14 +1,27 @@
 import { IApplicationConfig, withSpid } from "@pagopa/io-spid-commons";
+import {
+  IResponsePermanentRedirect,
+  ResponseErrorInternal
+} from "@pagopa/ts-commons/lib/responses";
 import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as crypto from "crypto";
 import * as express from "express";
 import { toError } from "fp-ts/lib/Either";
 import { identity } from "fp-ts/lib/function";
-import { fromEither, fromPredicate, tryCatch } from "fp-ts/lib/TaskEither";
+import {
+  fromEither,
+  fromPredicate,
+  TaskEither,
+  taskEither,
+  tryCatch
+} from "fp-ts/lib/TaskEither";
 import * as fs from "fs";
-import * as t from "io-ts";
-import { ResponsePermanentRedirect } from "italia-ts-commons/lib/responses";
+
+import {
+  IResponseErrorInternal,
+  ResponsePermanentRedirect
+} from "italia-ts-commons/lib/responses";
 import {
   EmailString,
   FiscalCode,
@@ -17,36 +30,16 @@ import {
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
 import { promisify } from "util";
-import { AssertionConsumerServiceT, LogoutT } from "./spid/spid";
+import { AssertionConsumerServiceT, LogoutT, SpidUser } from "./spid/spid";
 import { getConfigOrThrow } from "./utils/config";
 import { errorsToError } from "./utils/conversions";
+import { getSpidUserJwt } from "./utils/jwt";
 import { IServiceProviderConfig } from "./utils/middleware";
 import { REDIS_CLIENT } from "./utils/redis";
+import { getTask, setWithExpirationTask } from "./utils/redis_storage";
 import { SamlAttributeT } from "./utils/saml";
 
 const config = getConfigOrThrow();
-
-export const SpidUser = t.intersection([
-  t.interface({
-    // the following values may be set
-    // by the calling application:
-    // authnContextClassRef: SpidLevel,
-    // issuer: Issuer
-    getAssertionXml: t.Function
-  }),
-  t.partial({
-    email: EmailString,
-    familyName: t.string,
-    fiscalNumber: FiscalCode,
-    mobilePhone: NonEmptyString,
-    name: t.string,
-    nameID: t.string,
-    nameIDFormat: t.string,
-    sessionIndex: t.string
-  })
-]);
-
-export type SpidUser = t.TypeOf<typeof SpidUser>;
 
 export const appConfig: IApplicationConfig = {
   assertionConsumerServicePath: config.ENDPOINT_ACS,
@@ -92,10 +85,8 @@ const serviceProviderConfig: IServiceProviderConfig = {
 
 const redisClient = REDIS_CLIENT;
 
-const redisGetAsync = promisify(redisClient.get).bind(redisClient);
-
 const redisGetSpidUser = (userKey: string) =>
-  tryCatch(() => redisGetAsync(userKey), toError).chain(_ =>
+  getTask(redisClient, userKey).chain(_ =>
     fromEither(SpidUser.decode(_).mapLeft(errorsToError))
   );
 
@@ -114,23 +105,35 @@ const samlConfig: SamlConfig = {
 };
 
 const acs: AssertionConsumerServiceT = async user => {
-  /* Should validate the user */
-  // Create token
-  const token = crypto.randomBytes(32).toString("hex");
-
-  // Write token in redis
-  redisClient.set(
-    `session-token:${token}`,
-    JSON.stringify(user),
-    "EX",
-    3600, // expire sec 1 h
-    (_, __) => new Error("Error setting session token")
-  );
-
-  // Add token in query string
-  return ResponsePermanentRedirect({
-    href: `${config.ENDPOINT_SUCCESS}?token=${token}`
-  });
+  return fromEither(SpidUser.decode(user))
+    .mapLeft(errorsToError)
+    .chain(spidUser =>
+      config.ENABLE_JWT
+        ? getSpidUserJwt(
+            config.JWT_TOKEN_PRIVATE_RSA_KEY,
+            spidUser,
+            config.JWT_TOKEN_EXPIRATION,
+            config.JWT_TOKEN_ISSUER
+          )
+        : taskEither
+            .of<Error, string>(crypto.randomBytes(32).toString("hex"))
+            .chain(token =>
+              setWithExpirationTask(
+                redisClient,
+                `session-token:${token}`,
+                JSON.stringify(spidUser),
+                3600
+              ).map(() => token)
+            )
+    )
+    .fold<IResponseErrorInternal | IResponsePermanentRedirect>(
+      err => ResponseErrorInternal(err.message),
+      _ =>
+        ResponsePermanentRedirect({
+          href: `${config.ENDPOINT_SUCCESS}?token=${_}`
+        })
+    )
+    .run();
 };
 
 const logout: LogoutT = async () =>

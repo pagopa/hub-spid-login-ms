@@ -5,10 +5,14 @@
  * Setups the endpoint to generate service provider metadata
  * and a scheduled process to refresh IDP metadata from providers.
  */
+import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { EmailString } from "@pagopa/ts-commons/lib/strings";
 import * as express from "express";
 import { constVoid } from "fp-ts/lib/function";
 import { fromNullable } from "fp-ts/lib/Option";
 import { Task, task } from "fp-ts/lib/Task";
+import * as t from "io-ts";
 import { toExpressHandler } from "italia-ts-commons/lib/express";
 import {
   IResponseErrorForbiddenNotAuthorized,
@@ -43,6 +47,28 @@ import {
   getXmlFromSamlResponse
 } from "../utils/saml";
 import { getMetadataTamperer } from "../utils/saml";
+
+export const SpidUser = t.intersection([
+  t.interface({
+    // the following values may be set
+    // by the calling application:
+    // authnContextClassRef: SpidLevel,
+    // issuer: Issuer
+    getAssertionXml: t.Function
+  }),
+  t.partial({
+    email: EmailString,
+    familyName: t.string,
+    fiscalNumber: FiscalCode,
+    mobilePhone: NonEmptyString,
+    name: t.string,
+    nameID: t.string,
+    nameIDFormat: t.string,
+    sessionIndex: t.string
+  })
+]);
+
+export type SpidUser = t.TypeOf<typeof SpidUser>;
 
 // assertion consumer service express handler
 export type AssertionConsumerServiceT = (

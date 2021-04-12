@@ -2,7 +2,7 @@
 import { left, right } from "fp-ts/lib/Either";
 import { fromEither } from "fp-ts/lib/TaskEither";
 import { SamlConfig } from "passport-saml";
-import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../../config";
+import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../../spid_const";
 import { IDPEntityDescriptor } from "../../types/IDPEntityDescriptor";
 import * as metadata from "../metadata";
 import {

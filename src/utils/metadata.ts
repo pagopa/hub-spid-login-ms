@@ -17,7 +17,7 @@ import {
 import { errorsToReadableMessages } from "italia-ts-commons/lib/reporters";
 import nodeFetch from "node-fetch";
 import { DOMParser } from "xmldom";
-import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../config";
+import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../spid_const";
 import { IDPEntityDescriptor } from "../types/IDPEntityDescriptor";
 import { logger } from "./logger";
 

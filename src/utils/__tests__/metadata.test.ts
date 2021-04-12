@@ -1,7 +1,7 @@
 import { isLeft, isRight, left } from "fp-ts/lib/Either";
 import { NonEmptyArray } from "fp-ts/lib/NonEmptyArray";
 import * as nock from "nock";
-import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../../config";
+import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../../spid_const";
 import cieIdpMetadata from "../__mocks__/cie-idp-metadata";
 import idpsMetadata from "../__mocks__/idps-metatata";
 import testenvIdpMetadata from "../__mocks__/testenv-idp-metadata";
@@ -78,7 +78,7 @@ describe("fetchIdpsMetadata", () => {
         "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/POST/SSO",
       entryPoint:
         "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/Redirect/SSO",
-      logoutUrl: 
+      logoutUrl:
         "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/Redirect/SLO"
     });
   });

@@ -42,8 +42,8 @@ import { MultiSamlConfig } from "passport-saml/multiSamlStrategy";
 import * as xmlCrypto from "xml-crypto";
 import { Builder, parseStringPromise } from "xml2js";
 import { DOMParser, XMLSerializer } from "xmldom";
-import { SPID_LEVELS, SPID_URLS, SPID_USER_ATTRIBUTES } from "../config";
 import { EventTracker } from "../spid/spid";
+import { SPID_LEVELS, SPID_URLS, SPID_USER_ATTRIBUTES } from "../spid_const";
 import { PreValidateResponseT } from "../strategy/spid";
 import { logger } from "./logger";
 import {

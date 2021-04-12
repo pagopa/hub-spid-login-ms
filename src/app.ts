@@ -3,6 +3,9 @@ import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as crypto from "crypto";
 import * as express from "express";
+import { toError } from "fp-ts/lib/Either";
+import { identity } from "fp-ts/lib/function";
+import { fromEither, fromPredicate, tryCatch } from "fp-ts/lib/TaskEither";
 import * as fs from "fs";
 import * as t from "io-ts";
 import { ResponsePermanentRedirect } from "italia-ts-commons/lib/responses";
@@ -13,11 +16,15 @@ import {
 } from "italia-ts-commons/lib/strings";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
-import * as redis from "redis";
 import { promisify } from "util";
 import { AssertionConsumerServiceT, LogoutT } from "./spid/spid";
+import { getConfigOrThrow } from "./utils/config";
+import { errorsToError } from "./utils/conversions";
 import { IServiceProviderConfig } from "./utils/middleware";
+import { REDIS_CLIENT } from "./utils/redis";
 import { SamlAttributeT } from "./utils/saml";
+
+const config = getConfigOrThrow();
 
 export const SpidUser = t.intersection([
   t.interface({
@@ -42,14 +49,14 @@ export const SpidUser = t.intersection([
 export type SpidUser = t.TypeOf<typeof SpidUser>;
 
 export const appConfig: IApplicationConfig = {
-  assertionConsumerServicePath: process.env.ENDPOINT_ACS,
+  assertionConsumerServicePath: config.ENDPOINT_ACS,
   // clientErrorRedirectionUrl: CLIENT_ERROR_REDIRECTION_URL,
   // clientLoginRedirectionUrl: CLIENT_REDIRECTION_URL,
-  clientErrorRedirectionUrl: process.env.ENDPOINT_ERROR,
-  clientLoginRedirectionUrl: process.env.ENDPOINT_ERROR,
-  loginPath: process.env.ENDPOINT_LOGIN,
-  metadataPath: process.env.ENDPOINT_METADATA,
-  sloPath: process.env.ENDPOINT_LOGOUT,
+  clientErrorRedirectionUrl: config.ENDPOINT_ERROR,
+  clientLoginRedirectionUrl: config.ENDPOINT_ERROR,
+  loginPath: config.ENDPOINT_LOGIN,
+  metadataPath: config.ENDPOINT_METADATA,
+  sloPath: config.ENDPOINT_LOGOUT,
   spidLevelsWhitelist: ["SpidL1", "SpidL2", "SpidL3"]
   // startupIdpsMetadata: STARTUP_IDPS_METADATA
 };
@@ -58,44 +65,51 @@ const serviceProviderConfig: IServiceProviderConfig = {
   IDPMetadataUrl:
     "https://registry.spid.gov.it/metadata/idp/spid-entities-idps.xml",
   organization: {
-    URL: process.env.ORG_URL,
-    displayName: process.env.ORG_DISPLAY_NAME,
-    name: process.env.ORG_NAME
+    URL: config.ORG_URL,
+    displayName: config.ORG_DISPLAY_NAME,
+    name: config.ORG_NAME
   },
   publicCert: fs.readFileSync(process.env.METADATA_PUBLIC_CERT, "utf-8"),
   requiredAttributes: {
-    attributes: process.env.SPID_ATTRIBUTES?.split(",").map(
+    attributes: config.SPID_ATTRIBUTES.split(",").map(
       item => item as SamlAttributeT
     ),
     name: "Required attrs"
   },
   spidCieUrl:
     "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata",
-  spidTestEnvUrl: process.env.SPID_TESTENV_URL,
-  spidValidatorUrl: process.env.SPID_VALIDATOR_URL,
-  strictResponseValidation: {
-    [process.env.SPID_VALIDATOR_URL]: true,
-    [process.env.SPID_TESTENV_URL]: true
-  }
+  spidTestEnvUrl: config.SPID_TESTENV_URL,
+  spidValidatorUrl: config.SPID_VALIDATOR_URL,
+  strictResponseValidation:
+    config.SPID_TESTENV_URL !== undefined &&
+    config.SPID_VALIDATOR_URL !== undefined
+      ? {
+          [config.SPID_VALIDATOR_URL]: true,
+          [config.SPID_TESTENV_URL]: true
+        }
+      : undefined
 };
 
-const redisClient = redis.createClient({
-  host: process.env.REDIS_HOST // Can't work in production
-});
+const redisClient = REDIS_CLIENT;
 
 const redisGetAsync = promisify(redisClient.get).bind(redisClient);
+
+const redisGetSpidUser = (userKey: string) =>
+  tryCatch(() => redisGetAsync(userKey), toError).chain(_ =>
+    fromEither(SpidUser.decode(_).mapLeft(errorsToError))
+  );
 
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",
   acceptedClockSkewMs: 0,
   attributeConsumingServiceIndex: "0",
-  authnContext: process.env.AUTH_N_CONTEXT,
-  callbackUrl: `${process.env.ORG_URL}${process.env.ENDPOINT_ACS}`,
+  authnContext: config.AUTH_N_CONTEXT,
+  callbackUrl: `${config.ORG_URL}${config.ENDPOINT_ACS}`,
   // decryptionPvk: fs.readFileSync("./certs/key.pem", "utf-8"),
   identifierFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-  issuer: process.env.ORG_ISSUER,
-  logoutCallbackUrl: `${process.env.ORG_URL}/slo`,
-  privateCert: fs.readFileSync(process.env.METADATA_PRIVATE_CERT, "utf-8"),
+  issuer: config.ORG_ISSUER,
+  logoutCallbackUrl: `${config.ORG_URL}/slo`,
+  privateCert: fs.readFileSync(config.METADATA_PRIVATE_CERT, "utf-8"),
   validateInResponseTo: true
 };
 
@@ -110,12 +124,12 @@ const acs: AssertionConsumerServiceT = async user => {
     JSON.stringify(user),
     "EX",
     3600, // expire sec 1 h
-    (err, response) => new Error("Error setting session token")
+    (_, __) => new Error("Error setting session token")
   );
 
   // Add token in query string
   return ResponsePermanentRedirect({
-    href: `${process.env.ENDPOINT_SUCCESS}?token=${token}`
+    href: `${config.ENDPOINT_SUCCESS}?token=${token}`
   });
 };
 
@@ -171,9 +185,21 @@ export const createAppTask = withSpid({
     });
   });
   withSpidApp.post("/introspect", async (req, res) => {
-    res.json({
-      active: (await redisGetAsync(`session-token:${req.body.token}`)) !== null
-    });
+    await redisGetSpidUser(`session-token:${req.body.token}`)
+      .mapLeft(() =>
+        res.json({
+          active: false
+        })
+      )
+      .chain(
+        fromPredicate(
+          () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
+          () => res.json({ active: true })
+        )
+      )
+      .map(spidUser => ({ active: true, user: spidUser }))
+      .fold(identity, _ => res.json(_))
+      .run();
   });
   withSpidApp.use(
     (

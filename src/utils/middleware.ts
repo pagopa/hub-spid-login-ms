@@ -8,7 +8,7 @@ import { NonEmptyString } from "italia-ts-commons/lib/strings";
 import { Profile, SamlConfig, VerifiedCallback } from "passport-saml";
 import { RedisClient } from "redis";
 import { DoneCallbackT } from "../spid/spid";
-import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../config";
+import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../spid_const";
 import {
   PreValidateResponseT,
   SpidStrategy,

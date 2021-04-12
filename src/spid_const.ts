@@ -1,4 +1,3 @@
-
 export const SPID_IDP_IDENTIFIERS = {
   "https://id.lepida.it/idp/shibboleth": "lepidaid",
   "https://identity.infocert.it": "infocertid",

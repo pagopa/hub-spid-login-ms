@@ -33,6 +33,8 @@ import { SamlAttributeT } from "./utils/saml";
 
 const config = getConfigOrThrow();
 
+export const SESSION_TOKEN_PREFIX = "session-token:";
+
 export const appConfig: IApplicationConfig = {
   assertionConsumerServicePath: config.ENDPOINT_ACS,
   // clientErrorRedirectionUrl: CLIENT_ERROR_REDIRECTION_URL,
@@ -102,7 +104,7 @@ const acs: AssertionConsumerServiceT = async user => {
     .chain(spidUser =>
       config.ENABLE_JWT
         ? getSpidUserJwt(
-            config.JWT_TOKEN_PRIVATE_RSA_KEY,
+            config.JWT_TOKEN_PRIVATE_KEY,
             spidUser,
             config.JWT_TOKEN_EXPIRATION,
             config.JWT_TOKEN_ISSUER
@@ -112,7 +114,7 @@ const acs: AssertionConsumerServiceT = async user => {
             .chain(token =>
               setWithExpirationTask(
                 redisClient,
-                `session-token:${token}`,
+                `${SESSION_TOKEN_PREFIX}${token}`,
                 JSON.stringify(spidUser),
                 3600
               ).map(() => token)
@@ -180,7 +182,7 @@ export const createAppTask = withSpid({
     });
   });
   withSpidApp.post("/introspect", async (req, res) => {
-    await redisGetSpidUser(`session-token:${req.body.token}`)
+    await redisGetSpidUser(`${SESSION_TOKEN_PREFIX}${req.body.token}`)
       .mapLeft(() =>
         res.json({
           active: false

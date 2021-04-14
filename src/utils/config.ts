@@ -5,10 +5,7 @@
  * The configuration is evaluate eagerly at the first access to the module. The module exposes convenient methods to access such value.
  */
 
-import {
-  IntegerFromString,
-  NonNegativeInteger
-} from "@pagopa/ts-commons/lib/numbers";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { fromNullable } from "fp-ts/lib/Option";
 import * as t from "io-ts";
 import { readableReport } from "italia-ts-commons/lib/reporters";
@@ -47,7 +44,7 @@ export const SpidParams = t.intersection([
 
     JWT_TOKEN_EXPIRATION: NonNegativeInteger,
     JWT_TOKEN_ISSUER: NonEmptyString,
-    JWT_TOKEN_PRIVATE_RSA_KEY: NonEmptyString,
+    JWT_TOKEN_PRIVATE_KEY: NonEmptyString,
     SPID_ATTRIBUTES: NonEmptyString
   }),
   t.partial({
@@ -58,6 +55,19 @@ export const SpidParams = t.intersection([
 
 export type SpidParams = t.TypeOf<typeof SpidParams>;
 
+const JWTParams = t.union([
+  t.interface({
+    ENABLE_JWT: t.literal(true),
+    JWT_TOKEN_EXPIRATION: NonNegativeInteger,
+    JWT_TOKEN_ISSUER: NonEmptyString,
+    JWT_TOKEN_PRIVATE_RSA_KEY: NonEmptyString
+  }),
+  t.interface({
+    ENABLE_JWT: t.literal(false)
+  })
+]);
+type JWTParams = t.TypeOf<typeof JWTParams>;
+
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
@@ -65,35 +75,21 @@ export const IConfig = t.intersection([
     isProduction: t.boolean
   }),
   RedisParams,
-  SpidParams
+  SpidParams,
+  JWTParams
 ]);
-
-const DEFAULT_JWT_TOKEN_EXPIRATION = 604800 as NonNegativeInteger;
-const DUMMY_ISSUER = "ISSUER" as NonEmptyString;
-const DUMMY_PRIVATE_RSA_CERT = "CERT" as NonEmptyString;
-
-const isJwtEnabled = fromNullable(process.env.ENABLE_JWT)
-  .map(_ => _.toLowerCase() === "true")
-  .getOrElseL(() => false);
 
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
-  ENABLE_JWT: isJwtEnabled,
+  ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
   INCLUDE_SPID_USER_ON_INTROSPECTION: fromNullable(
     process.env.INCLUDE_SPID_USER_ON_INTROSPECTION
   )
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
-  JWT_TOKEN_EXPIRATION: IntegerFromString.decode(
-    process.env.JWT_TOKEN_EXPIRATION
-  ).getOrElse(DEFAULT_JWT_TOKEN_EXPIRATION) as NonNegativeInteger,
-  JWT_TOKEN_ISSUER: NonEmptyString.decode(
-    process.env.JWT_TOKEN_ISSUER
-  ).getOrElse(DUMMY_ISSUER),
-  JWT_TOKEN_PRIVATE_RSA_KEY: NonEmptyString.decode(
-    process.env.JWT_TOKEN_PRIVATE_RSA_KEY
-  ).getOrElse(DUMMY_PRIVATE_RSA_CERT),
   REDIS_CLUSTER_ENABLED: fromNullable(process.env.REDIS_CLUSTER_ENABLED)
     .map(_ => _.toLowerCase() === "true")
     .toUndefined(),

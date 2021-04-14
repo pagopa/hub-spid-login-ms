@@ -1,19 +1,20 @@
 /**
  * SPID Passport strategy
  */
+import { DoneCallbackT } from "@pagopa/io-spid-commons";
+import {
+  PreValidateResponseT,
+  SpidStrategy,
+  XmlTamperer
+} from "@pagopa/io-spid-commons/dist/strategy/spid";
 import * as express from "express";
 import { array } from "fp-ts/lib/Array";
 import { Task, task } from "fp-ts/lib/Task";
 import { NonEmptyString } from "italia-ts-commons/lib/strings";
 import { Profile, SamlConfig, VerifiedCallback } from "passport-saml";
 import { RedisClient } from "redis";
-import { DoneCallbackT } from "../spid/spid";
+
 import { CIE_IDP_IDENTIFIERS, SPID_IDP_IDENTIFIERS } from "../spid_const";
-import {
-  PreValidateResponseT,
-  SpidStrategy,
-  XmlTamperer
-} from "../strategy/spid";
 import { IDPEntityDescriptor } from "../types/IDPEntityDescriptor";
 import { fetchIdpsMetadata } from "./metadata";
 import { logSamlCertExpiration, SamlAttributeT } from "./saml";

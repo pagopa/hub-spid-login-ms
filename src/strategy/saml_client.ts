@@ -1,13 +1,13 @@
+import {
+  PreValidateResponseDoneCallbackT,
+  PreValidateResponseT,
+  XmlTamperer
+} from "@pagopa/io-spid-commons/dist/strategy/spid";
 import * as express from "express";
 import { fromNullable } from "fp-ts/lib/Option";
 import { SamlConfig } from "passport-saml";
 import * as PassportSaml from "passport-saml";
 import { IExtendedCacheProvider } from "./redis_cache_provider";
-import {
-  PreValidateResponseDoneCallbackT,
-  PreValidateResponseT,
-  XmlTamperer
-} from "./spid";
 
 export class CustomSamlClient extends PassportSaml.SAML {
   constructor(

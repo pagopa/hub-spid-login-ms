@@ -30,7 +30,6 @@ import * as passport from "passport";
 import { SamlConfig } from "passport-saml";
 import { RedisClient } from "redis";
 import { Builder } from "xml2js";
-import { noopCacheProvider } from "../strategy/redis_cache_provider";
 import { logger } from "../utils/logger";
 import { parseStartupIdpsMetadata } from "../utils/metadata";
 import {

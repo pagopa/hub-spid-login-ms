@@ -5,7 +5,12 @@
  * The configuration is evaluate eagerly at the first access to the module. The module exposes convenient methods to access such value.
  */
 
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import {
+  IntegerFromString,
+  NonNegativeInteger
+} from "@pagopa/ts-commons/lib/numbers";
+import { fromNullable as fromNullableE } from "fp-ts/lib/Either";
+import { identity } from "fp-ts/lib/function";
 import { fromNullable } from "fp-ts/lib/Option";
 import * as t from "io-ts";
 import { readableReport } from "italia-ts-commons/lib/reporters";
@@ -27,7 +32,6 @@ export type RedisParams = t.TypeOf<typeof RedisParams>;
 export const SpidParams = t.intersection([
   t.interface({
     AUTH_N_CONTEXT: NonEmptyString,
-    ENABLE_JWT: t.boolean,
     ENDPOINT_ACS: NonEmptyString,
     ENDPOINT_ERROR: NonEmptyString,
     ENDPOINT_LOGIN: NonEmptyString,
@@ -41,10 +45,6 @@ export const SpidParams = t.intersection([
 
     ORG_NAME: NonEmptyString,
     ORG_URL: NonEmptyString,
-
-    JWT_TOKEN_EXPIRATION: NonNegativeInteger,
-    JWT_TOKEN_ISSUER: NonEmptyString,
-    JWT_TOKEN_PRIVATE_KEY: NonEmptyString,
     SPID_ATTRIBUTES: NonEmptyString
   }),
   t.partial({
@@ -60,7 +60,7 @@ const JWTParams = t.union([
     ENABLE_JWT: t.literal(true),
     JWT_TOKEN_EXPIRATION: NonNegativeInteger,
     JWT_TOKEN_ISSUER: NonEmptyString,
-    JWT_TOKEN_PRIVATE_RSA_KEY: NonEmptyString
+    JWT_TOKEN_PRIVATE_KEY: NonEmptyString
   }),
   t.interface({
     ENABLE_JWT: t.literal(false)
@@ -90,6 +90,10 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   )
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
+  // -1 value fail IConfig decode if ENABLE_JWT is true
+  JWT_TOKEN_EXPIRATION: fromNullableE(-1)(process.env.JWT_TOKEN_EXPIRATION)
+    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+    .fold(identity, identity),
   REDIS_CLUSTER_ENABLED: fromNullable(process.env.REDIS_CLUSTER_ENABLED)
     .map(_ => _.toLowerCase() === "true")
     .toUndefined(),

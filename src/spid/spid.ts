@@ -5,6 +5,12 @@
  * Setups the endpoint to generate service provider metadata
  * and a scheduled process to refresh IDP metadata from providers.
  */
+import {
+  AssertionConsumerServiceT,
+  DoneCallbackT,
+  IApplicationConfig,
+  LogoutT
+} from "@pagopa/io-spid-commons";
 import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { EmailString } from "@pagopa/ts-commons/lib/strings";
@@ -15,10 +21,7 @@ import { Task, task } from "fp-ts/lib/Task";
 import * as t from "io-ts";
 import { toExpressHandler } from "italia-ts-commons/lib/express";
 import {
-  IResponseErrorForbiddenNotAuthorized,
   IResponseErrorInternal,
-  IResponseErrorValidation,
-  IResponsePermanentRedirect,
   IResponseSuccessXml,
   ResponseErrorInternal,
   ResponseSuccessXml
@@ -69,54 +72,6 @@ export const SpidUser = t.intersection([
 ]);
 
 export type SpidUser = t.TypeOf<typeof SpidUser>;
-
-// assertion consumer service express handler
-export type AssertionConsumerServiceT = (
-  userPayload: unknown
-) => Promise<
-  // tslint:disable-next-line: max-union-size
-  | IResponseErrorInternal
-  | IResponseErrorValidation
-  | IResponsePermanentRedirect
-  | IResponseErrorForbiddenNotAuthorized
->;
-
-// logout express handler
-export type LogoutT = () => Promise<IResponsePermanentRedirect>;
-
-// invoked for each request / response
-// to pass SAML payload to the caller
-export type DoneCallbackT = (
-  sourceIp: string | null,
-  request: string,
-  response: string
-) => void;
-
-export interface IEventInfo {
-  name: string;
-  type: "ERROR" | "INFO";
-  data: {
-    message: string;
-    [key: string]: string;
-  };
-}
-
-export type EventTracker = (params: IEventInfo) => void;
-
-// express endpoints configuration
-export interface IApplicationConfig {
-  assertionConsumerServicePath: string;
-  clientErrorRedirectionUrl: string;
-  clientLoginRedirectionUrl: string;
-  loginPath: string;
-  metadataPath: string;
-  sloPath: string;
-  startupIdpsMetadata?: Record<string, string>;
-  eventTraker?: EventTracker;
-}
-
-// re-export
-export { noopCacheProvider, IServiceProviderConfig, SamlConfig };
 
 /**
  * Wraps assertion consumer service handler

@@ -17,7 +17,7 @@ import { SpidUser } from "../spid/spid";
 export const getSpidUserJwt = (
   privateKey: NonEmptyString,
   spidUser: SpidUser,
-  tokenTtl: NonNegativeInteger,
+  tokenTtlSeconds: NonNegativeInteger,
   issuer: NonEmptyString
 ): TaskEither<Error, string> =>
   taskify<Error, string>(cb =>
@@ -26,7 +26,7 @@ export const getSpidUserJwt = (
       privateKey,
       {
         algorithm: "ES256",
-        expiresIn: `${tokenTtl} seconds`,
+        expiresIn: `${tokenTtlSeconds} seconds`,
         issuer,
         jwtid: ulid()
       },

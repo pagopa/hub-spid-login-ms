@@ -1,4 +1,9 @@
-import { IApplicationConfig, withSpid } from "@pagopa/io-spid-commons";
+import {
+  AssertionConsumerServiceT,
+  IApplicationConfig,
+  LogoutT,
+  withSpid
+} from "@pagopa/io-spid-commons";
 import {
   IResponsePermanentRedirect,
   ResponseErrorInternal
@@ -7,30 +12,17 @@ import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as crypto from "crypto";
 import * as express from "express";
-import { toError } from "fp-ts/lib/Either";
 import { identity } from "fp-ts/lib/function";
-import {
-  fromEither,
-  fromPredicate,
-  TaskEither,
-  taskEither,
-  tryCatch
-} from "fp-ts/lib/TaskEither";
+import { fromEither, fromPredicate, taskEither } from "fp-ts/lib/TaskEither";
 import * as fs from "fs";
 
 import {
   IResponseErrorInternal,
   ResponsePermanentRedirect
 } from "italia-ts-commons/lib/responses";
-import {
-  EmailString,
-  FiscalCode,
-  NonEmptyString
-} from "italia-ts-commons/lib/strings";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
-import { promisify } from "util";
-import { AssertionConsumerServiceT, LogoutT, SpidUser } from "./spid/spid";
+import { SpidUser } from "./spid/spid";
 import { getConfigOrThrow } from "./utils/config";
 import { errorsToError } from "./utils/conversions";
 import { getSpidUserJwt } from "./utils/jwt";

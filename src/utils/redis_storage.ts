@@ -39,7 +39,7 @@ export const singleValueReply = (
  *
  * @see https://redis.io/topics/protocol#integer-reply
  */
-export const integerRepl = (
+export const integerReply = (
   err: Error | null,
   reply: unknown,
   expectedReply?: number
@@ -77,8 +77,6 @@ export const setWithExpirationTask = (
   tryCatch(
     () =>
       new Promise<Either<Error, true>>(resolve =>
-        // Set key to hold the string value. If key already holds a value, it is overwritten, regardless of its type.
-        // @see https://redis.io/commands/set
         redisClient.set(
           key,
           value,
@@ -105,8 +103,6 @@ export const getTask = (
   tryCatch(
     () =>
       new Promise<Either<Error, Option<string>>>(resolve =>
-        // Set key to hold the string value. If key already holds a value, it is overwritten, regardless of its type.
-        // @see https://redis.io/commands/set
         redisClient.get(key, (err, response) =>
           resolve(singleValueReply(err, response))
         )
@@ -121,10 +117,8 @@ export const existsKeyTask = (
   tryCatch(
     () =>
       new Promise<Either<Error, boolean>>(resolve =>
-        // Set key to hold the string value. If key already holds a value, it is overwritten, regardless of its type.
-        // @see https://redis.io/commands/set
         redisClient.exists(key, (err, response) =>
-          resolve(integerRepl(err, response, 1))
+          resolve(integerReply(err, response, 1))
         )
       ),
     toError

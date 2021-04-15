@@ -22,10 +22,10 @@ import {
 } from "italia-ts-commons/lib/responses";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
-import { SpidUser } from "./spid/spid";
+import { SpidUser, TokenUser } from "./types/user";
 import { getConfigOrThrow } from "./utils/config";
-import { errorsToError } from "./utils/conversions";
-import { getSpidUserJwt } from "./utils/jwt";
+import { errorsToError, toTokenUser } from "./utils/conversions";
+import { getUserJwt } from "./utils/jwt";
 import { IServiceProviderConfig } from "./utils/middleware";
 import { REDIS_CLIENT } from "./utils/redis";
 import { getTask, setWithExpirationTask } from "./utils/redis_storage";
@@ -79,9 +79,9 @@ const serviceProviderConfig: IServiceProviderConfig = {
 
 const redisClient = REDIS_CLIENT;
 
-const redisGetSpidUser = (userKey: string) =>
+const redisGetTokenUser = (userKey: string) =>
   getTask(redisClient, userKey).chain(_ =>
-    fromEither(SpidUser.decode(_).mapLeft(errorsToError))
+    fromEither(TokenUser.decode(_).mapLeft(errorsToError))
   );
 
 const samlConfig: SamlConfig = {
@@ -100,12 +100,12 @@ const samlConfig: SamlConfig = {
 
 const acs: AssertionConsumerServiceT = async user => {
   return fromEither(SpidUser.decode(user))
-    .mapLeft(errorsToError)
-    .chain(spidUser =>
+    .bimap(errorsToError, toTokenUser)
+    .chain(tokenUser =>
       config.ENABLE_JWT
-        ? getSpidUserJwt(
+        ? getUserJwt(
             config.JWT_TOKEN_PRIVATE_KEY,
-            spidUser,
+            tokenUser,
             config.JWT_TOKEN_EXPIRATION,
             config.JWT_TOKEN_ISSUER
           )
@@ -115,7 +115,7 @@ const acs: AssertionConsumerServiceT = async user => {
               setWithExpirationTask(
                 redisClient,
                 `${SESSION_TOKEN_PREFIX}${token}`,
-                JSON.stringify(spidUser),
+                JSON.stringify(tokenUser),
                 3600
               ).map(() => token)
             )
@@ -182,7 +182,7 @@ export const createAppTask = withSpid({
     });
   });
   withSpidApp.post("/introspect", async (req, res) => {
-    await redisGetSpidUser(`${SESSION_TOKEN_PREFIX}${req.body.token}`)
+    await redisGetTokenUser(`${SESSION_TOKEN_PREFIX}${req.body.token}`)
       .mapLeft(() =>
         res.json({
           active: false
@@ -194,7 +194,7 @@ export const createAppTask = withSpid({
           () => res.json({ active: true })
         )
       )
-      .map(spidUser => ({ active: true, user: spidUser }))
+      .map(tokenUser => ({ active: true, user: tokenUser }))
       .fold(identity, _ => res.json(_))
       .run();
   });

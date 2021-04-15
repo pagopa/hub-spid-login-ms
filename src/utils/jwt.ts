@@ -4,7 +4,7 @@ import { toError } from "fp-ts/lib/Either";
 import { TaskEither, taskify } from "fp-ts/lib/TaskEither";
 import * as jwt from "jsonwebtoken";
 import { ulid } from "ulid";
-import { SpidUser } from "../spid/spid";
+import { TokenUser } from "../types/user";
 
 /**
  * Generates a new token containing the logged spid User.
@@ -14,15 +14,15 @@ import { SpidUser } from "../spid/spid";
  * @param tokenTtl: Token Time To live (expressed in seconds)
  * @param issuer: The Token issuer
  */
-export const getSpidUserJwt = (
+export const getUserJwt = (
   privateKey: NonEmptyString,
-  spidUser: SpidUser,
+  tokenUser: TokenUser,
   tokenTtlSeconds: NonNegativeInteger,
   issuer: NonEmptyString
 ): TaskEither<Error, string> =>
   taskify<Error, string>(cb =>
     jwt.sign(
-      spidUser,
+      tokenUser,
       privateKey,
       {
         algorithm: "ES256",

@@ -100,7 +100,8 @@ const samlConfig: SamlConfig = {
 
 const acs: AssertionConsumerServiceT = async user => {
   return fromEither(SpidUser.decode(user))
-    .bimap(errorsToError, toTokenUser)
+    .mapLeft(errorsToError)
+    .chain(_ => fromEither(toTokenUser(_)))
     .chain(tokenUser =>
       config.ENABLE_JWT
         ? getUserJwt(

@@ -5,20 +5,22 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import * as t from "io-ts";
 
+export const FISCAL_NUMBER_INTERNATIONAL_PREFIX = "TINIT-";
+
 export const SpidUser = t.intersection([
   t.interface({
     // the following values may be set
     // by the calling application:
     // authnContextClassRef: SpidLevel,
     // issuer: Issuer
-    fiscalNumber: FiscalCode,
+    fiscalNumber: NonEmptyString,
     getAssertionXml: t.Function
   }),
   t.partial({
     email: EmailString,
-    familyName: t.string,
+    familyName: NonEmptyString,
     mobilePhone: NonEmptyString,
-    name: t.string,
+    name: NonEmptyString,
     nameID: t.string,
     nameIDFormat: t.string,
     sessionIndex: t.string
@@ -33,9 +35,9 @@ export const TokenUser = t.intersection([
   }),
   t.partial({
     email: EmailString,
-    family_name: t.string,
+    family_name: NonEmptyString,
     mobile_phone: NonEmptyString,
-    name: t.string
+    name: NonEmptyString
   })
 ]);
 

@@ -1,9 +1,10 @@
+import { EventTracker } from "@pagopa/io-spid-commons";
+import * as date_fns from "date-fns";
 import { right } from "fp-ts/lib/Either";
 import { isSome, tryCatch } from "fp-ts/lib/Option";
 import { fromEither } from "fp-ts/lib/TaskEither";
 import { SamlConfig } from "passport-saml";
 import { DOMParser } from "xmldom";
-import { EventTracker } from "../../spid/spid";
 import {
   getSamlAssertion,
   getSamlResponse,
@@ -14,6 +15,8 @@ import {
 import { StrictResponseValidationOptions } from "../middleware";
 import { getPreValidateResponse, getXmlFromSamlResponse } from "../saml";
 import * as saml from "../saml";
+
+const signatureMethod = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
 
 const samlConfig: SamlConfig = ({
   attributes: {
@@ -27,20 +30,14 @@ const samlConfig: SamlConfig = ({
 } as unknown) as SamlConfig;
 
 const aResponseSignedWithHMAC = getSamlResponse({
-  signatureMethod: "http://www.w3.org/2000/09/xmldsig#hmac-sha1"
+  signatureMethod
 });
 const aResponseWithOneAssertionSignedWithHMAC = getSamlResponse({
-  customAssertion: getSamlAssertion(
-    0,
-    "http://www.w3.org/2000/09/xmldsig#hmac-sha1"
-  )
+  customAssertion: getSamlAssertion(0, signatureMethod)
 });
 const aResponseSignedWithHMACWithOneAssertionSignedWithHMAC = getSamlResponse({
-  customAssertion: getSamlAssertion(
-    0,
-    "http://www.w3.org/2000/09/xmldsig#hmac-sha1"
-  ),
-  signatureMethod: "http://www.w3.org/2000/09/xmldsig#hmac-sha1"
+  customAssertion: getSamlAssertion(0, signatureMethod),
+  signatureMethod
 });
 
 describe("getXmlFromSamlResponse", () => {
@@ -80,7 +77,7 @@ describe("preValidateResponse", () => {
         error
           ? expect(callback).toBeCalledWith(error)
           : expect(callback).toBeCalledWith(null, true, expect.any(String));
-        resolve();
+        resolve(void 0);
       }, 100);
     });
 
@@ -90,7 +87,7 @@ describe("preValidateResponse", () => {
       return fromEither(
         right({
           RequestXML: samlRequest,
-          createdAt: "2020-02-26T07:27:42Z",
+          createdAt: date_fns.addDays(new Date(), 1).toISOString(),
           idpIssuer: mockTestIdpIssuer
         })
       );

@@ -13,6 +13,7 @@ import { debug } from "console";
 import * as crypto from "crypto";
 import * as express from "express";
 import { identity } from "fp-ts/lib/function";
+import { fromLeft } from "fp-ts/lib/TaskEither";
 import { fromEither, fromPredicate, taskEither } from "fp-ts/lib/TaskEither";
 import * as fs from "fs";
 
@@ -28,12 +29,18 @@ import { errorsToError, toTokenUser } from "./utils/conversions";
 import { getUserJwt } from "./utils/jwt";
 import { IServiceProviderConfig } from "./utils/middleware";
 import { REDIS_CLIENT } from "./utils/redis";
-import { getTask, setWithExpirationTask } from "./utils/redis_storage";
+import {
+  existsKeyTask,
+  getTask,
+  setTask,
+  setWithExpirationTask
+} from "./utils/redis_storage";
 import { SamlAttributeT } from "./utils/saml";
 
 const config = getConfigOrThrow();
 
 export const SESSION_TOKEN_PREFIX = "session-token:";
+export const SESSION_INVALIDATE_TOKEN_PREFIX = "session-token-invalidate:";
 
 export const appConfig: IApplicationConfig = {
   assertionConsumerServicePath: config.ENDPOINT_ACS,
@@ -78,11 +85,6 @@ const serviceProviderConfig: IServiceProviderConfig = {
 };
 
 const redisClient = REDIS_CLIENT;
-
-const redisGetTokenUser = (userKey: string) =>
-  getTask(redisClient, userKey).chain(_ =>
-    fromEither(TokenUser.decode(_).mapLeft(errorsToError))
-  );
 
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",
@@ -183,20 +185,60 @@ export const createAppTask = withSpid({
     });
   });
   withSpidApp.post("/introspect", async (req, res) => {
-    await redisGetTokenUser(`${SESSION_TOKEN_PREFIX}${req.body.token}`)
-      .mapLeft(() =>
-        res.json({
-          active: false
-        })
+    // first check if jwt is blacklisted
+    await existsKeyTask(
+      redisClient,
+      `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`
+    )
+      .mapLeft(() => res.status(500).json("Cannot introspect token"))
+      .chain(
+        fromPredicate(
+          _ => _ === false,
+          () =>
+            res.status(403).json({
+              active: false
+            })
+        )
+      )
+      .chain(() =>
+        getTask(
+          redisClient,
+          `${SESSION_TOKEN_PREFIX}${req.body.token}`
+        ).mapLeft(() => res.status(500).json("Error while retrieving token"))
+      )
+      .chain<TokenUser>(maybeToken =>
+        maybeToken.foldL(
+          () =>
+            // tslint:disable-next-line: no-any
+            fromLeft(res.status(404).json("Token not found")),
+          rawToken =>
+            fromEither(TokenUser.decode(rawToken)).mapLeft(errs =>
+              res.status(500).json({
+                detail: String(errorsToError(errs)),
+                error: "Error while retrieving token"
+              })
+            )
+        )
       )
       .chain(
         fromPredicate(
           () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
-          () => res.json({ active: true })
+          () => res.status(200).json({ active: true })
         )
       )
       .map(tokenUser => ({ active: true, user: tokenUser }))
-      .fold(identity, _ => res.json(_))
+      .fold(identity, _ => res.status(200).json(_))
+      .run();
+  });
+
+  withSpidApp.post("/invalidate", async (req, res) => {
+    await setTask(
+      redisClient,
+      `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`,
+      "true"
+    )
+      .mapLeft(() => res.status(500).json("Error while invalidating Token"))
+      .fold(identity, _ => res.status(200).json(_))
       .run();
   });
   withSpidApp.use(

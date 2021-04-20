@@ -1,5 +1,4 @@
 import * as express from "express";
-import { TaskEither } from "fp-ts/lib/TaskEither";
 import {
   AuthenticateOptions,
   AuthorizeOptions,
@@ -13,35 +12,18 @@ import { RedisClient } from "redis";
 // tslint:disable-next-line: no-submodule-imports
 import { MultiSamlConfig } from "passport-saml/multiSamlStrategy";
 
+import { DoneCallbackT } from "@pagopa/io-spid-commons";
+import {
+  PreValidateResponseT,
+  XmlTamperer
+} from "@pagopa/io-spid-commons/dist/strategy/spid";
 import { Second } from "italia-ts-commons/lib/units";
-import { DoneCallbackT } from "../spid/spid";
 import {
   getExtendedRedisCacheProvider,
   IExtendedCacheProvider,
   noopCacheProvider
 } from "./redis_cache_provider";
 import { CustomSamlClient } from "./saml_client";
-
-export type XmlTamperer = (xml: string) => TaskEither<Error, string>;
-
-export type PreValidateResponseDoneCallbackT = (
-  request: string,
-  response: string
-) => void;
-
-export type PreValidateResponseT = (
-  samlConfig: SamlConfig,
-  body: unknown,
-  extendedRedisCacheProvider: IExtendedCacheProvider,
-  doneCb: PreValidateResponseDoneCallbackT | undefined,
-  // tslint:disable-next-line: bool-param-default
-  callback: (
-    err: Error | null,
-    // tslint:disable-next-line: bool-param-default
-    isValid?: boolean,
-    InResponseTo?: string
-  ) => void
-) => void;
 
 export class SpidStrategy extends SamlStrategy {
   private extendedRedisCacheProvider: IExtendedCacheProvider;
@@ -88,7 +70,8 @@ export class SpidStrategy extends SamlStrategy {
         this.extendedRedisCacheProvider,
         this.tamperAuthorizeRequest,
         this.preValidateResponse,
-        (...args) => (this.doneCb ? this.doneCb(req.ip, ...args) : undefined)
+        (request: string, response: string) =>
+          this.doneCb ? this.doneCb(req.ip, request, response) : undefined
       );
       // we clone the original strategy to avoid race conditions
       // see https://github.com/bergie/passport-saml/pull/426/files

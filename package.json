@@ -33,6 +33,7 @@
     "@types/passport": "^1.0.2",
     "@types/passport-saml": "1.1.1",
     "@types/request-ip": "0.0.35",
+    "@types/jsonwebtoken": "7.2.7",
     "@types/supertest": "^2.0.8",
     "@types/xml-crypto": "^1.4.1",
     "@types/xml2js": "^0.4.5",
@@ -68,12 +69,14 @@
     "node-forge": "^0.10.0",
     "passport": "^0.4.1",
     "passport-saml": "1.2.0",
+    "jsonwebtoken": "^8.5.1",
     "redis": "^2.8.0",
     "winston": "^3.0.0",
     "xml-crypto": "^1.4.0",
     "xml2js": "^0.4.23",
     "xmldom": "^0.1.27",
-    "yargs": "^15.3.0"
+    "yargs": "^15.3.0",
+    "ulid": "^2.2.2"
   },
   "jest": {
     "testEnvironment": "node",

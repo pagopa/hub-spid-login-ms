@@ -10,7 +10,6 @@ import { getAuthorizeRequestTamperer } from "../../utils/saml";
 import { mockWrapCallback } from "../__mocks__/passport-saml";
 import { getExtendedRedisCacheProvider } from "../redis_cache_provider";
 import { CustomSamlClient } from "../saml_client";
-import { PreValidateResponseT } from "../spid";
 
 const mockSet = jest.fn();
 const mockGet = jest.fn();
@@ -211,7 +210,7 @@ describe("CustomSamlClient#validatePostResponse", () => {
           expect.any(Function)
         );
         expect(mockedCallback).toBeCalledWith(null, {}, false);
-        resolve();
+        resolve(void 0);
       }, 100);
     });
   });
@@ -252,7 +251,7 @@ describe("CustomSamlClient#validatePostResponse", () => {
             `SAML#ExtendedRedisCacheProvider: remove() error ${expectedDelError}`
           )
         );
-        resolve();
+        resolve(void 0);
       }, 100);
     });
   });
@@ -306,7 +305,7 @@ describe("CustomSamlClient#generateAuthorizeRequest", () => {
       setTimeout(() => {
         expect(mockSet).toBeCalled();
         expect(mockCallback).toBeCalledWith(null, SAMLRequest);
-        resolve();
+        resolve(void 0);
       }, 100);
     });
   });
@@ -340,7 +339,7 @@ describe("CustomSamlClient#generateAuthorizeRequest", () => {
       setTimeout(() => {
         expect(mockSet).not.toBeCalled();
         expect(mockCallback).toBeCalledWith(expectedTamperError);
-        resolve();
+        resolve(void 0);
       }, 100);
     });
   });

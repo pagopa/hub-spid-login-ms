@@ -4,6 +4,8 @@
  * SPID protocol has some peculiarities that need to be addressed
  * to make request, metadata and responses compliant.
  */
+import { EventTracker } from "@pagopa/io-spid-commons";
+import { PreValidateResponseT } from "@pagopa/io-spid-commons/dist/strategy/spid";
 import { distanceInWordsToNow, isAfter, subDays } from "date-fns";
 import { Request as ExpressRequest } from "express";
 import { difference, flatten } from "fp-ts/lib/Array";
@@ -42,9 +44,7 @@ import { MultiSamlConfig } from "passport-saml/multiSamlStrategy";
 import * as xmlCrypto from "xml-crypto";
 import { Builder, parseStringPromise } from "xml2js";
 import { DOMParser, XMLSerializer } from "xmldom";
-import { EventTracker } from "../spid/spid";
 import { SPID_LEVELS, SPID_URLS, SPID_USER_ATTRIBUTES } from "../spid_const";
-import { PreValidateResponseT } from "../strategy/spid";
 import { logger } from "./logger";
 import {
   getSpidStrategyOption,
@@ -1273,7 +1273,7 @@ export const getPreValidateResponse = (
             );
           }
           const missingAttributes = difference(setoidString)(
-            // tslint:disable-next-line: no-any
+            // tslint:disable-next-line: no-any no-useless-cast
             (samlConfig as any).attributes?.attributes?.attributes || [
               "Request attributes must be defined"
             ],

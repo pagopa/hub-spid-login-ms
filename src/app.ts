@@ -210,5 +210,5 @@ export const createAppTask = withSpid({
         error: error.message
       })
   );
-  withSpidApp.listen(3000);
+  return withSpidApp;
 });

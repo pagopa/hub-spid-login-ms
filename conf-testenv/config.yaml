@@ -21,7 +21,7 @@ cert_file: "conf/idp.crt"
 # cfr. https://pysaml2.readthedocs.io/en/latest/howto/config.html#metadata
 metadata:
   remote:
-    - "http://auth-spid:3000/metadata"
+    - "http://backend:8080/metadata"
 
 # CONFIGURAZIONE TESTENV WEB SERVER
 

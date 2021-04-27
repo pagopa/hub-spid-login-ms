@@ -1,9 +1,12 @@
 import {
   AssertionConsumerServiceT,
   IApplicationConfig,
+  IServiceProviderConfig,
   LogoutT,
   withSpid
 } from "@pagopa/io-spid-commons";
+import { getSpidStrategyOption } from "@pagopa/io-spid-commons/dist/utils/middleware";
+import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import {
   IResponsePermanentRedirect,
   ResponseErrorInternal
@@ -12,8 +15,14 @@ import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as crypto from "crypto";
 import * as express from "express";
+import { parseJSON } from "fp-ts/lib/Either";
 import { identity } from "fp-ts/lib/function";
-import { fromEither, fromPredicate, taskEither } from "fp-ts/lib/TaskEither";
+import {
+  fromEither,
+  fromLeft,
+  fromPredicate,
+  taskEither
+} from "fp-ts/lib/TaskEither";
 import * as fs from "fs";
 
 import {
@@ -26,10 +35,9 @@ import { SpidUser, TokenUser } from "./types/user";
 import { getConfigOrThrow } from "./utils/config";
 import { errorsToError, toTokenUser } from "./utils/conversions";
 import { getUserJwt } from "./utils/jwt";
-import { IServiceProviderConfig } from "./utils/middleware";
+
 import { REDIS_CLIENT } from "./utils/redis";
 import { getTask, setWithExpirationTask } from "./utils/redis_storage";
-import { SamlAttributeT } from "./utils/saml";
 
 const config = getConfigOrThrow();
 
@@ -80,9 +88,14 @@ const serviceProviderConfig: IServiceProviderConfig = {
 const redisClient = REDIS_CLIENT;
 
 const redisGetTokenUser = (userKey: string) =>
-  getTask(redisClient, userKey).chain(_ =>
-    fromEither(TokenUser.decode(_).mapLeft(errorsToError))
-  );
+  getTask(redisClient, userKey)
+    .chain(_ =>
+      _.foldL(
+        () => fromLeft(new Error("No existing token into Redis")),
+        userStr => fromEither(parseJSON(userStr, __ => new Error(String(__))))
+      )
+    )
+    .chain(_ => fromEither(TokenUser.decode(_).mapLeft(errorsToError)));
 
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",
@@ -184,9 +197,10 @@ export const createAppTask = withSpid({
   });
   withSpidApp.post("/introspect", async (req, res) => {
     await redisGetTokenUser(`${SESSION_TOKEN_PREFIX}${req.body.token}`)
-      .mapLeft(() =>
+      .mapLeft(err =>
         res.json({
-          active: false
+          active: false,
+          error: err
         })
       )
       .chain(
@@ -199,6 +213,7 @@ export const createAppTask = withSpid({
       .fold(identity, _ => res.json(_))
       .run();
   });
+
   withSpidApp.use(
     (
       error: Error,

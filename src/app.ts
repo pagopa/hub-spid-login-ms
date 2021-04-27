@@ -117,17 +117,26 @@ const acs: AssertionConsumerServiceT = async user => {
             tokenUser,
             config.JWT_TOKEN_EXPIRATION,
             config.JWT_TOKEN_ISSUER
-          )
+          ).map(_ => ({
+            expiration: config.JWT_TOKEN_EXPIRATION,
+            token: _,
+            tokenUser
+          }))
         : taskEither
             .of<Error, string>(crypto.randomBytes(32).toString("hex"))
-            .chain(token =>
-              setWithExpirationTask(
-                redisClient,
-                `${SESSION_TOKEN_PREFIX}${token}`,
-                JSON.stringify(tokenUser),
-                3600
-              ).map(() => token)
-            )
+            .map(_ => ({
+              expiration: 3600,
+              token: _,
+              tokenUser
+            }))
+    )
+    .chain(({ token, expiration, tokenUser }) =>
+      setWithExpirationTask(
+        redisClient,
+        `${SESSION_TOKEN_PREFIX}${token}`,
+        JSON.stringify(tokenUser),
+        expiration
+      ).map(() => token)
     )
     .fold<IResponseErrorInternal | IResponsePermanentRedirect>(
       err => ResponseErrorInternal(err.message),
@@ -191,7 +200,7 @@ export const createAppTask = withSpid({
     });
   });
   withSpidApp.post("/introspect", async (req, res) => {
-    // first check if jwt is blacklisted
+    // first check if token is blacklisted
     await existsKeyTask(
       redisClient,
       `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`

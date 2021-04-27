@@ -1,0 +1,51 @@
+version: "2.2"
+
+services:
+    backend:
+        container_name: hub-spid-login-ms
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        environment: 
+            - NODE_TLS_REJECT_UNAUTHORIZED=0
+        env_file:
+            - .env
+        expose:
+            - "8080"
+        ports:
+            - "8080:8080"
+            - "5859:5859"
+        image: node:10.14.2-alpine
+        command: ["yarn", "start"]
+        volumes:
+            - ".:/usr/src/app:cached"
+        networks:
+            - spid-net
+
+    spid-testenv2:
+        container_name: spid-testenv2
+        image: italia/spid-testenv2
+        ports:
+            - "8088:8088"
+        volumes:
+            - "./conf-testenv:/app/conf:cached"
+        networks:
+            - spid-net
+
+    redis:
+        container_name: redis
+        image: wodby/redis:3.2-2.1.5
+        ports:
+            - "6379:6379"
+        environment:
+            REDIS_TIMEOUT: 300
+            REDIS_TCP_KEEPALIVE: 60
+            REDIS_MAXMEMORY: 182m
+        networks:
+            - spid-net
+
+networks:
+    spid-net:
+        driver: bridge
+        driver_opts:
+            com.docker.network.driver.mtu: 1450

@@ -1,9 +1,11 @@
 import {
   AssertionConsumerServiceT,
   IApplicationConfig,
+  IServiceProviderConfig,
   LogoutT,
   withSpid
 } from "@pagopa/io-spid-commons";
+import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import {
   IResponsePermanentRedirect,
   ResponseErrorInternal
@@ -12,9 +14,14 @@ import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as crypto from "crypto";
 import * as express from "express";
+import { parseJSON } from "fp-ts/lib/Either";
 import { identity } from "fp-ts/lib/function";
-import { fromLeft } from "fp-ts/lib/TaskEither";
-import { fromEither, fromPredicate, taskEither } from "fp-ts/lib/TaskEither";
+import {
+  fromEither,
+  fromLeft,
+  fromPredicate,
+  taskEither
+} from "fp-ts/lib/TaskEither";
 import * as fs from "fs";
 
 import {
@@ -27,7 +34,7 @@ import { SpidUser, TokenUser } from "./types/user";
 import { getConfigOrThrow } from "./utils/config";
 import { errorsToError, toTokenUser } from "./utils/conversions";
 import { getUserJwt } from "./utils/jwt";
-import { IServiceProviderConfig } from "./utils/middleware";
+
 import { REDIS_CLIENT } from "./utils/redis";
 import {
   existsKeyTask,
@@ -35,7 +42,6 @@ import {
   setTask,
   setWithExpirationTask
 } from "./utils/redis_storage";
-import { SamlAttributeT } from "./utils/saml";
 
 const config = getConfigOrThrow();
 
@@ -207,18 +213,29 @@ export const createAppTask = withSpid({
         ).mapLeft(() => res.status(500).json("Error while retrieving token"))
       )
       .chain<TokenUser>(maybeToken =>
-        maybeToken.foldL(
-          () =>
-            // tslint:disable-next-line: no-any
-            fromLeft(res.status(404).json("Token not found")),
-          rawToken =>
-            fromEither(TokenUser.decode(rawToken)).mapLeft(errs =>
+        maybeToken
+          .foldL(
+            () =>
+              // tslint:disable-next-line: no-any
+              fromLeft(res.status(404).json("Token not found")),
+            rawToken =>
+              fromEither(
+                parseJSON(rawToken, err =>
+                  res.status(500).json({
+                    detail: String(err),
+                    error: "Error parsing token"
+                  })
+                )
+              )
+          )
+          .chain(_ =>
+            fromEither(TokenUser.decode(_)).mapLeft(errs =>
               res.status(500).json({
                 detail: String(errorsToError(errs)),
-                error: "Error while retrieving token"
+                error: "Error while decoding token"
               })
             )
-        )
+          )
       )
       .chain(
         fromPredicate(
@@ -241,6 +258,7 @@ export const createAppTask = withSpid({
       .fold(identity, _ => res.status(200).json(_))
       .run();
   });
+
   withSpidApp.use(
     (
       error: Error,
@@ -252,5 +270,5 @@ export const createAppTask = withSpid({
         error: error.message
       })
   );
-  withSpidApp.listen(3000);
+  return withSpidApp;
 });

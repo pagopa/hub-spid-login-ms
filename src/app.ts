@@ -5,7 +5,6 @@ import {
   LogoutT,
   withSpid
 } from "@pagopa/io-spid-commons";
-import { getSpidStrategyOption } from "@pagopa/io-spid-commons/dist/utils/middleware";
 import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import {
   IResponsePermanentRedirect,

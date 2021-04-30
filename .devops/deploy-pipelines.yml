@@ -15,19 +15,13 @@ parameters:
       - minor
       - patch
     default: minor
-  # Map of production apps to deploy to, in the form
-  #   {logicName}: 
-  #     appname: {name of the resource}
-  #     rg: {name of the resource group}
-  # Although it's a parameter, it's not intended to be edited at runtime.
-  # It's here because variables only handle scalar values
-  - name: 'PRODUCTION_APPS'
-    displayName: ''
-    type: object
-    default:
-      hub-spid-login:
-        appname: io-p-app-hub-spid-login
-        rg: io-p-rg-linux
+  - name: environment
+    displayName: Target Environment
+    type: string
+    default: uat
+    values:
+      - uat
+      - prod
       
 
 # Only manual activations are intended

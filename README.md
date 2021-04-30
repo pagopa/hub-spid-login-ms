@@ -9,7 +9,8 @@ This is a Microservice that is responsible to provide a single entry point for S
 * `/refresh`: Trigger IDP metadata refresh
 * `/invalidate`: Invalidates a previous released token
 * `/introspect`: Introspect token by giving information (optional) about logged Spid User
-* `/success`: Final redirec to success endpoint after a successful SPID login
+* `/success`: Trigger Final redirect to success endpoint after a successful SPID login
+* `/error`: Trigger Redirect to an error page
 
 ## How to launch
 In order to run SPID Login microservice in a local environment you must:

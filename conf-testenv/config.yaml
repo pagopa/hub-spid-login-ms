@@ -38,8 +38,8 @@ https: true
 
 # Se si abilita HTTPS è necessario specificare chiave e certificato
 # (indipendenti da chiave e certificato SAML)
-https_key_file: "./certs/key.pem"
-https_cert_file: "./certs/cert.pem"
+https_key_file: "./certs/certificate.pem"
+https_cert_file: "./certs/certificate.crt"
 
 # Endpoint del server IdP (path relativi)
 endpoints:

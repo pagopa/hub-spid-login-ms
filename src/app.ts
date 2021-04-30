@@ -37,6 +37,7 @@ import { getUserJwt } from "./utils/jwt";
 
 import { REDIS_CLIENT } from "./utils/redis";
 import {
+  deleteTask,
   existsKeyTask,
   getTask,
   setTask,
@@ -45,6 +46,7 @@ import {
 
 const config = getConfigOrThrow();
 
+const DEFAULT_OPAQUE_TOKEN_EXPIRATION = 3600;
 export const SESSION_TOKEN_PREFIX = "session-token:";
 export const SESSION_INVALIDATE_TOKEN_PREFIX = "session-token-invalidate:";
 
@@ -125,7 +127,7 @@ const acs: AssertionConsumerServiceT = async user => {
         : taskEither
             .of<Error, string>(crypto.randomBytes(32).toString("hex"))
             .map(_ => ({
-              expiration: 3600,
+              expiration: DEFAULT_OPAQUE_TOKEN_EXPIRATION,
               token: _,
               tokenUser
             }))
@@ -258,11 +260,17 @@ export const createAppTask = withSpid({
   });
 
   withSpidApp.post("/invalidate", async (req, res) => {
-    await setTask(
-      redisClient,
-      `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`,
-      "true"
-    )
+    await taskEither
+      .of(config.ENABLE_JWT)
+      .chain(jwtEnabled =>
+        jwtEnabled
+          ? setTask(
+              redisClient,
+              `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`,
+              "true"
+            )
+          : deleteTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
+      )
       .mapLeft(() => res.status(500).json("Error while invalidating Token"))
       .fold(identity, _ => res.status(200).json(_))
       .run();

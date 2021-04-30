@@ -119,6 +119,22 @@ export const setTask = (
     toError
   ).chain(fromEither);
 
+export const deleteTask = (redisClient: RedisClient, key: string) =>
+  tryCatch(
+    () =>
+      new Promise<Either<Error, boolean>>(resolve =>
+        redisClient.del(key, (err, response) =>
+          resolve(
+            falsyResponseToError(
+              integerReply(err, response),
+              new Error("Error deleting key value pair on redis")
+            )
+          )
+        )
+      ),
+    toError
+  ).chain(fromEither);
+
 export const getTask = (
   redisClient: RedisClient,
   key: string

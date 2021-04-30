@@ -43,7 +43,11 @@ resources:
       name: pagopa/azure-pipeline-templates
       ref: refs/tags/v14
       endpoint: 'io-azure-devops-github-ro'
-
+variables:
+  ${{ if eq(parameters['environment'], 'uat') }}:
+    webAppName: $(UAT_WEB_APP_NAME)
+  ${{ if eq(parameters['environment'], 'prod') }}:
+    webAppName: $(PROD_WEB_APP_NAME)
 stages:
 
   # Create a relase

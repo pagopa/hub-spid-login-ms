@@ -47,8 +47,8 @@ resources:
     - repository: pagopaCommons
       type: github
       name: pagopa/azure-pipeline-templates
-      ref: refs/tags/v11
-      endpoint: 'pagopa'
+      ref: refs/tags/v14
+      endpoint: 'io-azure-devops-github-ro'
 
 stages:
 
@@ -182,4 +182,3 @@ stages:
                 sourceSlot: staging
                 swapWithProduction: true
               displayName: Swap with production slot
-

@@ -140,7 +140,7 @@ stages:
       dependsOn:
         - Prepare_artifact
       jobs:
-        - job: 'do_deploy_${{ app.Key }}'
+        - job: 'do_deploy'
           steps:
             - checkout: none
             - download: current

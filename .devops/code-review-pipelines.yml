@@ -49,24 +49,6 @@ stages:
             yarn lint
           displayName: 'Lint'
 
-      - job: validate_api_specification     
-        steps:
-        - script: |
-            # By convention, we expose api specifications using files
-            #  in form api_<api-name>.yaml in the root of this project
-            valid=1
-            for apispec in $(ls api_*.yaml); do
-              echo "validating $apispec"
-              npx oval validate -p $apispec
-              result=$?
-              if [ ! $result = 0 ]; then
-                valid=0
-                echo "$apispec failed with code $result"
-              fi
-            done
-            [[ $valid = 1 ]] && exit 0 || exit 1
-          displayName: 'Validate API specifications'
-
       - job: danger
         condition: 
           and(
@@ -89,15 +71,7 @@ stages:
     jobs:
       - job: unit_tests
         steps:
-        - template: templates/node-job-setup/template.yaml@pagopaCommons
-        
-        - script: |
-            yarn generate:proxy-models
-          displayName: 'Generate definitions'        
-        
-        - script: |
-            yarn generate:test-certs
-          displayName: 'Generate test certificates'        
+        - template: templates/node-job-setup/template.yaml@pagopaCommons      
 
         - script: |
             yarn test:coverage

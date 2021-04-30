@@ -25,7 +25,7 @@ export const getUserJwt = (
       tokenUser,
       privateKey,
       {
-        algorithm: "ES256",
+        algorithm: "RS256",
         expiresIn: `${tokenTtlSeconds} seconds`,
         issuer,
         jwtid: ulid()

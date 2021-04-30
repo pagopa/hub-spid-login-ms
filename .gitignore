@@ -3,5 +3,5 @@ node_modules
 coverage
 certs
 .env
-jwt-private-key.pem
-jwt-pub-key.pem
+jwt_rsa_key.pem
+jwt_rsa_public.pem

@@ -33,7 +33,7 @@ import { SamlConfig } from "passport-saml";
 import { SpidUser, TokenUser } from "./types/user";
 import { getConfigOrThrow } from "./utils/config";
 import { errorsToError, toTokenUser } from "./utils/conversions";
-import { getUserJwt } from "./utils/jwt";
+import { extractJwtRemainingValidTime, getUserJwt } from "./utils/jwt";
 
 import { REDIS_CLIENT } from "./utils/redis";
 import {
@@ -119,26 +119,17 @@ const acs: AssertionConsumerServiceT = async user => {
             tokenUser,
             config.JWT_TOKEN_EXPIRATION,
             config.JWT_TOKEN_ISSUER
-          ).map(_ => ({
-            expiration: config.JWT_TOKEN_EXPIRATION,
-            token: _,
-            tokenUser
-          }))
+          )
         : taskEither
             .of<Error, string>(crypto.randomBytes(32).toString("hex"))
-            .map(_ => ({
-              expiration: DEFAULT_OPAQUE_TOKEN_EXPIRATION,
-              token: _,
-              tokenUser
-            }))
-    )
-    .chain(({ token, expiration, tokenUser }) =>
-      setWithExpirationTask(
-        redisClient,
-        `${SESSION_TOKEN_PREFIX}${token}`,
-        JSON.stringify(tokenUser),
-        expiration
-      ).map(() => token)
+            .chain(_ =>
+              setWithExpirationTask(
+                redisClient,
+                `${SESSION_TOKEN_PREFIX}${_}`,
+                JSON.stringify(tokenUser),
+                DEFAULT_OPAQUE_TOKEN_EXPIRATION
+              ).map(() => _)
+            )
     )
     .fold<IResponseErrorInternal | IResponsePermanentRedirect>(
       err => ResponseErrorInternal(err.message),
@@ -217,44 +208,50 @@ export const createAppTask = withSpid({
             })
         )
       )
-      .chain(() =>
-        getTask(
-          redisClient,
-          `${SESSION_TOKEN_PREFIX}${req.body.token}`
-        ).mapLeft(() => res.status(500).json("Error while retrieving token"))
+      .chain(
+        fromPredicate(
+          () => !config.ENABLE_JWT,
+          () => void 0
+        )
       )
-      .chain<TokenUser>(maybeToken =>
-        maybeToken
-          .foldL(
-            () =>
-              // tslint:disable-next-line: no-any
-              fromLeft(res.status(404).json("Token not found")),
-            rawToken =>
-              fromEither(
-                parseJSON(rawToken, err =>
+      // if token is a JWT we must check only if this jwt is blacklisted
+      .mapLeft(() => res.status(200).json({ active: true }))
+      .chain(() =>
+        getTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
+          .mapLeft(() => res.status(500).json("Error while retrieving token"))
+          .chain<TokenUser>(maybeToken =>
+            maybeToken
+              .foldL(
+                () =>
+                  // tslint:disable-next-line: no-any
+                  fromLeft(res.status(404).json("Token not found")),
+                rawToken =>
+                  fromEither(
+                    parseJSON(rawToken, err =>
+                      res.status(500).json({
+                        detail: String(err),
+                        error: "Error parsing token"
+                      })
+                    )
+                  )
+              )
+              .chain(_ =>
+                fromEither(TokenUser.decode(_)).mapLeft(errs =>
                   res.status(500).json({
-                    detail: String(err),
-                    error: "Error parsing token"
+                    detail: String(errorsToError(errs)),
+                    error: "Error while decoding token"
                   })
                 )
               )
           )
-          .chain(_ =>
-            fromEither(TokenUser.decode(_)).mapLeft(errs =>
-              res.status(500).json({
-                detail: String(errorsToError(errs)),
-                error: "Error while decoding token"
-              })
+          .chain(
+            fromPredicate(
+              () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
+              () => res.status(200).json({ active: true })
             )
           )
+          .map(tokenUser => ({ active: true, user: tokenUser }))
       )
-      .chain(
-        fromPredicate(
-          () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
-          () => res.status(200).json({ active: true })
-        )
-      )
-      .map(tokenUser => ({ active: true, user: tokenUser }))
       .fold(identity, _ => res.status(200).json(_))
       .run();
   });
@@ -264,10 +261,15 @@ export const createAppTask = withSpid({
       .of(config.ENABLE_JWT)
       .chain(jwtEnabled =>
         jwtEnabled
-          ? setTask(
-              redisClient,
-              `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`,
-              "true"
+          ? extractJwtRemainingValidTime(
+              req.body.token
+            ).chain(remainingExpTime =>
+              setWithExpirationTask(
+                redisClient,
+                `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`,
+                "true",
+                remainingExpTime
+              )
             )
           : deleteTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
       )

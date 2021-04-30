@@ -1,10 +1,18 @@
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
-import { TaskEither, taskify } from "fp-ts/lib/TaskEither";
+import { fromEither, TaskEither, taskify } from "fp-ts/lib/TaskEither";
+import * as t from "io-ts";
 import * as jwt from "jsonwebtoken";
 import { ulid } from "ulid";
 import { TokenUser } from "../types/user";
+
+const ExpireJWT = t.exact(
+  t.interface({
+    exp: t.number
+  })
+);
 
 /**
  * Generates a new token containing the logged spid User.
@@ -33,3 +41,12 @@ export const getUserJwt = (
       cb
     )
   )().mapLeft(toError);
+
+export const extractJwtRemainingValidTime = (jwtToken: string) =>
+  fromEither(
+    ExpireJWT.decode(jwt.decode(jwtToken)).mapLeft(
+      err => new Error(errorsToReadableMessages(err).join("|"))
+    )
+  )
+    // Calculate remaining token validity
+    .map(_ => _.exp - Math.floor(new Date().valueOf() / 1000));

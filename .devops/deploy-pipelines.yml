@@ -141,7 +141,7 @@ stages:
             artifact: Bundle
 
   # Deploy on staging slot and swap
-  - stage: 'Deploy on staging slot'
+  - stage: 'Deploy_staging_slot'
     condition:
       eq('${{ variables.DEPLOY_TYPE }}', 'staging_slot_and_swap')
     dependsOn:
@@ -185,7 +185,7 @@ stages:
             displayName: Swap with production slot
 
   # Deploy on production
-  - stage: 'Deploy on production slot'
+  - stage: 'Deploy_production_slot'
     condition:
       eq('${{ variables.DEPLOY_TYPE }}', 'production_slot')
     dependsOn:

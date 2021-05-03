@@ -96,6 +96,45 @@ export const setWithExpirationTask = (
     toError
   ).chain(fromEither);
 
+export const setTask = (
+  redisClient: RedisClient,
+  key: string,
+  value: string,
+  errorMsg?: string
+): TaskEither<Error, true> =>
+  tryCatch(
+    () =>
+      new Promise<Either<Error, true>>(resolve =>
+        redisClient.set(key, value, (err, response) =>
+          resolve(
+            falsyResponseToError(
+              singleStringReply(err, response),
+              new Error(
+                errorMsg ? errorMsg : "Error setting key value pair on redis"
+              )
+            )
+          )
+        )
+      ),
+    toError
+  ).chain(fromEither);
+
+export const deleteTask = (redisClient: RedisClient, key: string) =>
+  tryCatch(
+    () =>
+      new Promise<Either<Error, boolean>>(resolve =>
+        redisClient.del(key, (err, response) =>
+          resolve(
+            falsyResponseToError(
+              integerReply(err, response),
+              new Error("Error deleting key value pair on redis")
+            )
+          )
+        )
+      ),
+    toError
+  ).chain(fromEither);
+
 export const getTask = (
   redisClient: RedisClient,
   key: string

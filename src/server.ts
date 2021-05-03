@@ -1,5 +1,8 @@
+import appInsights = require("applicationinsights");
 import * as http from "http";
 import { createAppTask } from "./app";
+
+appInsights.setup().start();
 
 // tslint:disable-next-line: no-let
 let server: http.Server;

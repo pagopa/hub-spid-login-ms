@@ -17,6 +17,28 @@ function createSimpleRedisClient(
     auth_pass: password,
     host: redisUrl,
     port: redisPort,
+    retry_strategy: retryOptions => {
+      if (retryOptions.error && retryOptions.error.code === "ECONNREFUSED") {
+        // End reconnecting on a specific error and flush all commands with
+        // a individual error
+        return new Error("The server refused the connection");
+      }
+
+      if (retryOptions.total_retry_time > 1000 * 60 * 60) {
+        // End reconnecting after a specific timeout and flush all commands
+        // with a individual error
+        return new Error("Retry time exhausted");
+      }
+
+      if (retryOptions.attempt > 3) {
+        // End reconnecting with built in error
+        return undefined;
+      }
+
+      // Reconnect after
+      return Math.min(retryOptions.attempt * 100, 3000);
+    },
+    socket_keepalive: true,
     tls: useTls ? { servername: redisUrl } : undefined
   });
 }

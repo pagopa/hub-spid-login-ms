@@ -25,6 +25,7 @@ variables:
   DEFAULT_BRANCH: $(DEFAULT_BRANCH)
   HEALTHCHECK_CONTAINER_SUBNET: $(HEALTHCHECK_CONTAINER_SUBNET)
   ${{ if eq(parameters['environment'], 'uat') }}:
+    DEPLOY_TYPE: $(UAT_DEPLOY_TYPE)
     AZURE_SUBSCRIPTION: $(UAT_AZURE_SUBSCRIPTION)
     WEB_APP_NAME: $(UAT_WEB_APP_NAME)
     WEB_APP_RESOURCE_GROUP: $(UAT_WEB_APP_RESOURCE_GROUP)
@@ -32,6 +33,7 @@ variables:
     HEALTHCHECK_CONTAINER_RESOURCE_GROUP: $(UAT_HEALTHCHECK_CONTAINER_RESOURCE_GROUP)
     HEALTHCHECK_CONTAINER_VNET: $(UAT_HEALTHCHECK_CONTAINER_VNET)
   ${{ if eq(parameters['environment'], 'prod') }}:
+    DEPLOY_TYPE: $(PROD_DEPLOY_TYPE)
     AZURE_SUBSCRIPTION: $(PROD_AZURE_SUBSCRIPTION)
     WEB_APP_NAME: $(PROD_WEB_APP_NAME)
     WEB_APP_RESOURCE_GROUP: $(PROD_WEB_APP_RESOURCE_GROUP)
@@ -139,11 +141,13 @@ stages:
             artifact: Bundle
 
   # Deploy on staging slot and swap
-  - stage: Deploy
+  - stage: 'Deploy on staging slot'
+    condition:
+      eq($(DEPLOY_TYPE), staging_slot_and_swap)
     dependsOn:
       - Prepare_artifact
     jobs:
-      - job: 'do_deploy_with_slot'
+      - job: 'do_deploy'
         steps:
           - checkout: none
           - download: current
@@ -179,3 +183,28 @@ stages:
               sourceSlot: 'staging'
               swapWithProduction: true
             displayName: Swap with production slot
+
+  # Deploy on production
+  - stage: 'Deploy on production slot'
+    condition:
+      eq($(DEPLOY_TYPE), production_slot)
+    dependsOn:
+      - Prepare_artifact
+    jobs:
+      - job: 'do_deploy'
+        steps:
+          - checkout: none
+          - download: current
+            artifact: Bundle
+
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP)'
+              appType: 'webApp'
+              appName: '$(WEB_APP_NAME)'
+              package: '$(Pipeline.Workspace)/Bundle'
+              deploymentMethod: 'auto'
+              deployToSlotOrASE: true
+              slotName: 'production'
+            displayName: Deploy to staging slot

@@ -194,6 +194,13 @@ export const createAppTask = withSpid({
       metadataUpdate: "completed"
     });
   });
+  // Add info endpoint
+  withSpidApp.get("/info", async (_, res) => {
+    res.json({
+      ping: "pong"
+    });
+  });
+
   withSpidApp.post("/introspect", async (req, res) => {
     await redisGetTokenUser(`${SESSION_TOKEN_PREFIX}${req.body.token}`)
       .mapLeft(err =>

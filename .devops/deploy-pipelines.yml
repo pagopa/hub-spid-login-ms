@@ -28,17 +28,17 @@ variables:
     DEPLOY_TYPE: $(UAT_DEPLOY_TYPE)
     AZURE_SUBSCRIPTION: $(UAT_AZURE_SUBSCRIPTION)
     WEB_APP_NAME: $(UAT_WEB_APP_NAME)
-    WEB_APP_RESOURCE_GROUP: $(UAT_WEB_APP_RESOURCE_GROUP)
+    WEB_APP_RESOURCE_GROUP_NAME: $(UAT_WEB_APP_RESOURCE_GROUP_NAME)
     HEALTHCHECK_ENDPOINT: $(UAT_HEALTHCHECK_ENDPOINT)
-    HEALTHCHECK_CONTAINER_RESOURCE_GROUP: $(UAT_HEALTHCHECK_CONTAINER_RESOURCE_GROUP)
+    HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME: $(UAT_HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME)
     HEALTHCHECK_CONTAINER_VNET: $(UAT_HEALTHCHECK_CONTAINER_VNET)
   ${{ if eq(parameters['environment'], 'prod') }}:
     DEPLOY_TYPE: $(PROD_DEPLOY_TYPE)
     AZURE_SUBSCRIPTION: $(PROD_AZURE_SUBSCRIPTION)
     WEB_APP_NAME: $(PROD_WEB_APP_NAME)
-    WEB_APP_RESOURCE_GROUP: $(PROD_WEB_APP_RESOURCE_GROUP)
+    WEB_APP_RESOURCE_GROUP_NAME: $(PROD_WEB_APP_RESOURCE_GROUP_NAME)
     HEALTHCHECK_ENDPOINT: $(PROD_HEALTHCHECK_ENDPOINT)
-    HEALTHCHECK_CONTAINER_RESOURCE_GROUP: $(PROD_HEALTHCHECK_CONTAINER_RESOURCE_GROUP)
+    HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME: $(PROD_HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME)
     HEALTHCHECK_CONTAINER_VNET: $(PROD_HEALTHCHECK_CONTAINER_VNET)
 
 pool:
@@ -156,7 +156,7 @@ stages:
           - task: AzureWebApp@1
             inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
-              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP)'
+              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
               appType: 'webApp'
               appName: '$(WEB_APP_NAME)'
               package: '$(Pipeline.Workspace)/Bundle'
@@ -171,14 +171,14 @@ stages:
               appName: '$(WEB_APP_NAME)'
               endpoint: '$(HEALTHCHECK_ENDPOINT)'
               endpointType: 'private'
-              containerInstanceResourceGroup: '$(HEALTHCHECK_CONTAINER_RESOURCE_GROUP)'
+              containerInstanceResourceGroup: '$(HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME)'
               containerInstanceVNet: '$(HEALTHCHECK_CONTAINER_VNET)'
               containerInstanceSubnet: '$(HEALTHCHECK_CONTAINER_SUBNET)'
 
           - task: AzureAppServiceManage@0
             inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
-              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP)'
+              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
               webAppName: '$(WEB_APP_NAME)'
               sourceSlot: 'staging'
               swapWithProduction: true
@@ -200,7 +200,7 @@ stages:
           - task: AzureWebApp@1
             inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
-              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP)'
+              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
               appType: 'webApp'
               appName: '$(WEB_APP_NAME)'
               package: '$(Pipeline.Workspace)/Bundle'

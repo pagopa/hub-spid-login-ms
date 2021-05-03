@@ -33,14 +33,22 @@ import { SamlConfig } from "passport-saml";
 import { SpidUser, TokenUser } from "./types/user";
 import { getConfigOrThrow } from "./utils/config";
 import { errorsToError, toTokenUser } from "./utils/conversions";
-import { getUserJwt } from "./utils/jwt";
+import { extractJwtRemainingValidTime, getUserJwt } from "./utils/jwt";
 
 import { REDIS_CLIENT } from "./utils/redis";
-import { getTask, setWithExpirationTask } from "./utils/redis_storage";
+import {
+  deleteTask,
+  existsKeyTask,
+  getTask,
+  setTask,
+  setWithExpirationTask
+} from "./utils/redis_storage";
 
 const config = getConfigOrThrow();
 
+const DEFAULT_OPAQUE_TOKEN_EXPIRATION = 3600;
 export const SESSION_TOKEN_PREFIX = "session-token:";
+export const SESSION_INVALIDATE_TOKEN_PREFIX = "session-token-invalidate:";
 
 export const appConfig: IApplicationConfig = {
   assertionConsumerServicePath: config.ENDPOINT_ACS,
@@ -86,16 +94,6 @@ const serviceProviderConfig: IServiceProviderConfig = {
 
 const redisClient = REDIS_CLIENT;
 
-const redisGetTokenUser = (userKey: string) =>
-  getTask(redisClient, userKey)
-    .chain(_ =>
-      _.foldL(
-        () => fromLeft(new Error("No existing token into Redis")),
-        userStr => fromEither(parseJSON(userStr, __ => new Error(String(__))))
-      )
-    )
-    .chain(_ => fromEither(TokenUser.decode(_).mapLeft(errorsToError)));
-
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",
   acceptedClockSkewMs: 0,
@@ -124,13 +122,13 @@ const acs: AssertionConsumerServiceT = async user => {
           )
         : taskEither
             .of<Error, string>(crypto.randomBytes(32).toString("hex"))
-            .chain(token =>
+            .chain(_ =>
               setWithExpirationTask(
                 redisClient,
-                `${SESSION_TOKEN_PREFIX}${token}`,
+                `${SESSION_TOKEN_PREFIX}${_}`,
                 JSON.stringify(tokenUser),
-                3600
-              ).map(() => token)
+                DEFAULT_OPAQUE_TOKEN_EXPIRATION
+              ).map(() => _)
             )
     )
     .fold<IResponseErrorInternal | IResponsePermanentRedirect>(
@@ -195,21 +193,88 @@ export const createAppTask = withSpid({
     });
   });
   withSpidApp.post("/introspect", async (req, res) => {
-    await redisGetTokenUser(`${SESSION_TOKEN_PREFIX}${req.body.token}`)
-      .mapLeft(err =>
-        res.json({
-          active: false,
-          error: err
-        })
+    // first check if token is blacklisted
+    await existsKeyTask(
+      redisClient,
+      `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`
+    )
+      .mapLeft(() => res.status(500).json("Cannot introspect token"))
+      .chain(
+        fromPredicate(
+          _ => _ === false,
+          () =>
+            res.status(403).json({
+              active: false
+            })
+        )
       )
       .chain(
         fromPredicate(
-          () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
-          () => res.json({ active: true })
+          () => !config.ENABLE_JWT,
+          () => void 0
         )
       )
-      .map(tokenUser => ({ active: true, user: tokenUser }))
-      .fold(identity, _ => res.json(_))
+      // if token is a JWT we must check only if this jwt is blacklisted
+      .mapLeft(() => res.status(200).json({ active: true }))
+      .chain(() =>
+        getTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
+          .mapLeft(() => res.status(500).json("Error while retrieving token"))
+          .chain<TokenUser>(maybeToken =>
+            maybeToken
+              .foldL(
+                () =>
+                  // tslint:disable-next-line: no-any
+                  fromLeft(res.status(404).json("Token not found")),
+                rawToken =>
+                  fromEither(
+                    parseJSON(rawToken, err =>
+                      res.status(500).json({
+                        detail: String(err),
+                        error: "Error parsing token"
+                      })
+                    )
+                  )
+              )
+              .chain(_ =>
+                fromEither(TokenUser.decode(_)).mapLeft(errs =>
+                  res.status(500).json({
+                    detail: String(errorsToError(errs)),
+                    error: "Error while decoding token"
+                  })
+                )
+              )
+          )
+          .chain(
+            fromPredicate(
+              () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
+              () => res.status(200).json({ active: true })
+            )
+          )
+          .map(tokenUser => ({ active: true, user: tokenUser }))
+      )
+      .fold(identity, _ => res.status(200).json(_))
+      .run();
+  });
+
+  withSpidApp.post("/invalidate", async (req, res) => {
+    await taskEither
+      .of(config.ENABLE_JWT)
+      .chain(jwtEnabled =>
+        jwtEnabled
+          ? extractJwtRemainingValidTime(
+              req.body.token
+            ).chain(remainingExpTime =>
+              setWithExpirationTask(
+                redisClient,
+                `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`,
+                "true",
+                remainingExpTime
+              )
+            )
+          : deleteTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
+      )
+      .mapLeft(() => res.status(500).json("Error while invalidating Token"))
+      .fold(identity, _ => res.status(200).json(_))
       .run();
   });
 

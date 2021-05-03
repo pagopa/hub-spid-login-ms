@@ -21,7 +21,7 @@ cert_file: "conf/idp.crt"
 # cfr. https://pysaml2.readthedocs.io/en/latest/howto/config.html#metadata
 metadata:
   remote:
-    - "http://backend:8080/metadata"
+    - "http://hub-spid-login-ms:8080/metadata"
 
 # CONFIGURAZIONE TESTENV WEB SERVER
 
@@ -38,8 +38,8 @@ https: true
 
 # Se si abilita HTTPS è necessario specificare chiave e certificato
 # (indipendenti da chiave e certificato SAML)
-https_key_file: "./conf/idp.key"
-https_cert_file: "./conf/idp.crt"
+https_key_file: "./certs/certificate.pem"
+https_cert_file: "./certs/certificate.crt"
 
 # Endpoint del server IdP (path relativi)
 endpoints:

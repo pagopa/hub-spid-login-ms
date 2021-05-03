@@ -192,6 +192,13 @@ export const createAppTask = withSpid({
       metadataUpdate: "completed"
     });
   });
+  // Add info endpoint
+  withSpidApp.get("/info", async (_, res) => {
+    res.json({
+      ping: "pong"
+    });
+  });
+
   withSpidApp.post("/introspect", async (req, res) => {
     // first check if token is blacklisted
     await existsKeyTask(

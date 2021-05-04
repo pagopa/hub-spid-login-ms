@@ -7,8 +7,8 @@ import {
 } from "@pagopa/io-spid-commons";
 import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import {
-  IResponsePermanentRedirect,
-  ResponseErrorInternal
+  IResponseErrorForbiddenNotAuthorized,
+  IResponsePermanentRedirect
 } from "@pagopa/ts-commons/lib/responses";
 import * as bodyParser from "body-parser";
 import { debug } from "console";
@@ -30,9 +30,15 @@ import {
 } from "italia-ts-commons/lib/responses";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
-import { SpidUser, TokenUser } from "./types/user";
+import { SpidUser, TokenUser, TokenUserL2 } from "./types/user";
+import { getUserCompanies } from "./utils/attribute_authority";
 import { getConfigOrThrow } from "./utils/config";
-import { errorsToError, toTokenUser } from "./utils/conversions";
+import {
+  errorsToError,
+  toCommonTokenUser,
+  toResponseErrorInternal,
+  toTokenUserL2
+} from "./utils/conversions";
 import { extractJwtRemainingValidTime, getUserJwt } from "./utils/jwt";
 
 import { REDIS_CLIENT } from "./utils/redis";
@@ -40,7 +46,6 @@ import {
   deleteTask,
   existsKeyTask,
   getTask,
-  setTask,
   setWithExpirationTask
 } from "./utils/redis_storage";
 
@@ -109,36 +114,71 @@ const samlConfig: SamlConfig = {
 };
 
 const acs: AssertionConsumerServiceT = async user => {
-  return fromEither(SpidUser.decode(user))
-    .mapLeft(errorsToError)
-    .chain(_ => fromEither(toTokenUser(_)))
-    .chain(tokenUser =>
-      config.ENABLE_JWT
-        ? getUserJwt(
-            config.JWT_TOKEN_PRIVATE_KEY,
-            tokenUser,
-            config.JWT_TOKEN_EXPIRATION,
-            config.JWT_TOKEN_ISSUER
-          )
-        : taskEither
-            .of<Error, string>(crypto.randomBytes(32).toString("hex"))
-            .chain(_ =>
-              setWithExpirationTask(
-                redisClient,
-                `${SESSION_TOKEN_PREFIX}${_}`,
-                JSON.stringify(tokenUser),
-                DEFAULT_OPAQUE_TOKEN_EXPIRATION
-              ).map(() => _)
+  return (
+    fromEither(SpidUser.decode(user))
+      .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
+        errs => toResponseErrorInternal(errorsToError(errs))
+      )
+      .chain(_ =>
+        fromEither(toCommonTokenUser(_)).mapLeft(toResponseErrorInternal)
+      )
+      .chain(_ =>
+        config.ENABLE_AA
+          ? getUserCompanies(
+              config.AA_API_ENDPOINT,
+              config.AA_API_METHOD,
+              _.fiscal_number
+            ).map(companies => ({ ..._, companies, from_aa: config.ENABLE_AA }))
+          : taskEither.of({ ..._, from_aa: config.ENABLE_AA })
+      )
+      .chain(_ =>
+        fromEither(TokenUser.decode(_)).mapLeft(errs =>
+          toResponseErrorInternal(errorsToError(errs))
+        )
+      )
+      // If User is related only to one company we can release an L2 token
+      .chain<TokenUser | TokenUserL2>(_ =>
+        _.from_aa && _.companies.length === 1
+          ? fromEither<IResponseErrorInternal, TokenUserL2>(
+              toTokenUserL2(_, _.companies[0]).mapLeft(toResponseErrorInternal)
             )
-    )
-    .fold<IResponseErrorInternal | IResponsePermanentRedirect>(
-      err => ResponseErrorInternal(err.message),
-      _ =>
+          : taskEither.of(_)
+      )
+      .chain(tokenUser =>
+        config.ENABLE_JWT
+          ? getUserJwt(
+              config.JWT_TOKEN_PRIVATE_KEY,
+              tokenUser,
+              config.JWT_TOKEN_EXPIRATION,
+              config.JWT_TOKEN_ISSUER
+            ).bimap(toResponseErrorInternal, _ => ({ tokenUser, tokenStr: _ }))
+          : taskEither
+              .of<IResponseErrorInternal, string>(
+                crypto.randomBytes(32).toString("hex")
+              )
+              .chain(_ =>
+                setWithExpirationTask(
+                  redisClient,
+                  `${SESSION_TOKEN_PREFIX}${_}`,
+                  JSON.stringify(tokenUser),
+                  DEFAULT_OPAQUE_TOKEN_EXPIRATION
+                ).bimap(toResponseErrorInternal, () => ({
+                  tokenStr: _,
+                  tokenUser
+                }))
+              )
+      )
+      .fold<
+        | IResponseErrorInternal
+        | IResponseErrorForbiddenNotAuthorized
+        | IResponsePermanentRedirect
+      >(identity, ({ tokenStr, tokenUser }) =>
         ResponsePermanentRedirect({
-          href: `${config.ENDPOINT_SUCCESS}?token=${_}`
+          href: `${config.ENDPOINT_SUCCESS}?token=${tokenStr}`
         })
-    )
-    .run();
+      )
+      .run()
+  );
 };
 
 const logout: LogoutT = async () =>

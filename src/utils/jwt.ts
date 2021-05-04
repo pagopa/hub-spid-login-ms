@@ -6,7 +6,7 @@ import { fromEither, TaskEither, taskify } from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
 import * as jwt from "jsonwebtoken";
 import { ulid } from "ulid";
-import { TokenUser } from "../types/user";
+import { TokenUser, TokenUserL2 } from "../types/user";
 
 const ExpireJWT = t.exact(
   t.interface({
@@ -24,7 +24,7 @@ const ExpireJWT = t.exact(
  */
 export const getUserJwt = (
   privateKey: NonEmptyString,
-  tokenUser: TokenUser,
+  tokenUser: TokenUser | TokenUserL2,
   tokenTtlSeconds: NonNegativeInteger,
   issuer: NonEmptyString
 ): TaskEither<Error, string> =>

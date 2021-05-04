@@ -1,7 +1,8 @@
 import {
   EmailString,
   FiscalCode,
-  NonEmptyString
+  NonEmptyString,
+  OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
 import * as t from "io-ts";
 
@@ -29,7 +30,17 @@ export const SpidUser = t.intersection([
 
 export type SpidUser = t.TypeOf<typeof SpidUser>;
 
-export const TokenUser = t.intersection([
+export const UserCompany = t.interface({
+  email: EmailString,
+  organization_fiscal_code: OrganizationFiscalCode,
+  organization_name: NonEmptyString
+});
+export type UserCompany = t.TypeOf<typeof UserCompany>;
+
+export const UserCompanies = t.array(UserCompany);
+export type UserCompanies = t.TypeOf<typeof UserCompanies>;
+
+export const CommonTokenUser = t.intersection([
   t.interface({
     fiscal_number: FiscalCode
   }),
@@ -41,4 +52,29 @@ export const TokenUser = t.intersection([
   })
 ]);
 
+export type CommonTokenUser = t.TypeOf<typeof CommonTokenUser>;
+
+export const TokenUser = t.union([
+  t.intersection([
+    CommonTokenUser,
+    t.interface({
+      companies: UserCompanies,
+      from_aa: t.literal(true)
+    })
+  ]),
+  t.intersection([
+    CommonTokenUser,
+    t.interface({
+      from_aa: t.literal(false)
+    })
+  ])
+]);
+
 export type TokenUser = t.TypeOf<typeof TokenUser>;
+
+export const TokenUserL2 = t.intersection([
+  CommonTokenUser,
+  t.interface({ company: UserCompany })
+]);
+
+export type TokenUserL2 = t.TypeOf<typeof TokenUserL2>;

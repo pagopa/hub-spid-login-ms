@@ -68,6 +68,19 @@ const JWTParams = t.union([
 ]);
 type JWTParams = t.TypeOf<typeof JWTParams>;
 
+const AttributeAuthorityParams = t.union([
+  t.interface({
+    ENABLE_AA: t.literal(true),
+
+    AA_API_ENDPOINT: NonEmptyString,
+    AA_API_METHOD: t.union([t.literal("POST"), t.literal("GET")])
+  }),
+  t.interface({
+    ENABLE_AA: t.literal(false)
+  })
+]);
+type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
+
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
@@ -76,12 +89,16 @@ export const IConfig = t.intersection([
   }),
   RedisParams,
   SpidParams,
-  JWTParams
+  JWTParams,
+  AttributeAuthorityParams
 ]);
 
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
+  ENABLE_AA: fromNullable(process.env.ENABLE_AA)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),

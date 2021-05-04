@@ -1,0 +1,201 @@
+# Azure DevOps pipeline to release a new version and deploy to production.
+
+# Only manual activations are intended
+trigger: none
+pr: none
+
+parameters:
+  - name: 'RELEASE_SEMVER'
+    displayName: 'When packing a release, define the version bump to apply'
+    type: string
+    values:
+      - major
+      - minor
+      - patch
+    default: minor
+  - name: environment
+    displayName: Target Environment
+    type: string
+    default: uat
+    values:
+      - uat
+      - prod
+
+# variables setted on azdevops to avoid circular dependency warning
+# $(DEFAULT_BRANCH)
+# $(HEALTHCHECK_CONTAINER_SUBNET)
+variables:
+  ${{ if eq(parameters['environment'], 'uat') }}:
+    DEPLOY_TYPE: $[variables['UAT_DEPLOY_TYPE']]
+    AZURE_SUBSCRIPTION: $(UAT_AZURE_SUBSCRIPTION)
+    WEB_APP_NAME: $(UAT_WEB_APP_NAME)
+    WEB_APP_RESOURCE_GROUP_NAME: $(UAT_WEB_APP_RESOURCE_GROUP_NAME)
+    HEALTHCHECK_ENDPOINT: $(UAT_HEALTHCHECK_ENDPOINT)
+    HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME: $(UAT_HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME)
+    HEALTHCHECK_CONTAINER_VNET: $(UAT_HEALTHCHECK_CONTAINER_VNET)
+  ${{ if eq(parameters['environment'], 'prod') }}:
+    DEPLOY_TYPE: $[variables['PROD_DEPLOY_TYPE']]
+    AZURE_SUBSCRIPTION: $(PROD_AZURE_SUBSCRIPTION)
+    WEB_APP_NAME: $(PROD_WEB_APP_NAME)
+    WEB_APP_RESOURCE_GROUP_NAME: $(PROD_WEB_APP_RESOURCE_GROUP_NAME)
+    HEALTHCHECK_ENDPOINT: $(PROD_HEALTHCHECK_ENDPOINT)
+    HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME: $(PROD_HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME)
+    HEALTHCHECK_CONTAINER_VNET: $(PROD_HEALTHCHECK_CONTAINER_VNET)
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+resources:
+  repositories:
+    - repository: pagopaCommons
+      type: github
+      name: pagopa/azure-pipeline-templates
+      ref: refs/tags/v14
+      endpoint: 'io-azure-devops-github-ro'
+
+stages:
+
+  # Create a relase
+  # Activated when ONE OF these are met:
+  # - is on branch $(DEFAULT_BRANCH)
+  # - is a tag in the form v{version}-RELEASE
+  - stage: Release
+    condition:
+      or(
+        eq(variables['Build.SourceBranch'], format('refs/heads/{0}', variables.DEFAULT_BRANCH)),
+        and(
+          startsWith(variables['Build.SourceBranch'], 'refs/tags'),
+          endsWith(variables['Build.SourceBranch'], '-RELEASE')
+        )
+      )
+    pool:
+      vmImage: 'ubuntu-latest'
+    jobs:
+      - job: make_release
+        steps:
+        - ${{ if eq(variables['Build.SourceBranch'], format('refs/heads/{0}', variables.DEFAULT_BRANCH)) }}:
+          - template: templates/node-job-setup/template.yaml@pagopaCommons
+            parameters:
+              persistCredentials: true
+          - template: templates/node-github-release/template.yaml@pagopaCommons
+            parameters:
+              semver: '${{ parameters.RELEASE_SEMVER }}'
+              gitEmail: '$(GIT_EMAIL)'
+              gitUsername: '$(GIT_USERNAME)'
+              gitHubConnection: '$(GITHUB_CONNECTION)'
+
+        - ${{ if ne(variables['Build.SourceBranch'], format('refs/heads/{0}', variables.DEFAULT_BRANCH)) }}:
+          - script: |
+              echo "We assume this reference to be a valid release: $(Build.SourceBranch). Therefore, there is no need to bundle a new release."
+            displayName: 'Skip release bundle'
+
+  # Prepare_artifact
+  - stage: Prepare_artifact
+    dependsOn:
+      - Release
+    jobs:
+      - job: 'prepare_artifact'
+        steps:
+          # Build application
+          - template: templates/node-job-setup/template.yaml@pagopaCommons
+            parameters:
+              # On the assumption that this stage is executed only when Relase stage is,
+              #  with this parameter we set the reference the deploy script must pull changes from.
+              # The branch/tag name is calculated from the source branch
+              #  ex: Build.SourceBranch=refs/heads/$(DEFAULT_BRANCH) --> $(DEFAULT_BRANCH)
+              #  ex: Build.SourceBranch=refs/tags/v1.2.3-RELEASE --> v1.2.3-RELEASE
+              gitReference: ${{ replace(replace(variables['Build.SourceBranch'], 'refs/tags/', ''), 'refs/heads/', '') }}
+          - script: |
+              yarn predeploy
+            displayName: 'Build'
+  
+          # Copy application to  
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: '$(System.DefaultWorkingDirectory)'
+              TargetFolder: '$(System.DefaultWorkingDirectory)/bundle'
+              Contents: |
+                **/*
+                !.git/**/*
+                !.vscode/**/*
+                !.devops/**/*
+                !.conf-testenv/**/*
+                !.scripts/**/*
+                ![.]*
+                !**/*.js.map
+                !**/*.ts
+                !*.md
+                !docker-compose.yml
+                !DockerFile
+                !Dangerfile.ts
+                !jest.config.js
+                !local.settings.json
+                !test
+                !tslint.json
+                !tsconfig.json                
+            displayName: 'Copy deploy files'
+          
+          - publish: $(System.DefaultWorkingDirectory)/bundle
+            artifact: Bundle
+
+  # Deploy 
+  - stage: 'Deploy_to_${{ parameters.environment }}'
+    dependsOn:
+      - Prepare_artifact
+    jobs:
+      - job: 'do_deploy_staging_slot_and_swap'
+        condition: eq(variables.DEPLOY_TYPE, 'staging_slot_and_swap')
+        steps:
+          - checkout: none
+          - download: current
+            artifact: Bundle
+
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
+              appType: 'webApp'
+              appName: '$(WEB_APP_NAME)'
+              package: '$(Pipeline.Workspace)/Bundle'
+              deploymentMethod: 'auto'
+              deployToSlotOrASE: true
+              slotName: 'staging'
+            displayName: 'Deploy to staging slot'
+
+          - template: templates/rest-healthcheck/template.yaml@pagopaCommons
+            parameters:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              appName: '$(WEB_APP_NAME)'
+              endpoint: '$(HEALTHCHECK_ENDPOINT)'
+              endpointType: 'private'
+              containerInstanceResourceGroup: '$(HEALTHCHECK_CONTAINER_RESOURCE_GROUP_NAME)'
+              containerInstanceVNet: '$(HEALTHCHECK_CONTAINER_VNET)'
+              containerInstanceSubnet: '$(HEALTHCHECK_CONTAINER_SUBNET)'
+
+          - task: AzureAppServiceManage@0
+            inputs:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
+              webAppName: '$(WEB_APP_NAME)'
+              sourceSlot: 'staging'
+              swapWithProduction: true
+            displayName: 'Swap with production slot'
+
+      - job: 'do_deploy_production_slot'
+        condition: eq(variables.DEPLOY_TYPE, 'production_slot')
+        steps:
+          - checkout: none
+          - download: current
+            artifact: Bundle
+
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
+              appType: 'webApp'
+              appName: '$(WEB_APP_NAME)'
+              package: '$(Pipeline.Workspace)/Bundle'
+              deploymentMethod: 'auto'
+              deployToSlotOrASE: true
+              slotName: 'production'
+            displayName: 'Deploy to production slot'

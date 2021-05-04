@@ -8,8 +8,8 @@ services:
             dockerfile: Dockerfile
         environment: 
             - NODE_TLS_REJECT_UNAUTHORIZED=0
-        env_file:
-            - .env
+        depends_on:
+          - redis
         expose:
             - "8080"
         ports:
@@ -18,17 +18,19 @@ services:
         image: node:10.14.2-alpine
         command: ["yarn", "start"]
         volumes:
-            - ".:/usr/src/app:cached"
+          - "./certs:/usr/src/app/certs:ro"
+          - "./.env:/usr/src/app/.env:ro"
         networks:
             - spid-net
 
     spid-testenv2:
         container_name: spid-testenv2
-        image: italia/spid-testenv2
+        image: italia/spid-testenv2:1.1.0
         ports:
             - "8088:8088"
         volumes:
-            - "./conf-testenv:/app/conf:cached"
+            - "./conf-testenv:/app/conf"
+            - "./certs:/app/certs:ro"
         networks:
             - spid-net
 

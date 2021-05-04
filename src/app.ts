@@ -22,7 +22,6 @@ import {
   fromPredicate,
   taskEither
 } from "fp-ts/lib/TaskEither";
-import * as fs from "fs";
 
 import {
   IResponseErrorInternal,
@@ -76,7 +75,7 @@ const serviceProviderConfig: IServiceProviderConfig = {
     displayName: config.ORG_DISPLAY_NAME,
     name: config.ORG_NAME
   },
-  publicCert: fs.readFileSync(process.env.METADATA_PUBLIC_CERT, "utf-8"),
+  publicCert: config.METADATA_PUBLIC_CERT,
   requiredAttributes: {
     attributes: config.SPID_ATTRIBUTES.split(",").map(
       item => item as SamlAttributeT
@@ -105,11 +104,10 @@ const samlConfig: SamlConfig = {
   attributeConsumingServiceIndex: "0",
   authnContext: config.AUTH_N_CONTEXT,
   callbackUrl: `${config.ORG_URL}${config.ENDPOINT_ACS}`,
-  // decryptionPvk: fs.readFileSync("./certs/key.pem", "utf-8"),
   identifierFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
   issuer: config.ORG_ISSUER,
   logoutCallbackUrl: `${config.ORG_URL}/slo`,
-  privateCert: fs.readFileSync(config.METADATA_PRIVATE_CERT, "utf-8"),
+  privateCert: config.METADATA_PRIVATE_CERT,
   validateInResponseTo: true
 };
 
@@ -232,6 +230,13 @@ export const createAppTask = withSpid({
       metadataUpdate: "completed"
     });
   });
+  // Add info endpoint
+  withSpidApp.get("/info", async (_, res) => {
+    res.json({
+      ping: "pong"
+    });
+  });
+
   withSpidApp.post("/introspect", async (req, res) => {
     // first check if token is blacklisted
     await existsKeyTask(

@@ -10,12 +10,14 @@ import {
   IResponseErrorForbiddenNotAuthorized,
   IResponsePermanentRedirect
 } from "@pagopa/ts-commons/lib/responses";
+import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as crypto from "crypto";
 import * as express from "express";
 import { parseJSON } from "fp-ts/lib/Either";
 import { identity } from "fp-ts/lib/function";
+import { fromNullable } from "fp-ts/lib/Option";
 import {
   fromEither,
   fromLeft,
@@ -29,16 +31,22 @@ import {
 } from "italia-ts-commons/lib/responses";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
+import { UpgradeTokenBody } from "./types/request";
 import { SpidUser, TokenUser, TokenUserL2 } from "./types/user";
 import { getUserCompanies } from "./utils/attribute_authority";
 import { getConfigOrThrow } from "./utils/config";
 import {
   errorsToError,
+  mapDecoding,
   toCommonTokenUser,
   toResponseErrorInternal,
   toTokenUserL2
 } from "./utils/conversions";
-import { extractJwtRemainingValidTime, getUserJwt } from "./utils/jwt";
+import {
+  extractJwtRemainingValidTime,
+  getUserJwt,
+  verifyToken
+} from "./utils/jwt";
 
 import { REDIS_CLIENT } from "./utils/redis";
 import {
@@ -111,6 +119,54 @@ const samlConfig: SamlConfig = {
   validateInResponseTo: true
 };
 
+const getRawTokenUserFromRedis = (token: string, res: express.Response) =>
+  getTask(redisClient, `${SESSION_TOKEN_PREFIX}${token}`)
+    .mapLeft(() => res.status(500).json("Error while retrieving token"))
+    .chain(maybeToken =>
+      maybeToken.foldL(
+        () =>
+          // tslint:disable-next-line: no-any
+          fromLeft(res.status(404).json("Token not found")),
+        rawToken =>
+          fromEither(
+            parseJSON(rawToken, err =>
+              res.status(500).json({
+                detail: String(err),
+                error: "Error parsing token"
+              })
+            )
+          )
+      )
+    );
+
+const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
+  config.ENABLE_JWT
+    ? getUserJwt(
+        config.JWT_TOKEN_PRIVATE_KEY,
+        tokenUser,
+        config.JWT_TOKEN_EXPIRATION,
+        config.JWT_TOKEN_ISSUER
+      ).bimap(
+        () => new Error("Error generating JWT Token"),
+        _ => ({ tokenUser, tokenStr: _ })
+      )
+    : taskEither
+        .of<Error, string>(crypto.randomBytes(32).toString("hex"))
+        .chain(_ =>
+          setWithExpirationTask(
+            redisClient,
+            `${SESSION_TOKEN_PREFIX}${_}`,
+            JSON.stringify(tokenUser),
+            DEFAULT_OPAQUE_TOKEN_EXPIRATION
+          ).bimap(
+            () => new Error("Error storing Opaque Token"),
+            () => ({
+              tokenStr: _,
+              tokenUser
+            })
+          )
+        );
+
 const acs: AssertionConsumerServiceT = async user => {
   return (
     fromEither(SpidUser.decode(user))
@@ -134,46 +190,35 @@ const acs: AssertionConsumerServiceT = async user => {
           toResponseErrorInternal(errorsToError(errs))
         )
       )
-      // If User is related only to one company we can release an L2 token
+      // If User is related to one company we can directly release an L2 token
       .chain<TokenUser | TokenUserL2>(_ =>
-        _.from_aa && _.companies.length === 1
-          ? fromEither<IResponseErrorInternal, TokenUserL2>(
-              toTokenUserL2(_, _.companies[0]).mapLeft(toResponseErrorInternal)
+        _.from_aa
+          ? _.companies.length === 1
+            ? fromEither(
+                toTokenUserL2(_, _.companies[0]).mapLeft(
+                  toResponseErrorInternal
+                )
+              )
+            : taskEither.of(_)
+          : fromEither(TokenUserL2.decode(_)).mapLeft(errs =>
+              toResponseErrorInternal(errorsToError(errs))
             )
-          : taskEither.of(_)
       )
       .chain(tokenUser =>
-        config.ENABLE_JWT
-          ? getUserJwt(
-              config.JWT_TOKEN_PRIVATE_KEY,
-              tokenUser,
-              config.JWT_TOKEN_EXPIRATION,
-              config.JWT_TOKEN_ISSUER
-            ).bimap(toResponseErrorInternal, _ => ({ tokenUser, tokenStr: _ }))
-          : taskEither
-              .of<IResponseErrorInternal, string>(
-                crypto.randomBytes(32).toString("hex")
-              )
-              .chain(_ =>
-                setWithExpirationTask(
-                  redisClient,
-                  `${SESSION_TOKEN_PREFIX}${_}`,
-                  JSON.stringify(tokenUser),
-                  DEFAULT_OPAQUE_TOKEN_EXPIRATION
-                ).bimap(toResponseErrorInternal, () => ({
-                  tokenStr: _,
-                  tokenUser
-                }))
-              )
+        generateToken(tokenUser).mapLeft(toResponseErrorInternal)
       )
       .fold<
         | IResponseErrorInternal
         | IResponseErrorForbiddenNotAuthorized
         | IResponsePermanentRedirect
       >(identity, ({ tokenStr, tokenUser }) =>
-        ResponsePermanentRedirect({
-          href: `${config.ENDPOINT_SUCCESS}?token=${tokenStr}`
-        })
+        config.ENABLE_AA && !TokenUserL2.is(tokenUser)
+          ? ResponsePermanentRedirect({
+              href: `${config.ENDPOINT_L1_SUCCESS}?token=${tokenStr}`
+            })
+          : ResponsePermanentRedirect({
+              href: `${config.ENDPOINT_SUCCESS}?token=${tokenStr}`
+            })
       )
       .run()
   );
@@ -262,40 +307,30 @@ export const createAppTask = withSpid({
       // if token is a JWT we must check only if this jwt is blacklisted
       .mapLeft(() => res.status(200).json({ active: true }))
       .chain(() =>
-        getTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
-          .mapLeft(() => res.status(500).json("Error while retrieving token"))
-          .chain<TokenUser>(maybeToken =>
-            maybeToken
-              .foldL(
-                () =>
-                  // tslint:disable-next-line: no-any
-                  fromLeft(res.status(404).json("Token not found")),
-                rawToken =>
-                  fromEither(
-                    parseJSON(rawToken, err =>
-                      res.status(500).json({
-                        detail: String(err),
-                        error: "Error parsing token"
-                      })
-                    )
-                  )
-              )
-              .chain(_ =>
-                fromEither(TokenUser.decode(_)).mapLeft(errs =>
-                  res.status(500).json({
-                    detail: String(errorsToError(errs)),
-                    error: "Error while decoding token"
-                  })
-                )
-              )
+        getRawTokenUserFromRedis(req.body.token, res)
+          .chain<TokenUser | TokenUserL2>(_ =>
+            (TokenUserL2.is(_)
+              ? mapDecoding(TokenUserL2, _)
+              : mapDecoding(TokenUser, _)
+            ).mapLeft(e =>
+              res.status(500).json({
+                detail: String(e),
+                error: "Error decoding token"
+              })
+            )
           )
+
           .chain(
             fromPredicate(
               () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
-              () => res.status(200).json({ active: true })
+              _ => res.status(200).json({ active: true, level: _.level })
             )
           )
-          .map(tokenUser => ({ active: true, user: tokenUser }))
+          .map(tokenUser => ({
+            active: true,
+            level: tokenUser.level,
+            user: tokenUser
+          }))
       )
       .fold(identity, _ => res.status(200).json(_))
       .run();
@@ -319,6 +354,68 @@ export const createAppTask = withSpid({
           : deleteTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
       )
       .mapLeft(() => res.status(500).json("Error while invalidating Token"))
+      .fold(identity, _ => res.status(200).json(_))
+      .run();
+  });
+
+  withSpidApp.post("/upgradeToken", async (req, res) => {
+    await fromEither(UpgradeTokenBody.decode(req.body))
+      .bimap(
+        errs =>
+          res.status(400).json({
+            error: "Invalid Request",
+            message: String(errorsToError(errs))
+          }),
+        _ => ({
+          jwtEnabled: config.ENABLE_JWT,
+          organizationFiscalCode: _.organization_fiscal_code,
+          rawToken: _.token
+        })
+      )
+      .chain(({ jwtEnabled, organizationFiscalCode, rawToken }) =>
+        jwtEnabled
+          ? taskEither.of({ rawToken, organizationFiscalCode })
+          : getRawTokenUserFromRedis(req.body.token, res).map(_ => ({
+              organizationFiscalCode,
+              rawToken: _
+            }))
+      )
+      .chain(({ rawToken, organizationFiscalCode }) =>
+        fromEither(
+          TokenUser.decode(rawToken).mapLeft(() =>
+            res
+              .status(500)
+              .json("Cannot upgrade Token because it is not an L1 Token")
+          )
+        ).chain<TokenUserL2>(tokenUser =>
+          tokenUser.from_aa
+            ? fromNullable(
+                tokenUser.companies.find(
+                  e => e.organization_fiscal_code === organizationFiscalCode
+                )
+              ).foldL(
+                () => fromLeft(res.status(404).json("Organization Not Found")),
+                _ =>
+                  fromEither(toTokenUserL2(tokenUser, _)).mapLeft(() =>
+                    res.status(500).json("Error decoding L2 Token")
+                  )
+              )
+            : fromLeft(
+                res
+                  .status(500)
+                  .json(
+                    "Cannot upgrade a token not granted by an Authorization Authority"
+                  )
+              )
+        )
+      )
+      .chain(tokenUserL2 =>
+        generateToken(tokenUserL2).mapLeft(err =>
+          res
+            .status(500)
+            .json({ detail: err.message, error: "Error generating L2 Token" })
+        )
+      )
       .fold(identity, _ => res.status(200).json(_))
       .run();
   });

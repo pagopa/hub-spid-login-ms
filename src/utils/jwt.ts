@@ -50,3 +50,12 @@ export const extractJwtRemainingValidTime = (jwtToken: string) =>
   )
     // Calculate remaining token validity
     .map(_ => _.exp - Math.floor(new Date().valueOf() / 1000));
+
+export const verifyToken = (
+  publicCert: NonEmptyString,
+  token: string,
+  issuer: NonEmptyString
+) =>
+  taskify<Error, object>(cb =>
+    jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
+  )().mapLeft(toError);

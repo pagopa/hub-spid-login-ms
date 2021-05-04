@@ -1,6 +1,8 @@
 import { ResponseErrorInternal } from "@pagopa/ts-commons/lib/responses";
 import { Either } from "fp-ts/lib/Either";
+import { fromEither } from "fp-ts/lib/TaskEither";
 import { Errors } from "io-ts";
+import * as t from "io-ts";
 import { errorsToReadableMessages } from "italia-ts-commons/lib/reporters";
 import {
   CommonTokenUser,
@@ -51,3 +53,6 @@ export const toTokenUserL2 = (
 
 export const toResponseErrorInternal = (err: Error) =>
   ResponseErrorInternal(err.message);
+
+export const mapDecoding = <S, A>(type: t.Type<A, S>, toDecode: unknown) =>
+  fromEither(type.decode(toDecode)).mapLeft(errorsToError);

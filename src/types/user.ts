@@ -54,27 +54,38 @@ export const CommonTokenUser = t.intersection([
 
 export type CommonTokenUser = t.TypeOf<typeof CommonTokenUser>;
 
-export const TokenUser = t.union([
-  t.intersection([
-    CommonTokenUser,
-    t.interface({
-      companies: UserCompanies,
-      from_aa: t.literal(true)
-    })
+export const TokenUser = t.intersection([
+  t.union([
+    t.intersection([
+      CommonTokenUser,
+      t.interface({
+        companies: UserCompanies,
+        from_aa: t.literal(true)
+      })
+    ]),
+    t.intersection([
+      CommonTokenUser,
+      t.interface({
+        from_aa: t.literal(false)
+      })
+    ])
   ]),
-  t.intersection([
-    CommonTokenUser,
-    t.interface({
-      from_aa: t.literal(false)
-    })
-  ])
+  t.interface({
+    level: t.literal("L1")
+  })
 ]);
 
 export type TokenUser = t.TypeOf<typeof TokenUser>;
 
 export const TokenUserL2 = t.intersection([
   CommonTokenUser,
-  t.interface({ company: UserCompany })
+  t.union([
+    t.interface({ company: UserCompany, from_aa: t.literal(true) }),
+    t.interface({ from_aa: t.literal(false) })
+  ]),
+  t.interface({
+    level: t.literal("L2")
+  })
 ]);
 
 export type TokenUserL2 = t.TypeOf<typeof TokenUserL2>;

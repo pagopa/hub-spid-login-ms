@@ -74,7 +74,8 @@ const AttributeAuthorityParams = t.union([
     ENABLE_AA: t.literal(true),
 
     AA_API_ENDPOINT: NonEmptyString,
-    AA_API_METHOD: t.union([t.literal("POST"), t.literal("GET")])
+    AA_API_METHOD: t.union([t.literal("POST"), t.literal("GET")]),
+    ENDPOINT_L1_SUCCESS: NonEmptyString
   }),
   t.interface({
     ENABLE_AA: t.literal(false)

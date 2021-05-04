@@ -72,8 +72,8 @@ stages:
       vmImage: 'ubuntu-latest'
     jobs:
       - job: make_release
+        condition: eq(variables['Build.SourceBranch'], format('refs/heads/{0}', variables.DEFAULT_BRANCH))
         steps:
-        - ${{ if eq(variables['Build.SourceBranch'], format('refs/heads/{0}', variables.DEFAULT_BRANCH)) }}:
           - template: templates/node-job-setup/template.yaml@pagopaCommons
             parameters:
               persistCredentials: true
@@ -84,7 +84,9 @@ stages:
               gitUsername: '$(GIT_USERNAME)'
               gitHubConnection: '$(GITHUB_CONNECTION)'
 
-        - ${{ if ne(variables['Build.SourceBranch'], format('refs/heads/{0}', variables.DEFAULT_BRANCH)) }}:
+      - job: skip_release
+        condition: ne(variables['Build.SourceBranch'], format('refs/heads/{0}', variables.DEFAULT_BRANCH))
+        steps:
           - script: |
               echo "We assume this reference to be a valid release: $(Build.SourceBranch). Therefore, there is no need to bundle a new release."
             displayName: 'Skip release bundle'

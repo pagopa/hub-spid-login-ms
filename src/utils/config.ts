@@ -40,6 +40,7 @@ export const SpidParams = t.intersection([
     ENDPOINT_SUCCESS: NonEmptyString,
     INCLUDE_SPID_USER_ON_INTROSPECTION: t.boolean,
     METADATA_PRIVATE_CERT: NonEmptyString,
+    METADATA_PUBLIC_CERT: NonEmptyString,
     ORG_DISPLAY_NAME: NonEmptyString,
     ORG_ISSUER: NonEmptyString,
 

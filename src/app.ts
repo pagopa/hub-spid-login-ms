@@ -309,15 +309,19 @@ export const createAppTask = withSpid({
       .chain(() =>
         getRawTokenUserFromRedis(req.body.token, res)
           .chain<TokenUser | TokenUserL2>(_ =>
-            (TokenUserL2.is(_)
-              ? mapDecoding(TokenUserL2, _)
-              : mapDecoding(TokenUser, _)
-            ).mapLeft(e =>
-              res.status(500).json({
-                detail: String(e),
-                error: "Error decoding token"
-              })
-            )
+            TokenUserL2.is(_)
+              ? mapDecoding(TokenUserL2, _).mapLeft(e =>
+                  res.status(500).json({
+                    detail: String(e),
+                    error: "Error decoding L2 token"
+                  })
+                )
+              : mapDecoding(TokenUser, _).mapLeft(e =>
+                  res.status(500).json({
+                    detail: String(e),
+                    error: "Error decoding L1 token"
+                  })
+                )
           )
 
           .chain(

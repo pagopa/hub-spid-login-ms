@@ -21,8 +21,10 @@ parameters:
       - uat
       - prod
 
+# variables setted on azdevops to avoid circular dependency warning
+# $(DEFAULT_BRANCH)
+# $(HEALTHCHECK_CONTAINER_SUBNET)
 variables:
-  HEALTHCHECK_CONTAINER_SUBNET: $(HEALTHCHECK_CONTAINER_SUBNET)
   ${{ if eq(parameters['environment'], 'uat') }}:
     DEPLOY_TYPE: $[variables['UAT_DEPLOY_TYPE']]
     AZURE_SUBSCRIPTION: $(UAT_AZURE_SUBSCRIPTION)

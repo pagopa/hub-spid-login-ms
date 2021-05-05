@@ -10,7 +10,6 @@ import {
   IResponseErrorForbiddenNotAuthorized,
   IResponsePermanentRedirect
 } from "@pagopa/ts-commons/lib/responses";
-import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as crypto from "crypto";
@@ -45,8 +44,7 @@ import {
 import {
   extractJwtRemainingValidTime,
   extractRawDataFromJwt,
-  getUserJwt,
-  verifyToken
+  getUserJwt
 } from "./utils/jwt";
 
 import { REDIS_CLIENT } from "./utils/redis";

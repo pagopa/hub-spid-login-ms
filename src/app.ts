@@ -44,6 +44,7 @@ import {
 } from "./utils/conversions";
 import {
   extractJwtRemainingValidTime,
+  extractRawDataFromJwt,
   getUserJwt,
   verifyToken
 } from "./utils/jwt";
@@ -256,12 +257,13 @@ export const createAppTask = withSpid({
   samlConfig,
   serviceProviderConfig
 }).map(({ app: withSpidApp, idpMetadataRefresher }) => {
-  withSpidApp.get("/success", (req, res) => {
-    return res.json({
+  const successHandler = (req, res) =>
+    res.json({
       success: "success",
       token: req.query.token
     });
-  });
+  withSpidApp.get("/success", successHandler);
+  withSpidApp.get("/success/l1", successHandler);
   withSpidApp.get("/error", (_, res) =>
     res
       .json({
@@ -378,17 +380,20 @@ export const createAppTask = withSpid({
       )
       .chain(({ jwtEnabled, organizationFiscalCode, rawToken }) =>
         jwtEnabled
-          ? taskEither.of({ rawToken, organizationFiscalCode })
+          ? taskEither.of({
+              organizationFiscalCode,
+              rawTokenUser: extractRawDataFromJwt(rawToken)
+            })
           : getRawTokenUserFromRedis(req.body.token, res).map(_ => ({
               organizationFiscalCode,
-              rawToken: _
+              rawTokenUser: _
             }))
       )
-      .chain(({ rawToken, organizationFiscalCode }) =>
+      .chain(({ rawTokenUser, organizationFiscalCode }) =>
         fromEither(
-          TokenUser.decode(rawToken).mapLeft(() =>
+          TokenUser.decode(rawTokenUser).mapLeft(() =>
             res
-              .status(500)
+              .status(400)
               .json("Cannot upgrade Token because it is not an L1 Token")
           )
         ).chain<TokenUserL2>(tokenUser =>
@@ -420,7 +425,7 @@ export const createAppTask = withSpid({
             .json({ detail: err.message, error: "Error generating L2 Token" })
         )
       )
-      .fold(identity, _ => res.status(200).json(_))
+      .fold(identity, _ => res.status(200).json({ token: _.tokenStr }))
       .run();
   });
 

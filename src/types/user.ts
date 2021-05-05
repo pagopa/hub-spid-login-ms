@@ -4,6 +4,7 @@ import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
 import * as t from "io-ts";
 
 export const FISCAL_NUMBER_INTERNATIONAL_PREFIX = "TINIT-";
@@ -71,7 +72,7 @@ export const TokenUser = t.intersection([
     ])
   ]),
   t.interface({
-    level: t.literal("L1")
+    level: withDefault(t.literal("L1"), "L1")
   })
 ]);
 
@@ -84,7 +85,7 @@ export const TokenUserL2 = t.intersection([
     t.interface({ from_aa: t.literal(false) })
   ]),
   t.interface({
-    level: t.literal("L2")
+    level: withDefault(t.literal("L2"), "L2")
   })
 ]);
 

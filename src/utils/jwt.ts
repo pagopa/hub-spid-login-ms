@@ -7,6 +7,7 @@ import * as t from "io-ts";
 import * as jwt from "jsonwebtoken";
 import { ulid } from "ulid";
 import { TokenUser, TokenUserL2 } from "../types/user";
+import { errorsToError } from "./conversions";
 
 const ExpireJWT = t.exact(
   t.interface({
@@ -41,6 +42,15 @@ export const getUserJwt = (
       cb
     )
   )().mapLeft(toError);
+
+export const extractTypeFromJwt = <S, A>(
+  jwtToken: NonEmptyString,
+  typeToExtract: t.Type<A, S>
+) =>
+  fromEither(typeToExtract.decode(jwt.decode(jwtToken))).mapLeft(errorsToError);
+
+export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
+  jwt.decode(jwtToken, { json: true });
 
 export const extractJwtRemainingValidTime = (jwtToken: string) =>
   fromEither(

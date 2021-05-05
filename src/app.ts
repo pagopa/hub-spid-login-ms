@@ -155,10 +155,10 @@ const acs: AssertionConsumerServiceT = async user => {
       >(identity, ({ tokenStr, tokenUser }) =>
         config.ENABLE_AA && !TokenUserL2.is(tokenUser)
           ? ResponsePermanentRedirect({
-              href: `${config.ENDPOINT_L1_SUCCESS}?token=${tokenStr}`
+              href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
             })
           : ResponsePermanentRedirect({
-              href: `${config.ENDPOINT_SUCCESS}?token=${tokenStr}`
+              href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
             })
       )
       .run()

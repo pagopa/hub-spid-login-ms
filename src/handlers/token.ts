@@ -187,10 +187,17 @@ export const upgradeTokenHandler = async (
     )
     .chain(({ jwtEnabled, organizationFiscalCode, rawToken }) =>
       jwtEnabled
-        ? taskEither.of({
-            organizationFiscalCode,
-            rawTokenUser: extractRawDataFromJwt(rawToken)
-          })
+        ? fromEither(extractRawDataFromJwt(rawToken)).bimap(
+            err =>
+              res.status(400).json({
+                error: "Token Invalid",
+                message: err.message
+              }),
+            _ => ({
+              organizationFiscalCode,
+              rawTokenUser: _
+            })
+          )
         : getRawTokenUserFromRedis(req.body.token, res).map(_ => ({
             organizationFiscalCode,
             rawTokenUser: _

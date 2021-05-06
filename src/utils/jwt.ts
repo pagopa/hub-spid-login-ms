@@ -1,6 +1,7 @@
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { tryCatch2v } from "fp-ts/lib/Either";
 import { toError } from "fp-ts/lib/Either";
 import { fromEither, TaskEither, taskify } from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
@@ -50,7 +51,7 @@ export const extractTypeFromJwt = <S, A>(
   fromEither(typeToExtract.decode(jwt.decode(jwtToken))).mapLeft(errorsToError);
 
 export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
-  jwt.decode(jwtToken, { json: true });
+  tryCatch2v(() => jwt.decode(jwtToken, { json: true }), toError);
 
 export const extractJwtRemainingValidTime = (jwtToken: string) =>
   fromEither(

@@ -2,6 +2,7 @@ import { fromPredicate } from "fp-ts/lib/Option";
 import * as redis from "redis";
 import RedisClustr = require("redis-clustr");
 import { getConfigOrThrow } from "./config";
+import { logger } from "./logger";
 const config = getConfigOrThrow();
 
 function createSimpleRedisClient(
@@ -85,3 +86,23 @@ export const REDIS_CLIENT = fromPredicate<boolean>(_ => _)(config.isProduction)
       config.REDIS_TLS_ENABLED
     )
   );
+
+REDIS_CLIENT.on("connect", () => {
+  logger.info("Client connected to redis...");
+});
+
+REDIS_CLIENT.on("ready", () => {
+  logger.info("Client connected to redis and ready to use...");
+});
+
+REDIS_CLIENT.on("reconnecting", () => {
+  logger.info("Client reconnecting...");
+});
+
+REDIS_CLIENT.on("error", err => {
+  logger.info(`Redis error: ${err}`);
+});
+
+REDIS_CLIENT.on("end", () => {
+  logger.info("Client disconnected from redis");
+});

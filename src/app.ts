@@ -22,7 +22,6 @@ import {
   fromPredicate,
   taskEither
 } from "fp-ts/lib/TaskEither";
-import { logger } from "./utils/logger";
 
 import {
   IResponseErrorInternal,
@@ -93,39 +92,9 @@ const serviceProviderConfig: IServiceProviderConfig = {
 
 const redisClient = REDIS_CLIENT;
 
-redisClient.on("connect", () => {
-  logger.info("Client connected to redis...");
-});
-
-redisClient.on("ready", () => {
-  logger.info("Client connected to redis and ready to use...");
-});
-
-redisClient.on("reconnecting", () => {
-  logger.info("Client reconnecting...");
-});
-
-redisClient.on("error", err => {
-  logger.info(`Redis error: ${err}`);
-});
-
-redisClient.on("end", () => {
-  logger.info("Client disconnected from redis");
-});
-
 process.on("SIGINT", () => {
   redisClient.quit();
 });
-
-const redisGetTokenUser = (userKey: string) =>
-  getTask(redisClient, userKey)
-    .chain(_ =>
-      _.foldL(
-        () => fromLeft(new Error("No existing token into Redis")),
-        userStr => fromEither(parseJSON(userStr, __ => new Error(String(__))))
-      )
-    )
-    .chain(_ => fromEither(TokenUser.decode(_).mapLeft(errorsToError)));
 
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",

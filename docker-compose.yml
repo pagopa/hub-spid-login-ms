@@ -45,6 +45,19 @@ services:
             REDIS_MAXMEMORY: 182m
         networks:
             - spid-net
+    
+    ade-aa-ms-mock:
+        container_name: ade-aa-ms-mock
+        image: ade-aa-ms-mock
+        build:
+            context: ./ade-aa-mock
+            dockerfile: ./Dockerfile
+        env_file:
+            - ade-aa-mock/.env
+        ports:
+            - "3000:3000"
+        networks:
+            - spid-net
 
 networks:
     spid-net:

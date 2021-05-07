@@ -17,6 +17,8 @@
     "prebuild": "shx rm -rf dist",
     "build": "tsc",
     "start": "node -r dotenv/config dist/server.js",
+    "docker:start": "docker-compose --env-file .env up --build",
+    "docker:stop": "docker-compose down",
     "premake-certs": "shx rm -rf certs && shx mkdir certs",
     "make-certs": "./scripts/make-certs.sh",
     "dev": "nodemon --inspect=0.0.0.0 dist/server.js",

@@ -92,6 +92,10 @@ const serviceProviderConfig: IServiceProviderConfig = {
 
 const redisClient = REDIS_CLIENT;
 
+process.on("SIGINT", () => {
+  redisClient.quit();
+});
+
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",
   acceptedClockSkewMs: 0,

@@ -10,10 +10,11 @@ services:
             - NODE_TLS_REJECT_UNAUTHORIZED=0
         depends_on:
           - redis
+          - spid-saml-check
         expose:
-            - "8080"
+            - ${SERVER_PORT}
         ports:
-            - "8080:8080"
+            - ${SERVER_PORT}:${SERVER_PORT}
             - "5859:5859"
         image: node:10.14.2-alpine
         command: ["yarn", "start"]
@@ -31,6 +32,20 @@ services:
         volumes:
             - "./conf-testenv:/app/conf"
             - "./certs:/app/certs:ro"
+        networks:
+            - spid-net
+     
+    spid-saml-check:       
+        container_name: spid-saml-check
+        image: spid-saml-check
+        restart: unless-stopped
+        build:
+            context: ./spid-saml-check
+            dockerfile: ./Dockerfile
+        environment: 
+            - NODE_TLS_REJECT_UNAUTHORIZED=0
+        ports:
+            - "8080:8080"
         networks:
             - spid-net
 

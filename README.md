@@ -7,8 +7,9 @@ In order to run SPID Login microservice in a local environment you must:
 - copy `.env.example` into `.env`
 - Execute `scripts/make-certs.sh`
 - Fill environment variables with your own configuration
+- Take care about the values setted for SP `SERVER_PORT` and the metadata endpoint registered in `spid-testenv2` config yaml
 - build the project by running `yarn build`
-- Run `docker compose up --build` 
+- Run `docker compose --env-file .env up --build` or `yarn docker`
 
 ## JWT Support
 

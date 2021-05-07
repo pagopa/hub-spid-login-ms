@@ -87,7 +87,9 @@ type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   t.interface({
-    isProduction: t.boolean
+    isProduction: t.boolean,
+
+    SERVER_PORT: NonNegativeInteger
   }),
   RedisParams,
   SpidParams,
@@ -119,6 +121,17 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   REDIS_TLS_ENABLED: fromNullable(process.env.REDIS_TLS_ENABLED)
     .map(_ => _.toLowerCase() === "true")
     .toUndefined(),
+  SERVER_PORT: fromNullableE(-1)(process.env.SERVER_PORT)
+    .chain(_ => {
+      // tslint:disable-next-line: no-console
+      console.log(`Server port from .env is ${_}`);
+      return IntegerFromString.decode(_).mapLeft(() => -1);
+    })
+    .fold(() => {
+      // tslint:disable-next-line: no-console
+      console.log(`folding to 8080`);
+      return 8080;
+    }, identity),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

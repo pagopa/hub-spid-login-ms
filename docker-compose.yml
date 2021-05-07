@@ -12,9 +12,9 @@ services:
           - redis
           - spid-saml-check
         expose:
-            - "9090"
+            - ${SERVER_PORT}
         ports:
-            - "9090:9090"
+            - ${SERVER_PORT}:${SERVER_PORT}
             - "5859:5859"
         image: node:10.14.2-alpine
         command: ["yarn", "start"]

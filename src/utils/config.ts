@@ -90,6 +90,8 @@ export const IConfig = t.intersection([
   t.interface({
     isProduction: t.boolean,
 
+    APPINSIGHTS_DISABLED: t.boolean,
+    APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
     DEFAULT_TOKEN_EXPIRATION: NonNegativeInteger,
     SERVER_PORT: NonNegativeInteger
   }),
@@ -102,6 +104,9 @@ export const IConfig = t.intersection([
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
+  APPINSIGHTS_DISABLED: fromNullable(process.env.APPINSIGHTS_DISABLED)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => true),
   DEFAULT_TOKEN_EXPIRATION: fromNullableE(-1)(
     process.env.DEFAULT_TOKEN_EXPIRATION
   )

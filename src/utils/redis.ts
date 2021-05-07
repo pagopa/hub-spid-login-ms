@@ -2,6 +2,7 @@ import { fromPredicate } from "fp-ts/lib/Option";
 import * as redis from "redis";
 import RedisClustr = require("redis-clustr");
 import { getConfigOrThrow } from "./config";
+import { logger } from "./logger";
 const config = getConfigOrThrow();
 
 function createSimpleRedisClient(
@@ -17,6 +18,28 @@ function createSimpleRedisClient(
     auth_pass: password,
     host: redisUrl,
     port: redisPort,
+    retry_strategy: retryOptions => {
+      if (retryOptions.error && retryOptions.error.code === "ECONNREFUSED") {
+        // End reconnecting on a specific error and flush all commands with
+        // a individual error
+        return new Error("The server refused the connection");
+      }
+
+      if (retryOptions.total_retry_time > 1000 * 60 * 60) {
+        // End reconnecting after a specific timeout and flush all commands
+        // with a individual error
+        return new Error("Retry time exhausted");
+      }
+
+      if (retryOptions.attempt > 3) {
+        // End reconnecting with built in error
+        return undefined;
+      }
+
+      // Reconnect after
+      return Math.min(retryOptions.attempt * 100, 3000);
+    },
+    socket_keepalive: true,
     tls: useTls ? { servername: redisUrl } : undefined
   });
 }
@@ -63,3 +86,23 @@ export const REDIS_CLIENT = fromPredicate<boolean>(_ => _)(config.isProduction)
       config.REDIS_TLS_ENABLED
     )
   );
+
+REDIS_CLIENT.on("connect", () => {
+  logger.info("Client connected to redis...");
+});
+
+REDIS_CLIENT.on("ready", () => {
+  logger.info("Client connected to redis and ready to use...");
+});
+
+REDIS_CLIENT.on("reconnecting", () => {
+  logger.info("Client reconnecting...");
+});
+
+REDIS_CLIENT.on("error", err => {
+  logger.info(`Redis error: ${err}`);
+});
+
+REDIS_CLIENT.on("end", () => {
+  logger.info("Client disconnected from redis");
+});

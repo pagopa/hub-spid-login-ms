@@ -8,13 +8,10 @@ import {
   taskEither
 } from "fp-ts/lib/TaskEither";
 
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as crypto from "crypto";
 import { fromNullable } from "fp-ts/lib/Option";
-import {
-  DEFAULT_OPAQUE_TOKEN_EXPIRATION,
-  SESSION_INVALIDATE_TOKEN_PREFIX,
-  SESSION_TOKEN_PREFIX
-} from "../app";
+import { SESSION_INVALIDATE_TOKEN_PREFIX, SESSION_TOKEN_PREFIX } from "../app";
 import { UpgradeTokenBody } from "../types/request";
 import { TokenUser, TokenUserL2 } from "../types/user";
 import { getConfigOrThrow } from "../utils/config";
@@ -59,33 +56,44 @@ const getRawTokenUserFromRedis = (token: string, res: express.Response) =>
       )
     );
 
+export const getTokenExpiration = (tokenUser: TokenUser | TokenUserL2) =>
+  config.ENABLE_AA
+    ? TokenUser.is(tokenUser)
+      ? config.L1_TOKEN_EXPIRATION
+      : config.L2_TOKEN_EXPIRATION
+    : config.DEFAULT_TOKEN_EXPIRATION;
+
 export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
-  config.ENABLE_JWT
-    ? getUserJwt(
-        config.JWT_TOKEN_PRIVATE_KEY,
-        tokenUser,
-        config.JWT_TOKEN_EXPIRATION,
-        config.JWT_TOKEN_ISSUER
-      ).bimap(
-        () => new Error("Error generating JWT Token"),
-        _ => ({ tokenUser, tokenStr: _ })
-      )
-    : taskEither
-        .of<Error, string>(crypto.randomBytes(32).toString("hex"))
-        .chain(_ =>
-          setWithExpirationTask(
-            redisClient,
-            `${SESSION_TOKEN_PREFIX}${_}`,
-            JSON.stringify(tokenUser),
-            DEFAULT_OPAQUE_TOKEN_EXPIRATION
+  taskEither
+    .of<Error, NonNegativeInteger>(getTokenExpiration(tokenUser))
+    .chain(tokenExpiration =>
+      config.ENABLE_JWT
+        ? getUserJwt(
+            config.JWT_TOKEN_PRIVATE_KEY,
+            tokenUser,
+            tokenExpiration,
+            config.JWT_TOKEN_ISSUER
           ).bimap(
-            () => new Error("Error storing Opaque Token"),
-            () => ({
-              tokenStr: _,
-              tokenUser
-            })
+            () => new Error("Error generating JWT Token"),
+            _ => ({ tokenUser, tokenStr: _ })
           )
-        );
+        : taskEither
+            .of<Error, string>(crypto.randomBytes(32).toString("hex"))
+            .chain(_ =>
+              setWithExpirationTask(
+                redisClient,
+                `${SESSION_TOKEN_PREFIX}${_}`,
+                JSON.stringify(tokenUser),
+                tokenExpiration
+              ).bimap(
+                () => new Error("Error storing Opaque Token"),
+                () => ({
+                  tokenStr: _,
+                  tokenUser
+                })
+              )
+            )
+    );
 
 export const introspectHandler = async (
   req: express.Request,

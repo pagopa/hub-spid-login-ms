@@ -59,7 +59,6 @@ export type SpidParams = t.TypeOf<typeof SpidParams>;
 const JWTParams = t.union([
   t.interface({
     ENABLE_JWT: t.literal(true),
-    JWT_TOKEN_EXPIRATION: NonNegativeInteger,
     JWT_TOKEN_ISSUER: NonEmptyString,
     JWT_TOKEN_PRIVATE_KEY: NonEmptyString
   }),
@@ -75,7 +74,9 @@ const AttributeAuthorityParams = t.union([
 
     AA_API_ENDPOINT: NonEmptyString,
     AA_API_METHOD: t.union([t.literal("POST"), t.literal("GET")]),
-    ENDPOINT_L1_SUCCESS: NonEmptyString
+    ENDPOINT_L1_SUCCESS: NonEmptyString,
+    L1_TOKEN_EXPIRATION: NonNegativeInteger,
+    L2_TOKEN_EXPIRATION: NonNegativeInteger
   }),
   t.interface({
     ENABLE_AA: t.literal(false)
@@ -89,6 +90,7 @@ export const IConfig = t.intersection([
   t.interface({
     isProduction: t.boolean,
 
+    DEFAULT_TOKEN_EXPIRATION: NonNegativeInteger,
     SERVER_PORT: NonNegativeInteger
   }),
   RedisParams,
@@ -100,6 +102,11 @@ export const IConfig = t.intersection([
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
+  DEFAULT_TOKEN_EXPIRATION: fromNullableE(-1)(
+    process.env.DEFAULT_TOKEN_EXPIRATION
+  )
+    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+    .fold(() => 3600, identity),
   ENABLE_AA: fromNullable(process.env.ENABLE_AA)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
@@ -111,8 +118,10 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   )
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
-  // -1 value fail IConfig decode if ENABLE_JWT is true
-  JWT_TOKEN_EXPIRATION: fromNullableE(-1)(process.env.JWT_TOKEN_EXPIRATION)
+  L1_TOKEN_EXPIRATION: fromNullableE(-1)(process.env.L1_TOKEN_EXPIRATION)
+    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+    .fold(identity, identity),
+  L2_TOKEN_EXPIRATION: fromNullableE(-1)(process.env.L2_TOKEN_EXPIRATION)
     .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
     .fold(identity, identity),
   REDIS_CLUSTER_ENABLED: fromNullable(process.env.REDIS_CLUSTER_ENABLED)
@@ -122,16 +131,8 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     .map(_ => _.toLowerCase() === "true")
     .toUndefined(),
   SERVER_PORT: fromNullableE(-1)(process.env.SERVER_PORT)
-    .chain(_ => {
-      // tslint:disable-next-line: no-console
-      console.log(`Server port from .env is ${_}`);
-      return IntegerFromString.decode(_).mapLeft(() => -1);
-    })
-    .fold(() => {
-      // tslint:disable-next-line: no-console
-      console.log(`folding to 8080`);
-      return 8080;
-    }, identity),
+    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+    .fold(() => 8080, identity),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

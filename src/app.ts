@@ -47,7 +47,6 @@ import { REDIS_CLIENT } from "./utils/redis";
 
 const config = getConfigOrThrow();
 
-export const DEFAULT_OPAQUE_TOKEN_EXPIRATION = 3600;
 export const SESSION_TOKEN_PREFIX = "session-token:";
 export const SESSION_INVALIDATE_TOKEN_PREFIX = "session-token-invalidate:";
 

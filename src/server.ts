@@ -1,16 +1,16 @@
-import appInsights = require("applicationinsights");
 import * as http from "http";
 import { createAppTask } from "./app";
+import { initAppInsights } from "./utils/appinsights";
 import { getConfigOrThrow } from "./utils/config";
 
 const config = getConfigOrThrow();
+const appInsights = initAppInsights(config.APPINSIGHTS_INSTRUMENTATIONKEY, {
+  disableAppInsights: config.APPINSIGHTS_DISABLED
+});
 
-appInsights.setup();
 // tslint:disable-next-line: no-object-mutation
-appInsights.defaultClient.context.tags[
-  appInsights.defaultClient.context.keys.cloudRole
-] = "hub-spid-login-ms";
-appInsights.start();
+appInsights.context.tags[appInsights.context.keys.cloudRole] =
+  "hub-spid-login-ms";
 
 // tslint:disable-next-line: no-let
 let server: http.Server;

@@ -75,6 +75,8 @@ export const IConfig = t.intersection([
   t.interface({
     isProduction: t.boolean,
 
+    APPINSIGHTS_DISABLED: t.boolean,
+    APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
     SERVER_PORT: NonNegativeInteger
   }),
   RedisParams,
@@ -85,6 +87,9 @@ export const IConfig = t.intersection([
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
+  APPINSIGHTS_DISABLED: fromNullable(process.env.APPINSIGHTS_DISABLED)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => true),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),

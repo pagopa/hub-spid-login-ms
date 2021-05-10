@@ -44,14 +44,16 @@ export const getUserJwt = (
     )
   )().mapLeft(toError);
 
+export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
+  tryCatch2v(() => jwt.decode(jwtToken, { json: true }), toError);
+
 export const extractTypeFromJwt = <S, A>(
   jwtToken: NonEmptyString,
   typeToExtract: t.Type<A, S>
 ) =>
-  fromEither(typeToExtract.decode(jwt.decode(jwtToken))).mapLeft(errorsToError);
-
-export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
-  tryCatch2v(() => jwt.decode(jwtToken, { json: true }), toError);
+  fromEither(extractRawDataFromJwt(jwtToken)).chain(_ =>
+    fromEither(typeToExtract.decode(_)).mapLeft(errorsToError)
+  );
 
 export const extractJwtRemainingValidTime = (jwtToken: string) =>
   fromEither(

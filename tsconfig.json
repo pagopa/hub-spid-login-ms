@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
     "module": "commonjs",
     "moduleResolution": "node",

@@ -70,16 +70,15 @@ type JWTParams = t.TypeOf<typeof JWTParams>;
 
 const AttributeAuthorityParams = t.union([
   t.interface({
-    ENABLE_AA: t.literal(true),
+    ENABLE_ADE_AA: t.literal(true),
 
-    AA_API_ENDPOINT: NonEmptyString,
-    AA_API_METHOD: t.union([t.literal("POST"), t.literal("GET")]),
+    ADE_AA_API_ENDPOINT: NonEmptyString,
     ENDPOINT_L1_SUCCESS: NonEmptyString,
     L1_TOKEN_EXPIRATION: NonNegativeInteger,
     L2_TOKEN_EXPIRATION: NonNegativeInteger
   }),
   t.interface({
-    ENABLE_AA: t.literal(false)
+    ENABLE_ADE_AA: t.literal(false)
   })
 ]);
 type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
@@ -112,7 +111,7 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   )
     .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
     .fold(() => 3600, identity),
-  ENABLE_AA: fromNullable(process.env.ENABLE_AA)
+  ENABLE_ADE_AA: fromNullable(process.env.ENABLE_ADE_AA)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
@@ -137,7 +136,8 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     .toUndefined(),
   SERVER_PORT: fromNullableE(-1)(process.env.SERVER_PORT)
     .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
-    .fold(() => 8080, identity),
+    .chain(_ => NonNegativeInteger.decode(_).mapLeft(() => -1))
+    .fold(() => 8080 as NonNegativeInteger, identity),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

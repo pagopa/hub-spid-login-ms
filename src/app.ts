@@ -43,6 +43,7 @@ import {
   toTokenUserL2
 } from "./utils/conversions";
 
+import { AdeAPIClient } from "./clients/ade";
 import { REDIS_CLIENT } from "./utils/redis";
 
 const config = getConfigOrThrow();
@@ -121,13 +122,16 @@ const acs: AssertionConsumerServiceT = async user => {
         fromEither(toCommonTokenUser(_)).mapLeft(toResponseErrorInternal)
       )
       .chain(_ =>
-        config.ENABLE_AA
+        config.ENABLE_ADE_AA
           ? getUserCompanies(
-              config.AA_API_ENDPOINT,
-              config.AA_API_METHOD,
+              AdeAPIClient(config.ADE_AA_API_ENDPOINT),
               _.fiscal_number
-            ).map(companies => ({ ..._, companies, from_aa: config.ENABLE_AA }))
-          : taskEither.of({ ..._, from_aa: config.ENABLE_AA })
+            ).map(companies => ({
+              ..._,
+              companies,
+              from_aa: config.ENABLE_ADE_AA
+            }))
+          : taskEither.of({ ..._, from_aa: config.ENABLE_ADE_AA })
       )
       .chain(_ =>
         fromEither(TokenUser.decode(_)).mapLeft(errs =>
@@ -156,7 +160,7 @@ const acs: AssertionConsumerServiceT = async user => {
         | IResponseErrorForbiddenNotAuthorized
         | IResponsePermanentRedirect
       >(identity, ({ tokenStr, tokenUser }) =>
-        config.ENABLE_AA && !TokenUserL2.is(tokenUser)
+        config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
           ? ResponsePermanentRedirect({
               href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
             })
@@ -200,8 +204,10 @@ export const createAppTask = withSpid({
   samlConfig,
   serviceProviderConfig
 }).map(({ app: withSpidApp, idpMetadataRefresher }) => {
-  withSpidApp.get("/success", successHandler);
-  withSpidApp.get("/success/l1", successHandler);
+  withSpidApp.get(config.ENDPOINT_SUCCESS, successHandler);
+  if (config.ENABLE_ADE_AA) {
+    withSpidApp.get(config.ENDPOINT_L1_SUCCESS, successHandler);
+  }
   withSpidApp.get("/error", errorHandler);
   withSpidApp.get("/refresh", metadataRefreshHandler(idpMetadataRefresher));
   // Add info endpoint

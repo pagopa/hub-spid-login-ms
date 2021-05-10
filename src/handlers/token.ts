@@ -41,9 +41,7 @@ const getRawTokenUserFromRedis = (token: string, res: express.Response) =>
     .mapLeft(() => res.status(500).json("Error while retrieving token"))
     .chain(maybeToken =>
       maybeToken.foldL(
-        () =>
-          // tslint:disable-next-line: no-any
-          fromLeft(res.status(404).json("Token not found")),
+        () => fromLeft(res.status(404).json("Token not found")),
         rawToken =>
           fromEither(
             parseJSON(rawToken, err =>
@@ -57,7 +55,7 @@ const getRawTokenUserFromRedis = (token: string, res: express.Response) =>
     );
 
 export const getTokenExpiration = (tokenUser: TokenUser | TokenUserL2) =>
-  config.ENABLE_AA
+  config.ENABLE_ADE_AA
     ? TokenUser.is(tokenUser)
       ? config.L1_TOKEN_EXPIRATION
       : config.L2_TOKEN_EXPIRATION
@@ -172,8 +170,10 @@ export const invalidateHandler = async (
           )
         : deleteTask(redisClient, `${SESSION_TOKEN_PREFIX}${req.body.token}`)
     )
-    .mapLeft(() => res.status(500).json("Error while invalidating Token"))
-    .fold(identity, _ => res.status(200).json(_))
+    .fold(
+      () => res.status(500).json("Error while invalidating Token"),
+      _ => res.status(200).json(_)
+    )
     .run();
 
 export const upgradeTokenHandler = async (

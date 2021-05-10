@@ -3,55 +3,48 @@ import {
   IResponseErrorInternal,
   ResponseErrorForbiddenNotAuthorized
 } from "@pagopa/ts-commons/lib/responses";
+import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
+import { toError } from "fp-ts/lib/Either";
+import { taskEither } from "fp-ts/lib/TaskEither";
 import {
-  EmailString,
-  FiscalCode,
-  NonEmptyString,
-  OrganizationFiscalCode
-} from "@pagopa/ts-commons/lib/strings";
-import { fromEither, fromPredicate } from "fp-ts/lib/TaskEither";
+  fromEither,
+  fromLeft,
+  fromPredicate,
+  tryCatch
+} from "fp-ts/lib/TaskEither";
+import { Companies } from "../../generated/ade-api/Companies";
 
-import * as t from "io-ts";
+import { AdeAPIClient } from "../clients/ade";
 import { UserCompanies, UserCompany } from "../types/user";
 import { errorsToError, toResponseErrorInternal } from "./conversions";
-import { fetchFromApi } from "./fetch";
-
-const ApiUserCompanies = t.array(
-  t.interface({
-    fiscalCode: OrganizationFiscalCode,
-    organizationName: NonEmptyString,
-    pec: EmailString
-  })
-);
-type ApiUserCompanies = t.TypeOf<typeof ApiUserCompanies>;
 
 export const getUserCompanies = (
-  apiEndpoint: NonEmptyString,
-  method: string,
+  apiClient: ReturnType<AdeAPIClient>,
   userFiscalCode: FiscalCode
 ) => {
-  const req = {
-    body: JSON.stringify({ fiscalCode: userFiscalCode }),
-    headers: { "Content-Type": "application/json" },
-    method
-  };
-  return fetchFromApi(apiEndpoint, req)
+  return tryCatch(
+    () => apiClient.getUserCompanies({ body: { fiscalCode: userFiscalCode } }),
+    toError
+  )
     .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
       toResponseErrorInternal
     )
-    .chain(
-      fromPredicate(
-        res => res.statusCode === 200,
-        () => ResponseErrorForbiddenNotAuthorized
+    .chain(_ =>
+      fromEither(_).mapLeft(errs =>
+        toResponseErrorInternal(errorsToError(errs))
       )
     )
-    .chain(response =>
-      fromEither(
-        ApiUserCompanies.decode(response.body).mapLeft(errs =>
-          toResponseErrorInternal(errorsToError(errs))
-        )
-      )
+    .chain<Companies>(res =>
+      // tslint:disable: no-console
+      {
+        console.log("AA RES =>>>>>>>>>>>");
+        console.log(res);
+        return res.status === 200
+          ? taskEither.of(res.value)
+          : fromLeft(ResponseErrorForbiddenNotAuthorized);
+      }
     )
+
     .chain(
       fromPredicate(
         _ => _.length > 0,

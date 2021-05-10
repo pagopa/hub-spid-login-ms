@@ -35,14 +35,9 @@ export const getUserCompanies = (
       )
     )
     .chain<Companies>(res =>
-      // tslint:disable: no-console
-      {
-        console.log("AA RES =>>>>>>>>>>>");
-        console.log(res);
-        return res.status === 200
-          ? taskEither.of(res.value)
-          : fromLeft(ResponseErrorForbiddenNotAuthorized);
-      }
+      res.status === 200
+        ? taskEither.of(res.value)
+        : fromLeft(ResponseErrorForbiddenNotAuthorized)
     )
 
     .chain(

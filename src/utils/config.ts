@@ -32,6 +32,8 @@ export type RedisParams = t.TypeOf<typeof RedisParams>;
 export const SpidParams = t.intersection([
   t.interface({
     AUTH_N_CONTEXT: NonEmptyString,
+
+    ACS_BASE_URL: NonEmptyString,
     ENDPOINT_ACS: NonEmptyString,
     ENDPOINT_ERROR: NonEmptyString,
     ENDPOINT_LOGIN: NonEmptyString,
@@ -75,10 +77,12 @@ const AttributeAuthorityParams = t.union([
     ADE_AA_API_ENDPOINT: NonEmptyString,
     ENDPOINT_L1_SUCCESS: NonEmptyString,
     L1_TOKEN_EXPIRATION: NonNegativeInteger,
+    L1_TOKEN_HEADER_NAME: NonEmptyString,
     L2_TOKEN_EXPIRATION: NonNegativeInteger
   }),
   t.interface({
-    ENABLE_ADE_AA: t.literal(false)
+    ENABLE_ADE_AA: t.literal(false),
+    TOKEN_EXPIRATION: NonNegativeInteger
   })
 ]);
 type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
@@ -91,7 +95,6 @@ export const IConfig = t.intersection([
 
     APPINSIGHTS_DISABLED: t.boolean,
     APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
-    DEFAULT_TOKEN_EXPIRATION: NonNegativeInteger,
     SERVER_PORT: NonNegativeInteger
   }),
   RedisParams,
@@ -100,17 +103,14 @@ export const IConfig = t.intersection([
   AttributeAuthorityParams
 ]);
 
+const DEFAULT_SERVER_PORT = 8080;
+
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
   APPINSIGHTS_DISABLED: fromNullable(process.env.APPINSIGHTS_DISABLED)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => true),
-  DEFAULT_TOKEN_EXPIRATION: fromNullableE(-1)(
-    process.env.DEFAULT_TOKEN_EXPIRATION
-  )
-    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
-    .fold(() => 3600, identity),
   ENABLE_ADE_AA: fromNullable(process.env.ENABLE_ADE_AA)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
@@ -122,11 +122,11 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   )
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
-  L1_TOKEN_EXPIRATION: fromNullableE(-1)(process.env.L1_TOKEN_EXPIRATION)
-    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+  L1_TOKEN_EXPIRATION: IntegerFromString.decode(process.env.L1_TOKEN_EXPIRATION)
+    .mapLeft(_ => undefined)
     .fold(identity, identity),
-  L2_TOKEN_EXPIRATION: fromNullableE(-1)(process.env.L2_TOKEN_EXPIRATION)
-    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+  L2_TOKEN_EXPIRATION: IntegerFromString.decode(process.env.L2_TOKEN_EXPIRATION)
+    .mapLeft(_ => undefined)
     .fold(identity, identity),
   REDIS_CLUSTER_ENABLED: fromNullable(process.env.REDIS_CLUSTER_ENABLED)
     .map(_ => _.toLowerCase() === "true")
@@ -134,10 +134,12 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   REDIS_TLS_ENABLED: fromNullable(process.env.REDIS_TLS_ENABLED)
     .map(_ => _.toLowerCase() === "true")
     .toUndefined(),
-  SERVER_PORT: fromNullableE(-1)(process.env.SERVER_PORT)
+  SERVER_PORT: fromNullableE(DEFAULT_SERVER_PORT)(process.env.SERVER_PORT)
+    .chain(_ => IntegerFromString.decode(_).mapLeft(() => DEFAULT_SERVER_PORT))
+    .fold(identity, identity),
+  TOKEN_EXPIRATION: fromNullableE(-1)(process.env.TOKEN_EXPIRATION)
     .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
-    .chain(_ => NonNegativeInteger.decode(_).mapLeft(() => -1))
-    .fold(() => 8080 as NonNegativeInteger, identity),
+    .fold(() => 3600, identity),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

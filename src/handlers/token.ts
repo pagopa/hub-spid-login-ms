@@ -9,17 +9,14 @@ import {
 } from "fp-ts/lib/TaskEither";
 
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import * as crypto from "crypto";
 import { fromNullable } from "fp-ts/lib/Option";
 import { SESSION_INVALIDATE_TOKEN_PREFIX, SESSION_TOKEN_PREFIX } from "../app";
 import { UpgradeTokenBody } from "../types/request";
 import { TokenUser, TokenUserL2 } from "../types/user";
 import { getConfigOrThrow } from "../utils/config";
-import {
-  errorsToError,
-  mapDecoding,
-  toTokenUserL2
-} from "../utils/conversions";
+import { mapDecoding, toBadRequest, toTokenUserL2 } from "../utils/conversions";
 import {
   extractJwtRemainingValidTime,
   extractRawDataFromJwt,
@@ -55,11 +52,11 @@ const getRawTokenUserFromRedis = (token: string, res: express.Response) =>
     );
 
 export const getTokenExpiration = (tokenUser: TokenUser | TokenUserL2) =>
-  config.ENABLE_ADE_AA
+  config.ENABLE_ADE_AA === true
     ? TokenUser.is(tokenUser)
       ? config.L1_TOKEN_EXPIRATION
       : config.L2_TOKEN_EXPIRATION
-    : config.DEFAULT_TOKEN_EXPIRATION;
+    : config.TOKEN_EXPIRATION;
 
 export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
   taskEither
@@ -176,31 +173,29 @@ export const invalidateHandler = async (
     )
     .run();
 
-export const upgradeTokenHandler = async (
+export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
   req: express.Request,
-  res: express.Response // first check if token is blacklisted
-) =>
-  await fromEither(UpgradeTokenBody.decode(req.body))
-    .bimap(
-      errs =>
-        res.status(400).json({
-          error: "Invalid Request",
-          message: String(errorsToError(errs))
-        }),
-      _ => ({
-        jwtEnabled: config.ENABLE_JWT,
-        organizationFiscalCode: _.organization_fiscal_code,
-        rawToken: _.token
-      })
+  res: express.Response
+) => {
+  const fromErrToBadRequest = toBadRequest(res);
+  await fromEither(
+    UpgradeTokenBody.decode(req.body).mapLeft(fromErrToBadRequest)
+  )
+    .chain(_ =>
+      fromEither(NonEmptyString.decode(req.headers[tokenHeaderName])).bimap(
+        e =>
+          fromErrToBadRequest(e, `Missing required header ${tokenHeaderName}`),
+        header => ({
+          jwtEnabled: config.ENABLE_JWT,
+          organizationFiscalCode: _.organization_fiscal_code,
+          rawToken: header
+        })
+      )
     )
     .chain(({ jwtEnabled, organizationFiscalCode, rawToken }) =>
       jwtEnabled
         ? fromEither(extractRawDataFromJwt(rawToken)).bimap(
-            err =>
-              res.status(400).json({
-                error: "Token Invalid",
-                message: err.message
-              }),
+            err => fromErrToBadRequest(err, "Token not valid"),
             _ => ({
               organizationFiscalCode,
               rawTokenUser: _
@@ -214,9 +209,9 @@ export const upgradeTokenHandler = async (
     .chain(({ rawTokenUser, organizationFiscalCode }) =>
       fromEither(
         TokenUser.decode(rawTokenUser).mapLeft(() =>
-          res
-            .status(400)
-            .json("Cannot upgrade Token because it is not an L1 Token")
+          fromErrToBadRequest(
+            new Error("Cannot upgrade Token because it is not an L1 Token")
+          )
         )
       ).chain<TokenUserL2>(tokenUser =>
         tokenUser.from_aa
@@ -249,3 +244,4 @@ export const upgradeTokenHandler = async (
     )
     .fold(identity, _ => res.status(200).json({ token: _.tokenStr }))
     .run();
+};

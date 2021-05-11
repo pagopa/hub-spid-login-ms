@@ -1,4 +1,5 @@
 import { ResponseErrorInternal } from "@pagopa/ts-commons/lib/responses";
+import express = require("express");
 import { Either } from "fp-ts/lib/Either";
 import { fromEither } from "fp-ts/lib/TaskEither";
 import { Errors } from "io-ts";
@@ -53,6 +54,16 @@ export const toTokenUserL2 = (
 
 export const toResponseErrorInternal = (err: Error) =>
   ResponseErrorInternal(err.message);
+
+export const toBadRequest = (res: express.Response) => (
+  errs: Error | Errors,
+  message: string = ""
+) =>
+  res.status(400).json({
+    detail: errs instanceof Error ? errs.message : String(errorsToError(errs)),
+    error: "Bad Request",
+    message
+  });
 
 export const mapDecoding = <S, A>(type: t.Type<A, S>, toDecode: unknown) =>
   fromEither(type.decode(toDecode)).mapLeft(errorsToError);

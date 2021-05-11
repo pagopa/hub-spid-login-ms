@@ -13,7 +13,6 @@ import {
 import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as express from "express";
-import { identity } from "fp-ts/lib/function";
 import { fromEither, taskEither } from "fp-ts/lib/TaskEither";
 import { generateToken } from "./handlers/token";
 
@@ -44,6 +43,7 @@ import {
 } from "./utils/conversions";
 
 import { AdeAPIClient } from "./clients/ade";
+import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 
 const config = getConfigOrThrow();
@@ -77,7 +77,7 @@ const serviceProviderConfig: IServiceProviderConfig = {
     attributes: config.SPID_ATTRIBUTES.split(",").map(
       item => item as SamlAttributeT
     ),
-    name: "Required attrs"
+    name: "Carta Giovani Nazionale Onboarding Portal"
   },
   spidCieUrl:
     "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata",
@@ -104,10 +104,10 @@ const samlConfig: SamlConfig = {
   acceptedClockSkewMs: 0,
   attributeConsumingServiceIndex: "0",
   authnContext: config.AUTH_N_CONTEXT,
-  callbackUrl: `${config.ORG_URL}${config.ENDPOINT_ACS}`,
+  callbackUrl: `${config.ACS_BASE_URL}${config.ENDPOINT_ACS}`,
   identifierFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
   issuer: config.ORG_ISSUER,
-  logoutCallbackUrl: `${config.ORG_URL}/slo`,
+  logoutCallbackUrl: `${config.ACS_BASE_URL}/slo`,
   privateCert: config.METADATA_PRIVATE_CERT,
   validateInResponseTo: true
 };
@@ -159,14 +159,21 @@ const acs: AssertionConsumerServiceT = async user => {
         | IResponseErrorInternal
         | IResponseErrorForbiddenNotAuthorized
         | IResponsePermanentRedirect
-      >(identity, ({ tokenStr, tokenUser }) =>
-        config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
-          ? ResponsePermanentRedirect({
-              href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
-            })
-          : ResponsePermanentRedirect({
-              href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-            })
+      >(
+        _ => {
+          logger.error(
+            `Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
+          );
+          return _;
+        },
+        ({ tokenStr, tokenUser }) =>
+          config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
+            ? ResponsePermanentRedirect({
+                href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
+              })
+            : ResponsePermanentRedirect({
+                href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
+              })
       )
       .run()
   );
@@ -205,8 +212,13 @@ export const createAppTask = withSpid({
   serviceProviderConfig
 }).map(({ app: withSpidApp, idpMetadataRefresher }) => {
   withSpidApp.get(config.ENDPOINT_SUCCESS, successHandler);
+
   if (config.ENABLE_ADE_AA) {
     withSpidApp.get(config.ENDPOINT_L1_SUCCESS, successHandler);
+    withSpidApp.post(
+      "/upgradeToken",
+      upgradeTokenHandler(config.L1_TOKEN_HEADER_NAME)
+    );
   }
   withSpidApp.get("/error", errorHandler);
   withSpidApp.get("/refresh", metadataRefreshHandler(idpMetadataRefresher));
@@ -220,8 +232,6 @@ export const createAppTask = withSpid({
   withSpidApp.post("/introspect", introspectHandler);
 
   withSpidApp.post("/invalidate", invalidateHandler);
-
-  withSpidApp.post("/upgradeToken", upgradeTokenHandler);
 
   withSpidApp.use(
     (

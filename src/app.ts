@@ -42,6 +42,11 @@ import {
   toTokenUserL2
 } from "./utils/conversions";
 
+import {
+  AggregatorType,
+  ContactType,
+  EntityType
+} from "@pagopa/io-spid-commons/dist/utils/middleware";
 import { AdeAPIClient } from "./clients/ade";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
@@ -64,7 +69,28 @@ export const appConfig: IApplicationConfig = {
   // startupIdpsMetadata: STARTUP_IDPS_METADATA
 };
 
+const getContactPersons = () =>
+  config.ENABLE_FULL_OPERATOR_METADATA
+    ? [
+        {
+          company: config.COMPANY_NAME,
+          contactType: ContactType.OTHER,
+          email: config.COMPANY_EMAIL,
+          entityType: EntityType.AGGREGATOR,
+          extensions: {
+            FiscalCode: config.COMPANY_FISCAL_CODE,
+            IPACode: config.COMPANY_IPA_CODE,
+            VATNumber: config.COMPANY_VAT_NUMBER,
+            aggregatorType: AggregatorType.PublicServicesFullOperator
+          },
+          phone: config.COMPANY_PHONE_NUMBER
+        }
+      ]
+    : undefined;
+
 const serviceProviderConfig: IServiceProviderConfig = {
+  contacts: getContactPersons(),
+
   IDPMetadataUrl:
     "https://registry.spid.gov.it/metadata/idp/spid-entities-idps.xml",
   organization: {
@@ -77,7 +103,7 @@ const serviceProviderConfig: IServiceProviderConfig = {
     attributes: config.SPID_ATTRIBUTES.split(",").map(
       item => item as SamlAttributeT
     ),
-    name: "Carta Giovani Nazionale Onboarding Portal"
+    name: config.REQUIRED_ATTRIBUTES_SERVICE_NAME
   },
   spidCieUrl:
     "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata",

@@ -9,6 +9,10 @@ import {
   IntegerFromString,
   NonNegativeInteger
 } from "@pagopa/ts-commons/lib/numbers";
+import {
+  EmailString,
+  OrganizationFiscalCode
+} from "@pagopa/ts-commons/lib/strings";
 import { fromNullable as fromNullableE } from "fp-ts/lib/Either";
 import { identity } from "fp-ts/lib/function";
 import { fromNullable } from "fp-ts/lib/Option";
@@ -29,7 +33,21 @@ export const RedisParams = t.intersection([
 ]);
 export type RedisParams = t.TypeOf<typeof RedisParams>;
 
-export const SpidParams = t.intersection([
+export const ContactPersonParams = t.intersection([
+  t.interface({
+    COMPANY_EMAIL: EmailString,
+    COMPANY_FISCAL_CODE: OrganizationFiscalCode,
+    COMPANY_IPA_CODE: NonEmptyString,
+    COMPANY_NAME: NonEmptyString,
+    COMPANY_VAT_NUMBER: NonEmptyString
+  }),
+  t.partial({
+    COMPANY_PHONE_NUMBER: NonEmptyString
+  })
+]);
+export type ContactPersonParams = t.TypeOf<typeof ContactPersonParams>;
+
+export const CommonSpidParams = t.intersection([
   t.interface({
     AUTH_N_CONTEXT: NonEmptyString,
 
@@ -48,12 +66,31 @@ export const SpidParams = t.intersection([
 
     ORG_NAME: NonEmptyString,
     ORG_URL: NonEmptyString,
+    REQUIRED_ATTRIBUTES_SERVICE_NAME: NonEmptyString,
     SPID_ATTRIBUTES: NonEmptyString
   }),
   t.partial({
     SPID_TESTENV_URL: NonEmptyString,
     SPID_VALIDATOR_URL: NonEmptyString
   })
+]);
+
+export type CommonSpidParams = t.TypeOf<typeof CommonSpidParams>;
+
+export const SpidParams = t.union([
+  t.intersection([
+    t.interface({
+      ENABLE_FULL_OPERATOR_METADATA: t.literal(false)
+    }),
+    CommonSpidParams
+  ]),
+  t.intersection([
+    t.interface({
+      ENABLE_FULL_OPERATOR_METADATA: t.literal(true)
+    }),
+    CommonSpidParams,
+    ContactPersonParams
+  ])
 ]);
 
 export type SpidParams = t.TypeOf<typeof SpidParams>;
@@ -112,6 +149,9 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => true),
   ENABLE_ADE_AA: fromNullable(process.env.ENABLE_ADE_AA)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
+  ENABLE_FULL_OPERATOR_METADATA: fromNullable(process.env.ENABLE_ADE_AA)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)

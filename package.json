@@ -65,7 +65,7 @@
     "typescript": "^3.7.0"
   },
   "dependencies": {
-    "@pagopa/io-spid-commons": "^6.3.0",
+    "@pagopa/io-spid-commons": "^6.4.0",
     "@pagopa/ts-commons": "^9.1.0",
     "@types/redis": "^2.8.14",
     "crypto": "^1.0.1",

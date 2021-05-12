@@ -32,6 +32,8 @@ export type RedisParams = t.TypeOf<typeof RedisParams>;
 export const SpidParams = t.intersection([
   t.interface({
     AUTH_N_CONTEXT: NonEmptyString,
+
+    ACS_BASE_URL: NonEmptyString,
     ENDPOINT_ACS: NonEmptyString,
     ENDPOINT_ERROR: NonEmptyString,
     ENDPOINT_LOGIN: NonEmptyString,
@@ -59,7 +61,6 @@ export type SpidParams = t.TypeOf<typeof SpidParams>;
 const JWTParams = t.union([
   t.interface({
     ENABLE_JWT: t.literal(true),
-    JWT_TOKEN_EXPIRATION: NonNegativeInteger,
     JWT_TOKEN_ISSUER: NonEmptyString,
     JWT_TOKEN_PRIVATE_KEY: NonEmptyString
   }),
@@ -68,6 +69,23 @@ const JWTParams = t.union([
   })
 ]);
 type JWTParams = t.TypeOf<typeof JWTParams>;
+
+const AttributeAuthorityParams = t.union([
+  t.interface({
+    ENABLE_ADE_AA: t.literal(true),
+
+    ADE_AA_API_ENDPOINT: NonEmptyString,
+    ENDPOINT_L1_SUCCESS: NonEmptyString,
+    L1_TOKEN_EXPIRATION: NonNegativeInteger,
+    L1_TOKEN_HEADER_NAME: NonEmptyString,
+    L2_TOKEN_EXPIRATION: NonNegativeInteger
+  }),
+  t.interface({
+    ENABLE_ADE_AA: t.literal(false),
+    TOKEN_EXPIRATION: NonNegativeInteger
+  })
+]);
+type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
 
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
@@ -81,8 +99,11 @@ export const IConfig = t.intersection([
   }),
   RedisParams,
   SpidParams,
-  JWTParams
+  JWTParams,
+  AttributeAuthorityParams
 ]);
+
+const DEFAULT_SERVER_PORT = 8080;
 
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
@@ -90,6 +111,9 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   APPINSIGHTS_DISABLED: fromNullable(process.env.APPINSIGHTS_DISABLED)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => true),
+  ENABLE_ADE_AA: fromNullable(process.env.ENABLE_ADE_AA)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
@@ -98,9 +122,11 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   )
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
-  // -1 value fail IConfig decode if ENABLE_JWT is true
-  JWT_TOKEN_EXPIRATION: fromNullableE(-1)(process.env.JWT_TOKEN_EXPIRATION)
-    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+  L1_TOKEN_EXPIRATION: IntegerFromString.decode(process.env.L1_TOKEN_EXPIRATION)
+    .mapLeft(_ => undefined)
+    .fold(identity, identity),
+  L2_TOKEN_EXPIRATION: IntegerFromString.decode(process.env.L2_TOKEN_EXPIRATION)
+    .mapLeft(_ => undefined)
     .fold(identity, identity),
   REDIS_CLUSTER_ENABLED: fromNullable(process.env.REDIS_CLUSTER_ENABLED)
     .map(_ => _.toLowerCase() === "true")
@@ -108,17 +134,12 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   REDIS_TLS_ENABLED: fromNullable(process.env.REDIS_TLS_ENABLED)
     .map(_ => _.toLowerCase() === "true")
     .toUndefined(),
-  SERVER_PORT: fromNullableE(-1)(process.env.SERVER_PORT)
-    .chain(_ => {
-      // tslint:disable-next-line: no-console
-      console.log(`Server port from .env is ${_}`);
-      return IntegerFromString.decode(_).mapLeft(() => -1);
-    })
-    .fold(() => {
-      // tslint:disable-next-line: no-console
-      console.log(`folding to 8080`);
-      return 8080;
-    }, identity),
+  SERVER_PORT: fromNullableE(DEFAULT_SERVER_PORT)(process.env.SERVER_PORT)
+    .chain(_ => IntegerFromString.decode(_).mapLeft(() => DEFAULT_SERVER_PORT))
+    .fold(identity, identity),
+  TOKEN_EXPIRATION: fromNullableE(-1)(process.env.TOKEN_EXPIRATION)
+    .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
+    .fold(() => 3600, identity),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

@@ -1,12 +1,14 @@
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { tryCatch2v } from "fp-ts/lib/Either";
 import { toError } from "fp-ts/lib/Either";
 import { fromEither, TaskEither, taskify } from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
 import * as jwt from "jsonwebtoken";
 import { ulid } from "ulid";
-import { TokenUser } from "../types/user";
+import { TokenUser, TokenUserL2 } from "../types/user";
+import { errorsToError } from "./conversions";
 
 const ExpireJWT = t.exact(
   t.interface({
@@ -24,7 +26,7 @@ const ExpireJWT = t.exact(
  */
 export const getUserJwt = (
   privateKey: NonEmptyString,
-  tokenUser: TokenUser,
+  tokenUser: TokenUser | TokenUserL2,
   tokenTtlSeconds: NonNegativeInteger,
   issuer: NonEmptyString
 ): TaskEither<Error, string> =>
@@ -42,6 +44,17 @@ export const getUserJwt = (
     )
   )().mapLeft(toError);
 
+export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
+  tryCatch2v(() => jwt.decode(jwtToken, { json: true }), toError);
+
+export const extractTypeFromJwt = <S, A>(
+  jwtToken: NonEmptyString,
+  typeToExtract: t.Type<A, S>
+) =>
+  fromEither(extractRawDataFromJwt(jwtToken)).chain(_ =>
+    fromEither(typeToExtract.decode(_)).mapLeft(errorsToError)
+  );
+
 export const extractJwtRemainingValidTime = (jwtToken: string) =>
   fromEither(
     ExpireJWT.decode(jwt.decode(jwtToken)).mapLeft(
@@ -50,3 +63,12 @@ export const extractJwtRemainingValidTime = (jwtToken: string) =>
   )
     // Calculate remaining token validity
     .map(_ => _.exp - Math.floor(new Date().valueOf() / 1000));
+
+export const verifyToken = (
+  publicCert: NonEmptyString,
+  token: string,
+  issuer: NonEmptyString
+) =>
+  taskify<Error, object>(cb =>
+    jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
+  )().mapLeft(toError);

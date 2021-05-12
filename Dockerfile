@@ -9,4 +9,4 @@ COPY /node_modules /usr/src/app/node_modules
 
 EXPOSE 8080
 
-ENTRYPOINT ["node", "dist/server.js"]
+ENTRYPOINT ["node", "dist/src/server.js"]

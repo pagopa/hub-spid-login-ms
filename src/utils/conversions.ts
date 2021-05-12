@@ -60,7 +60,7 @@ export const toBadRequest = (res: express.Response) => (
   message: string = ""
 ) =>
   res.status(400).json({
-    detail: errs instanceof Error ? errs.message : String(errorsToError(errs)),
+    detail: errs instanceof Error ? errs.message : errorsToError(errs).message,
     error: "Bad Request",
     message
   });

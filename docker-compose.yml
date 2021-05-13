@@ -40,7 +40,7 @@ services:
         image: spid-saml-check
         restart: unless-stopped
         build:
-            context: ./spid-saml-check
+            context: ./docker/spid-saml-check
             dockerfile: ./Dockerfile
         environment: 
             - NODE_TLS_REJECT_UNAUTHORIZED=0
@@ -60,17 +60,31 @@ services:
             REDIS_MAXMEMORY: 182m
         networks:
             - spid-net
+
+    storage:
+        image: azurite
+        build:
+            context: ./
+            dockerfile: docker/azurite/Dockerfile
+        ports:
+            - "10000:10000"
+            - "10001:10001"
+            - "10002:10002"
+        networks:
+            - spid-net
     
     ade-aa-ms-mock:
         container_name: ade-aa-ms-mock
         image: ade-aa-ms-mock
         build:
-            context: ./ade-aa-mock
+            context: ./docker/ade-aa-mock
             dockerfile: ./Dockerfile
         env_file:
-            - ade-aa-mock/.env
+            - docker/ade-aa-mock/ade-aa-mock.env
         ports:
             - "3000:3000"
+        depends_on: 
+            - storage
         networks:
             - spid-net
 

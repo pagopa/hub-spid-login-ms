@@ -151,7 +151,7 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ENABLE_ADE_AA: fromNullable(process.env.ENABLE_ADE_AA)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
-  ENABLE_FULL_OPERATOR_METADATA: fromNullable(process.env. ENABLE_FULL_OPERATOR_METADATA)
+  ENABLE_FULL_OPERATOR_METADATA: fromNullable(process.env.ENABLE_FULL_OPERATOR_METADATA)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)

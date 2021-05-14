@@ -8,6 +8,8 @@ services:
             dockerfile: Dockerfile
         environment: 
             - NODE_TLS_REJECT_UNAUTHORIZED=0
+        env_file: 
+            - .env
         depends_on:
           - redis
           - spid-saml-check
@@ -20,7 +22,6 @@ services:
         command: ["yarn", "start"]
         volumes:
           - "./certs:/usr/src/app/certs:ro"
-          - "./.env:/usr/src/app/.env:ro"
         networks:
             - spid-net
 
@@ -48,7 +49,7 @@ services:
         environment: 
             - NODE_TLS_REJECT_UNAUTHORIZED=0
         ports:
-            - "8080:8080"
+            - "9191:8080"
         networks:
             - spid-net
 

@@ -7,3 +7,6 @@ certs
 jwt_rsa_key.pem
 jwt_rsa_public.pem
 .idea
+idp.crt
+idp.key
+sp_metadata.xml

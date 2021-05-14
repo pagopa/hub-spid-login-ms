@@ -6,7 +6,8 @@ WORKDIR /usr/src/app
 COPY /package.json /usr/src/app/package.json
 COPY /dist /usr/src/app/dist
 COPY /node_modules /usr/src/app/node_modules
+COPY /generated /usr/src/app/generated
 
 EXPOSE 8080
 
-CMD ["node", "src/server.js"]
+ENTRYPOINT ["node", "dist/src/server.js"]

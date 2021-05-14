@@ -174,9 +174,9 @@ const acs: AssertionConsumerServiceT = async user => {
                 )
               )
             : taskEither.of(_)
-          : fromEither(TokenUserL2.decode(_)).mapLeft(errs =>
-              toResponseErrorInternal(errorsToError(errs))
-            )
+          : fromEither(
+              TokenUserL2.decode({ ..._, level: "L2" })
+            ).mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
       )
       .chain(tokenUser =>
         generateToken(tokenUser).mapLeft(toResponseErrorInternal)

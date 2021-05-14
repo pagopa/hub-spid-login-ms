@@ -14,7 +14,7 @@ appInsights.context.tags[appInsights.context.keys.cloudRole] =
 
 // tslint:disable-next-line: no-let
 let server: http.Server;
-// tslint:disable-next-line: no-console
+
 createAppTask
   .run()
   .then(app => {

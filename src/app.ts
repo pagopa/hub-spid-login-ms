@@ -270,5 +270,23 @@ export const createAppTask = withSpid({
         error: error.message
       })
   );
+
+  // tslint:disable-next-line: no-let prefer-const
+  let countInterval = 0;
+  const startIdpMetadataRefreshTimer = setInterval(() => {
+    countInterval += 1;
+    if (countInterval > 10) {
+      clearInterval(startIdpMetadataRefreshTimer);
+    }
+    idpMetadataRefresher()
+      .run()
+      .catch(e => {
+        logger.error("idpMetadataRefresher|error:%s", e);
+      });
+  }, 5000);
+  withSpidApp.on("server:stop", () =>
+    clearInterval(startIdpMetadataRefreshTimer)
+  );
+
   return withSpidApp;
 });

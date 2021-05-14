@@ -10,6 +10,7 @@ In order to run SPID Login microservice in a local environment you must:
 - Take care about the values setted for SP `SERVER_PORT` and the metadata endpoint registered in `spid-testenv2` config yaml
 - build the project by running `yarn build`
 - Run `docker compose --env-file .env up --build` or `yarn docker:start`
+- Call Endpoint to refresh IDP metadata e.g. `curl -L -X GET 'http://localhost:9090/refresh'`
 
 ## JWT Support
 

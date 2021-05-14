@@ -26,12 +26,15 @@ services:
 
     spid-testenv2:
         container_name: spid-testenv2
-        image: italia/spid-testenv2:1.1.0
+        image: italia/spid-testenv2:latest
+        restart: unless-stopped
         ports:
             - "8088:8088"
         volumes:
             - "./conf-testenv:/app/conf"
             - "./certs:/app/certs:ro"
+        depends_on: 
+            - backend
         networks:
             - spid-net
      

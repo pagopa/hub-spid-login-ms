@@ -66,10 +66,8 @@ services:
             - spid-net
 
     storage:
-        image: azurite
-        build:
-            context: ./
-            dockerfile: docker/azurite/Dockerfile
+        container_name: storage
+        image: mcr.microsoft.com/azure-storage/azurite
         ports:
             - "10000:10000"
             - "10001:10001"

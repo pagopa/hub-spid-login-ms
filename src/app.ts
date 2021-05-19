@@ -48,6 +48,7 @@ import {
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
 import { AdeAPIClient } from "./clients/ade";
+import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 
@@ -254,6 +255,8 @@ export const createAppTask = withSpid({
       ping: "pong"
     });
   });
+
+  withSpidApp.get("/healthcheck", healthcheckHandler(redisClient));
 
   withSpidApp.post("/introspect", introspectHandler);
 

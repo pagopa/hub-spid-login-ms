@@ -4,6 +4,23 @@ import { fromEither, TaskEither, tryCatch } from "fp-ts/lib/TaskEither";
 import { RedisClient } from "redis";
 
 /**
+ * Parse a Redis given string reply.
+ *
+ * @see https://redis.io/topics/protocol#simple-string-reply.
+ */
+export const givenStringReply = (
+  err: Error | null,
+  reply: string | undefined,
+  message: string
+): Either<Error, boolean> => {
+  if (err) {
+    return left<Error, boolean>(err);
+  }
+
+  return right<Error, boolean>(reply === message);
+};
+
+/**
  * Parse a Redis single string reply.
  *
  * @see https://redis.io/topics/protocol#simple-string-reply.
@@ -158,6 +175,22 @@ export const existsKeyTask = (
       new Promise<Either<Error, boolean>>(resolve =>
         redisClient.exists(key, (err, response) =>
           resolve(integerReply(err, response, 1))
+        )
+      ),
+    toError
+  ).chain(fromEither);
+
+export const pingTask = (redisClient: RedisClient): TaskEither<Error, true> =>
+  tryCatch(
+    () =>
+      new Promise<Either<Error, true>>(resolve =>
+        redisClient.ping("ping message", (err, response) =>
+          resolve(
+            falsyResponseToError(
+              givenStringReply(err, response, "ping message"),
+              new Error("Error while pinging redis")
+            )
+          )
         )
       ),
     toError

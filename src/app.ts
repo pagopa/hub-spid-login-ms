@@ -146,15 +146,13 @@ const acs: AssertionConsumerServiceT = async user => {
         errs => toResponseErrorInternal(errorsToError(errs))
       )
       .chain(_ => {
-        // tslint:disable-next-line: no-console
-        console.log("ACS | Trying to map user to Common User");
+        logger.info("ACS | Trying to map user to Common User");
         return fromEither(toCommonTokenUser(_)).mapLeft(
           toResponseErrorInternal
         );
       })
       .chain(_ => {
-        // tslint:disable-next-line: no-console
-        console.log(
+        logger.info(
           "ACS | Trying to retreive UserCompanies or map over a default user"
         );
         return config.ENABLE_ADE_AA
@@ -169,16 +167,14 @@ const acs: AssertionConsumerServiceT = async user => {
           : taskEither.of({ ..._, from_aa: config.ENABLE_ADE_AA });
       })
       .chain(_ => {
-        // tslint:disable-next-line: no-console
-        console.log("ACS | Trying to decode TokenUser");
+        logger.info("ACS | Trying to decode TokenUser");
         return fromEither(TokenUser.decode(_)).mapLeft(errs =>
           toResponseErrorInternal(errorsToError(errs))
         );
       })
       // If User is related to one company we can directly release an L2 token
       .chain<TokenUser | TokenUserL2>(_ => {
-        // tslint:disable-next-line: no-console
-        console.log("ACS | Companies length decision making");
+        logger.info("ACS | Companies length decision making");
         return _.from_aa
           ? _.companies.length === 1
             ? fromEither(
@@ -192,8 +188,7 @@ const acs: AssertionConsumerServiceT = async user => {
             ).mapLeft(errs => toResponseErrorInternal(errorsToError(errs)));
       })
       .chain(tokenUser => {
-        // tslint:disable-next-line: no-console
-        console.log("ACS | Generating token");
+        logger.info("ACS | Generating token");
         return generateToken(tokenUser).mapLeft(toResponseErrorInternal);
       })
       .fold<
@@ -202,8 +197,7 @@ const acs: AssertionConsumerServiceT = async user => {
         | IResponsePermanentRedirect
       >(
         _ => {
-          // tslint:disable-next-line: no-console
-          console.log(
+          logger.info(
             `ACS | Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
           );
           logger.error(
@@ -212,8 +206,7 @@ const acs: AssertionConsumerServiceT = async user => {
           return _;
         },
         ({ tokenStr, tokenUser }) => {
-          // tslint:disable-next-line: no-console
-          console.log("ACS | Redirect to success endpoint");
+          logger.info("ACS | Redirect to success endpoint");
           return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
             ? ResponsePermanentRedirect({
                 href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`

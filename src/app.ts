@@ -145,11 +145,17 @@ const acs: AssertionConsumerServiceT = async user => {
       .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
         errs => toResponseErrorInternal(errorsToError(errs))
       )
-      .chain(_ =>
-        fromEither(toCommonTokenUser(_)).mapLeft(toResponseErrorInternal)
-      )
-      .chain(_ =>
-        config.ENABLE_ADE_AA
+      .chain(_ => {
+        logger.info("ACS | Trying to map user to Common User");
+        return fromEither(toCommonTokenUser(_)).mapLeft(
+          toResponseErrorInternal
+        );
+      })
+      .chain(_ => {
+        logger.info(
+          "ACS | Trying to retreive UserCompanies or map over a default user"
+        );
+        return config.ENABLE_ADE_AA
           ? getUserCompanies(
               AdeAPIClient(config.ADE_AA_API_ENDPOINT),
               _.fiscal_number
@@ -158,16 +164,18 @@ const acs: AssertionConsumerServiceT = async user => {
               companies,
               from_aa: config.ENABLE_ADE_AA
             }))
-          : taskEither.of({ ..._, from_aa: config.ENABLE_ADE_AA })
-      )
-      .chain(_ =>
-        fromEither(TokenUser.decode(_)).mapLeft(errs =>
+          : taskEither.of({ ..._, from_aa: config.ENABLE_ADE_AA });
+      })
+      .chain(_ => {
+        logger.info("ACS | Trying to decode TokenUser");
+        return fromEither(TokenUser.decode(_)).mapLeft(errs =>
           toResponseErrorInternal(errorsToError(errs))
-        )
-      )
+        );
+      })
       // If User is related to one company we can directly release an L2 token
-      .chain<TokenUser | TokenUserL2>(_ =>
-        _.from_aa
+      .chain<TokenUser | TokenUserL2>(_ => {
+        logger.info("ACS | Companies length decision making");
+        return _.from_aa
           ? _.companies.length === 1
             ? fromEither(
                 toTokenUserL2(_, _.companies[0]).mapLeft(
@@ -177,30 +185,36 @@ const acs: AssertionConsumerServiceT = async user => {
             : taskEither.of(_)
           : fromEither(
               TokenUserL2.decode({ ..._, level: "L2" })
-            ).mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
-      )
-      .chain(tokenUser =>
-        generateToken(tokenUser).mapLeft(toResponseErrorInternal)
-      )
+            ).mapLeft(errs => toResponseErrorInternal(errorsToError(errs)));
+      })
+      .chain(tokenUser => {
+        logger.info("ACS | Generating token");
+        return generateToken(tokenUser).mapLeft(toResponseErrorInternal);
+      })
       .fold<
         | IResponseErrorInternal
         | IResponseErrorForbiddenNotAuthorized
         | IResponsePermanentRedirect
       >(
         _ => {
+          logger.info(
+            `ACS | Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
+          );
           logger.error(
             `Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
           );
           return _;
         },
-        ({ tokenStr, tokenUser }) =>
-          config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
+        ({ tokenStr, tokenUser }) => {
+          logger.info("ACS | Redirect to success endpoint");
+          return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
             ? ResponsePermanentRedirect({
                 href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
               })
             : ResponsePermanentRedirect({
                 href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-              })
+              });
+        }
       )
       .run()
   );

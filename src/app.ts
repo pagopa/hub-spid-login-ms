@@ -128,7 +128,7 @@ process.on("SIGINT", () => {
 
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",
-  acceptedClockSkewMs: -1,
+  acceptedClockSkewMs: 2000,
   attributeConsumingServiceIndex: "0",
   authnContext: config.AUTH_N_CONTEXT,
   callbackUrl: `${config.ACS_BASE_URL}${config.ENDPOINT_ACS}`,

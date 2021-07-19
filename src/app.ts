@@ -47,6 +47,7 @@ import {
   ContactType,
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
+import * as cors from "cors";
 import { AdeAPIClient } from "./clients/ade";
 import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
@@ -230,6 +231,9 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(passport.initialize());
+if (config.ALLOW_CORS) {
+  app.use(cors());
+}
 
 const doneCb = (ip: string | null, request: string, response: string) => {
   debug("*************** done", ip);

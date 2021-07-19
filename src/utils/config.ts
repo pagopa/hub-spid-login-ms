@@ -52,6 +52,7 @@ export const CommonSpidParams = t.intersection([
     AUTH_N_CONTEXT: NonEmptyString,
 
     ACS_BASE_URL: NonEmptyString,
+    ALLOW_CORS: t.boolean,
     ENDPOINT_ACS: NonEmptyString,
     ENDPOINT_ERROR: NonEmptyString,
     ENDPOINT_LOGIN: NonEmptyString,
@@ -145,6 +146,9 @@ const DEFAULT_SERVER_PORT = 8080;
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
+  ALLOW_CORS: fromNullable(process.env.ALLOW_CORS)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
   APPINSIGHTS_DISABLED: fromNullable(process.env.APPINSIGHTS_DISABLED)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => true),

@@ -232,6 +232,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(passport.initialize());
 if (config.ALLOW_CORS) {
+  logger.info("Enabling CORS on Express");
   app.use(cors());
 }
 

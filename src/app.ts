@@ -23,6 +23,7 @@ import {
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
 import {
+  accessLogHandler,
   errorHandler,
   metadataRefreshHandler,
   successHandler
@@ -47,6 +48,7 @@ import {
   ContactType,
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
+import { createBlobService } from "azure-storage";
 import * as cors from "cors";
 import { AdeAPIClient } from "./clients/ade";
 import { healthcheckHandler } from "./handlers/general";
@@ -236,11 +238,17 @@ if (config.ALLOW_CORS) {
   app.use(cors());
 }
 
-const doneCb = (ip: string | null, request: string, response: string) => {
-  debug("*************** done", ip);
-  debug(request);
-  debug(response);
-};
+const doneCb = config.ENABLE_SPID_ACCESS_LOGS
+  ? accessLogHandler(
+      createBlobService(config.SPID_LOGS_STORAGE_CONNECTION_STRING),
+      config.SPID_LOGS_STORAGE_CONTAINER_NAME,
+      config.SPID_LOGS_PUBLIC_KEY
+    )
+  : (ip: string | null, request: string, response: string) => {
+      debug("*************** done", ip);
+      debug(request);
+      debug(response);
+    };
 
 /**
  * withSpidApp:

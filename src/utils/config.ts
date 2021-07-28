@@ -47,6 +47,20 @@ export const ContactPersonParams = t.intersection([
 ]);
 export type ContactPersonParams = t.TypeOf<typeof ContactPersonParams>;
 
+const SpidLogsParams = t.union([
+  t.interface({
+    ENABLE_SPID_ACCESS_LOGS: t.literal(true),
+
+    SPID_LOGS_PUBLIC_KEY: NonEmptyString,
+    SPID_LOGS_STORAGE_CONNECTION_STRING: NonEmptyString,
+    SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString
+  }),
+  t.interface({
+    ENABLE_SPID_ACCESS_LOGS: t.literal(false)
+  })
+]);
+type SpidLogsParams = t.TypeOf<typeof SpidLogsParams>;
+
 export const CommonSpidParams = t.intersection([
   t.interface({
     AUTH_N_CONTEXT: NonEmptyString,
@@ -73,7 +87,8 @@ export const CommonSpidParams = t.intersection([
   t.partial({
     SPID_TESTENV_URL: NonEmptyString,
     SPID_VALIDATOR_URL: NonEmptyString
-  })
+  }),
+  SpidLogsParams
 ]);
 
 export type CommonSpidParams = t.TypeOf<typeof CommonSpidParams>;
@@ -161,6 +176,9 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
+  ENABLE_SPID_ACCESS_LOGS: fromNullable(process.env.ENABLE_SPID_ACCESS_LOGS)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
   INCLUDE_SPID_USER_ON_INTROSPECTION: fromNullable(

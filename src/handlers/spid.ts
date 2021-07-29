@@ -92,10 +92,7 @@ export const accessLogHandler = (
       }
       const spidMsg = errorOrSpidMsg.value;
 
-      logger.info(`Spid Msg => ${spidMsg.fiscalCode}`);
-
-      // we don't return the promise here
-      // the call follows fire & forget pattern
+      // We store Spid logs in a fire&forget pattern
       await storeSpidLogs(
         blobService,
         containerName,

@@ -50,7 +50,7 @@ export const SpidLogMsg = t.interface({
   responsePayload: t.string,
 
   // SPID request id
-  spidRequestId: t.union([t.undefined, t.string])
+  spidRequestId: t.string
 });
 
 export type SpidLogMsg = t.TypeOf<typeof SpidLogMsg>;

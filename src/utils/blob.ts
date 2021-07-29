@@ -14,7 +14,6 @@ import {
   TaskEither,
   tryCatch
 } from "fp-ts/lib/TaskEither";
-import { logger } from "./logger";
 
 export type StorageError = Error & {
   readonly code?: string;

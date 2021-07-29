@@ -4,7 +4,7 @@ import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
 import { sequenceS } from "fp-ts/lib/Apply";
 import { either } from "fp-ts/lib/Either";
-import { curry, identity } from "fp-ts/lib/function";
+import { curry } from "fp-ts/lib/function";
 import { fromEither } from "fp-ts/lib/Option";
 import { fromNullable, Option } from "fp-ts/lib/Option";
 import { fromEither as fromEitherT, fromLeft } from "fp-ts/lib/TaskEither";

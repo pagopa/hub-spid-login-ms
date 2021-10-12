@@ -31,7 +31,7 @@ RUN git clone https://github.com/italia/spid-saml-check.git
 WORKDIR /spid-saml-check
 
 # Create directory for tests data
-RUN mkdir /spid-saml-check/specs-compliance-tests/data
+RUN mkdir -p /spid-saml-check/specs-compliance-tests/data
 
 ENV \
     TZ=Europe/Rome \

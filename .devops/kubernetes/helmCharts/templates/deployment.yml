@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hub-spid-login-ms
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: hub-spid-login-ms
+  template:
+    metadata:
+      labels:
+        app: hub-spid-login-ms
+    spec:
+      containers:
+        - name: hub-spid-login-ms
+          image: {{ .Values.containerRegistry }}/{{ .Values.imageRepository }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ .Values.port }}
+          env:
+            - name: SERVER_PORT
+              value: "{{ .Values.port }}"
+          envFrom:
+            - secretRef:
+                name: application-insights
+            - secretRef:
+                name: redis-credentials
+            - secretRef:
+                name: hub-spid-login-ms
+            - configMapRef:
+                name: hub-spid-login-ms
+          livenessProbe:
+            httpGet:
+              path: /info
+              port: {{ .Values.port }}
+              scheme: HTTP
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /info
+              port: {{ .Values.port }}
+              scheme: HTTP
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /info
+              port: {{ .Values.port }}
+              scheme: HTTP
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 30
+

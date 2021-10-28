@@ -1,5 +1,5 @@
 FROM node:10.14.2-alpine
-LABEL maintainer="https://pagopa.gov.it"
+LABEL maintainer="https://pagopa.it"
 
 WORKDIR /usr/src/app
 

@@ -19,7 +19,7 @@ env:
   OWNER: pagopa
 
 jobs:
-  push:
+  docker_release:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
 

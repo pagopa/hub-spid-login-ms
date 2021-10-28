@@ -14,6 +14,7 @@ on:
   pull_request:
 
 env:
+  DOCKER_FILE: DockerfileRegistry
   DOCKER_REGISTRY: ghcr.io
   OWNER: pagopa
 
@@ -55,7 +56,7 @@ jobs:
           ls .nvmrc && echo ".nvmrc found, value: '$(cat .nvmrc)'" || echo ".nvmrc not found"
           echo "set FROM_SOURCE='$FROM_SOURCE'"
           GITHUB_REPO=$(echo "${{ github.repository }}" | tr '[A-Z]' '[a-z]')
-          docker build . --file DockerfileRegistry --tag $GITHUB_REPO \
+          docker build . --file $DOCKER_FILE --tag $GITHUB_REPO \
             --build-arg NODE_VERSION=$FROM_SOURCE \
             --build-arg OWNER=$OWNER \
             --build-arg REPO=$GITHUB_REPO

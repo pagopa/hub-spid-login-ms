@@ -34,7 +34,6 @@ jobs:
           ls .node-version && echo ".node-version found, value: '$(cat .node-version)'" || echo ".node-version not found" 
           ls .nvmrc && echo ".nvmrc found, value: '$(cat .nvmrc)'" || echo ".nvmrc not found"
           echo "set FROM_SOURCE='$FROM_SOURCE'"
-          # export NODE_VERSION=$FROM_SOURCE
           echo "::set-output name=NODE_VERSION::$FROM_SOURCE"
 
       - uses: actions/setup-node@v2
@@ -46,27 +45,31 @@ jobs:
           node -v
           npm install -g yarn
           yarn install --frozen-lockfile
-      
+
+      - name: test
+        run: |
+          yarn geneate
+          yarn test
+
       - name: build
         run: |
-          yarn build
+          yarn predeploy
 
-      - name: build_image
+      - name: docker_build
         env:
           NODE_VERSION: '${{ steps.node_version.outputs.NODE_VERSION }}'
         run: |
           GITHUB_REPO=$(echo "${{ github.repository }}" | tr '[A-Z]' '[a-z]')
-          echo "NODE_VERSION=$NODE_VERSION"
           docker build . --file $DOCKER_FILE --tag $GITHUB_REPO \
             --build-arg NODE_VERSION=$NODE_VERSION \
             --build-arg OWNER=$OWNER \
             --build-arg REPO=$GITHUB_REPO
 
-      - name: Log into registry
+      - name: docker_login
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login $DOCKER_REGISTRY -u ${{ github.actor }} --password-stdin
 
-      - name: publish_image
+      - name: docker_push
         run: |
           GITHUB_REPO=$(echo "${{ github.repository }}" | tr '[A-Z]' '[a-z]')
           IMAGE_ID=$DOCKER_REGISTRY/$GITHUB_REPO

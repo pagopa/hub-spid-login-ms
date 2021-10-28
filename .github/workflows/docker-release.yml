@@ -56,6 +56,7 @@ jobs:
           NODE_VERSION: '${{ steps.node_version.outputs.NODE_VERSION }}'
         run: |
           GITHUB_REPO=$(echo "${{ github.repository }}" | tr '[A-Z]' '[a-z]')
+          echo "NODE_VERSION=$NODE_VERSION"
           docker build . --file $DOCKER_FILE --tag $GITHUB_REPO \
             --build-arg NODE_VERSION=$NODE_VERSION \
             --build-arg OWNER=$OWNER \

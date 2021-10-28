@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: node_version
+        id: node_version
         run: |
           echo "current folder: $(pwd)"
           FROM_SOURCE=$(cat .node-version || cat .nvmrc)

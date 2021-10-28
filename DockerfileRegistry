@@ -1,4 +1,6 @@
 ARG NODE_VERSION=10.14.2
+ARG OWNER=pagopa
+ARG REPO=repo
 FROM circleci/node:$NODE_VERSION as builder
 
 WORKDIR /home/circleci
@@ -23,6 +25,7 @@ RUN mkdir certs \
 
 FROM node:$NODE_VERSION-alpine
 LABEL maintainer="https://developers.italia.it"
+LABEL org.opencontainers.image.source https://github.com/$OWNER/$REPO
 
 WORKDIR /usr/src/app
 

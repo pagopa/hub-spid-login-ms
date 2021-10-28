@@ -48,7 +48,7 @@ jobs:
 
       - name: test
         run: |
-          yarn geneate
+          yarn generate
           yarn test
 
       - name: build

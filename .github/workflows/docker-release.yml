@@ -76,5 +76,5 @@ jobs:
           [ "$VERSION" == "master" ] && VERSION=latest
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
-          docker tag $GITHUB_REPO $GITHUB_REPO:$VERSION
+          docker tag $GITHUB_REPO $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION

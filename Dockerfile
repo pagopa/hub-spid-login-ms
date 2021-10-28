@@ -1,5 +1,10 @@
-FROM node:10.14.2-alpine
+ARG NODE_VERSION=10.14.2
+ARG OWNER=pagopa
+ARG REPO=repo
+
+FROM node:$NODE_VERSION-alpine
 LABEL maintainer="https://pagopa.it"
+LABEL org.opencontainers.image.source https://github.com/$OWNER/$REPO
 
 WORKDIR /usr/src/app
 

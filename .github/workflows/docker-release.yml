@@ -14,7 +14,7 @@ on:
   pull_request:
 
 env:
-  DOCKER_FILE: DockerfileRegistry
+  DOCKER_FILE: Dockerfile
   DOCKER_REGISTRY: ghcr.io
   OWNER: pagopa
 
@@ -26,7 +26,31 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build image
+      - name: node_version
+        run: |
+          echo "current folder: $(pwd)"
+          FROM_SOURCE=$(cat .node-version || cat .nvmrc)
+          ls .node-version && echo ".node-version found, value: '$(cat .node-version)'" || echo ".node-version not found" 
+          ls .nvmrc && echo ".nvmrc found, value: '$(cat .nvmrc)'" || echo ".nvmrc not found"
+          echo "set FROM_SOURCE='$FROM_SOURCE'"
+          # export NODE_VERSION=$FROM_SOURCE
+          echo "::set-output name=NODE_VERSION::$FROM_SOURCE"
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ steps.node_version.outputs.NODE_VERSION }}
+
+      - name: node_setup
+        run: |
+          npm install -g yarn && yarn install --frozen-lockfile
+      
+      - name: build
+        run: |
+          yarn build
+
+      - name: build_image
+        # env:
+        #   NODE_VERSION=${{ steps.node_version.outputs.NODE_VERSION }}
         run: |
           echo "current folder: $(pwd)"
           FROM_SOURCE=$(cat .node-version || cat .nvmrc)
@@ -43,7 +67,7 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login $DOCKER_REGISTRY -u ${{ github.actor }} --password-stdin
 
-      - name: Push image
+      - name: publish_image
         run: |
           GITHUB_REPO=$(echo "${{ github.repository }}" | tr '[A-Z]' '[a-z]')
           IMAGE_ID=$DOCKER_REGISTRY/$GITHUB_REPO

@@ -52,17 +52,12 @@ jobs:
           yarn build
 
       - name: build_image
-        # env:
-        #   NODE_VERSION=${{ steps.node_version.outputs.NODE_VERSION }}
+        env:
+          NODE_VERSION: '${{ steps.node_version.outputs.NODE_VERSION }}'
         run: |
-          echo "current folder: $(pwd)"
-          FROM_SOURCE=$(cat .node-version || cat .nvmrc)
-          ls .node-version && echo ".node-version found, value: '$(cat .node-version)'" || echo ".node-version not found" 
-          ls .nvmrc && echo ".nvmrc found, value: '$(cat .nvmrc)'" || echo ".nvmrc not found"
-          echo "set FROM_SOURCE='$FROM_SOURCE'"
           GITHUB_REPO=$(echo "${{ github.repository }}" | tr '[A-Z]' '[a-z]')
           docker build . --file $DOCKER_FILE --tag $GITHUB_REPO \
-            --build-arg NODE_VERSION=$FROM_SOURCE \
+            --build-arg NODE_VERSION=$NODE_VERSION \
             --build-arg OWNER=$OWNER \
             --build-arg REPO=$GITHUB_REPO
 

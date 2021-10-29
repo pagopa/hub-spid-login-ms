@@ -25,6 +25,7 @@
     "postversion": "git push && git push --tags",
     "dist:modules": "modclean -r -n default:safe && yarn install --production",
     "generate:api-ade": "gen-api-models --api-spec https://raw.githubusercontent.com/pagopa/ade-aa-ms-mock/master/openapi/index.yaml --no-strict --out-dir generated/ade-api --request-types --response-decoders --client",
+    "generate:api-userregistry": "shx rm -rf generated/userregistry-api && gen-api-models --api-spec openapi/userregistry.yaml --no-strict --out-dir generated/userregistry-api --request-types --response-decoders --client",
     "generate": "npm-run-all generate:*",
     "predeploy": "npm-run-all build dist:modules",
     "test": "jest -i",

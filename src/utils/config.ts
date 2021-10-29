@@ -93,25 +93,40 @@ export const SpidParams = t.union([
     ContactPersonParams
   ])
 ]);
-
 export type SpidParams = t.TypeOf<typeof SpidParams>;
 
-const JWTParams = t.union([
+export const UserRegistryParams = t.union([
   t.interface({
-    ENABLE_JWT: t.literal(true),
-    JWT_TOKEN_ISSUER: NonEmptyString,
-    JWT_TOKEN_PRIVATE_KEY: NonEmptyString
+    ENABLE_USER_REGISTRY: t.literal(true),
+    USER_REGISTRY_URL: NonEmptyString
   }),
   t.interface({
-    ENABLE_JWT: t.literal(false)
+    ENABLE_USER_REGISTRY: t.literal(false)
+  })
+]);
+
+export type UserRegistryParams = t.TypeOf<typeof UserRegistryParams>;
+
+const JWTParams = t.union([
+  t.intersection([
+    t.interface({
+      ENABLE_JWT: t.literal(true),
+      JWT_TOKEN_ISSUER: NonEmptyString,
+      JWT_TOKEN_PRIVATE_KEY: NonEmptyString
+    }),
+    UserRegistryParams
+  ]),
+  t.interface({
+    ENABLE_JWT: t.literal(false),
+    ENABLE_USER_REGISTRY: t.literal(false)
   })
 ]);
 type JWTParams = t.TypeOf<typeof JWTParams>;
 
+
 const AttributeAuthorityParams = t.union([
   t.interface({
     ENABLE_ADE_AA: t.literal(true),
-
     ADE_AA_API_ENDPOINT: NonEmptyString,
     ENDPOINT_L1_SUCCESS: NonEmptyString,
     L1_TOKEN_EXPIRATION: NonNegativeInteger,
@@ -130,7 +145,6 @@ export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   t.interface({
     isProduction: t.boolean,
-
     APPINSIGHTS_DISABLED: t.boolean,
     APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
     SERVER_PORT: NonNegativeInteger
@@ -186,6 +200,8 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   TOKEN_EXPIRATION: fromNullableE(-1)(process.env.TOKEN_EXPIRATION)
     .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
     .fold(() => 3600, identity),
+  USER_REGISTRY_URL: fromNullable(process.env.USER_REGISTRY_URL)
+    .getOrElse(""),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

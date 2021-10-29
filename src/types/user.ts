@@ -49,7 +49,8 @@ export const CommonTokenUser = t.intersection([
     email: EmailString,
     family_name: NonEmptyString,
     mobile_phone: NonEmptyString,
-    name: NonEmptyString
+    name: NonEmptyString,
+    id: NonEmptyString
   })
 ]);
 

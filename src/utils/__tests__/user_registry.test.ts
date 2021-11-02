@@ -1,12 +1,13 @@
-import { EmailString, FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { CertificationEnumEnum } from "../../../generated/userregistry-api/CertificationEnum";
 import { UserRegistryAPIClient } from "../../clients/userregistry_client";
-import { getUserId, postUser } from '../user_registry';
+import { blurUser, getUserId, postUser } from '../user_registry';
 import { isNone, isSome } from "fp-ts/lib/Option";
 import { isRight, right } from "fp-ts/lib/Either";
 import * as config from "../config";
 
 const aUserId = "1000" as NonEmptyString;
+const aMockFiscalCode = 'AAAAAA00A00A000A' as FiscalCode
 const aMockValidId = {
   id: aUserId
 }
@@ -51,20 +52,39 @@ const createUserMock = (status) => {
   }
 };
 
-const getUserIdByExternalIdMock = jest.fn().mockImplementation(() =>
-  Promise.resolve(
-    right({
-      status: 200,
-      value: {
-        data: 'getUserIdByExternalId Value'
+const getUserIdByExternalIdMock = (status) => {
+  switch(status) {
+    case 200: return jest.fn().mockImplementation(() =>
+      Promise.resolve(
+        right({
+          status: 200,
+          value: {
+            id: aMockValidId.id
+          }
+        })
+      )
+    )
+    case 404: return jest.fn().mockImplementation(() => {
+        return Promise.resolve(right({status: 404, title: 'Not Found'}))
       }
-    })
-  )
-);
-const mockUserRegistryApiClient = status => ({
-  createUser: createUserMock(status),
-  getUserIdByExternalId: getUserIdByExternalIdMock
-} as any);
+    )
+  }
+};
+
+const mockUserRegistryApiClient = status => {
+  if(Array.isArray(status)) {
+    const [first, second] = status;
+    return {
+      createUser: createUserMock(second),
+      getUserIdByExternalId: getUserIdByExternalIdMock(first)
+    } as any
+  } else {
+    return {
+      createUser: createUserMock(status),
+      getUserIdByExternalId: getUserIdByExternalIdMock(status)
+    } as any
+  }
+};
 
 const TEST_CONFIG = {
   ENABLE_USER_REGISTRY: true,
@@ -92,7 +112,7 @@ describe("UserRegistry#getUserId", () => {
     const mockFetch = getMockUserIdByExternalId(200);
     if(TEST_CONFIG.ENABLE_USER_REGISTRY) {
       const client = UserRegistryAPIClient(TEST_CONFIG.USER_REGISTRY_URL, mockFetch);
-      const response = await getUserId(client,'AAAAAA00A00A000A' as FiscalCode).run()
+      const response = await getUserId(client, aMockFiscalCode).run()
 
       expect(response.isRight()).toBeTruthy();
       if (isRight(response)) {
@@ -109,7 +129,7 @@ describe("UserRegistry#getUserId", () => {
     const mockFetch = getMockUserIdByExternalId(404);
     if(TEST_CONFIG.ENABLE_USER_REGISTRY) {
       const client = UserRegistryAPIClient(TEST_CONFIG.USER_REGISTRY_URL, mockFetch);
-      const response = await getUserId(client,'AAAAAA00A00A000A' as FiscalCode).run()
+      const response = await getUserId(client, aMockFiscalCode).run()
 
       expect(response.isRight()).toBeTruthy();
       if (isRight(response)) {
@@ -130,7 +150,7 @@ describe("UserRegistry#getUserId", () => {
     }));
     if(TEST_CONFIG.ENABLE_USER_REGISTRY) {
       const client = UserRegistryAPIClient(TEST_CONFIG.USER_REGISTRY_URL, mockFetch);
-      const response = await getUserId(client,'AAAAAA00A00A000A' as FiscalCode).run();
+      const response = await getUserId(client, aMockFiscalCode).run();
 
       expect(response.isLeft()).toBeTruthy();
       expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
@@ -149,7 +169,7 @@ describe("UserRegistry#getUserId", () => {
     }));
     if(TEST_CONFIG.ENABLE_USER_REGISTRY) {
       const client = UserRegistryAPIClient(TEST_CONFIG.USER_REGISTRY_URL, mockFetch);
-      const response = await getUserId(client,'AAAAAA00A00A000A' as FiscalCode).run();
+      const response = await getUserId(client, aMockFiscalCode).run();
 
       expect(response.isLeft()).toBeTruthy();
       expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
@@ -157,31 +177,6 @@ describe("UserRegistry#getUserId", () => {
 
   });
 });
-
-
-// describe("UserRegistry#postUser", () => {
-//   it("should create a User - Right path", async () => {
-//     mockFetchJson.mockImplementationOnce(() =>
-//       Promise.resolve(aCreatedMockUser)
-//     );
-
-//     const mockFetch = jest.fn().mockImplementationOnce(() => Promise.resolve({
-//       status: 201,
-//       json: mockFetchJson
-//     }));
-//     if(TEST_CONFIG.ENABLE_USER_REGISTRY) {
-//       const client = UserRegistryAPIClient(TEST_CONFIG.USER_REGISTRY_URL, mockFetch);
-//       const response = await postUser(client, aMockUser).run()
-
-//       expect(response.isRight()).toBeTruthy();
-//       if (isRight(response)) {
-//         expect(response.value).toBeTruthy();
-//         expect(response.value).toEqual(aCreatedMockUser)
-//       };
-//     }
-
-//   });
-// });
 
 describe("UserRegistry#postUser#ClientMock", () => {
   it("should create a User - Right path", async () => {
@@ -203,4 +198,32 @@ describe("UserRegistry#postUser#ClientMock", () => {
     expect(response.isLeft()).toBeTruthy();
     expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
   });
+});
+
+describe("UserRegistry#blurUser", () => {
+  it("should return a User UID from getUserId - Right path", async () => {
+    const response = await blurUser(mockUserRegistryApiClient(200), aMockUser, aMockFiscalCode).run()
+    expect(response.isRight()).toBeTruthy();
+    if (isRight(response)) {
+      expect(response.value).toBeTruthy();
+      expect(response.value).toHaveProperty("id", aMockValidId.id)
+    };
+  });
+
+  it("should create a User for a not found CF - Right path", async () => {
+    const response = await blurUser(mockUserRegistryApiClient([404, 201]), aMockUser, aMockFiscalCode).run()
+    if (isRight(response)) {
+      expect(response.value).toBeTruthy();
+      expect(response.value).toHaveProperty("id", aMockValidId.id)
+    };
+
+  });
+
+  it("should not create a user for bad input - Left path", async () => {
+    const response = await blurUser(mockUserRegistryApiClient([404, 400]), aMockUser, aMockFiscalCode).run()
+    expect(response.isLeft()).toBeTruthy();
+    expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
+
+  });
+
 });

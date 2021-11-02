@@ -123,11 +123,10 @@ const JWTParams = t.union([
 ]);
 type JWTParams = t.TypeOf<typeof JWTParams>;
 
-
 const AttributeAuthorityParams = t.union([
   t.interface({
-    ENABLE_ADE_AA: t.literal(true),
     ADE_AA_API_ENDPOINT: NonEmptyString,
+    ENABLE_ADE_AA: t.literal(true),
     ENDPOINT_L1_SUCCESS: NonEmptyString,
     L1_TOKEN_EXPIRATION: NonNegativeInteger,
     L1_TOKEN_HEADER_NAME: NonEmptyString,
@@ -144,10 +143,10 @@ type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   t.interface({
-    isProduction: t.boolean,
     APPINSIGHTS_DISABLED: t.boolean,
     APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
-    SERVER_PORT: NonNegativeInteger
+    SERVER_PORT: NonNegativeInteger,
+    isProduction: t.boolean
   }),
   RedisParams,
   SpidParams,
@@ -200,8 +199,7 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   TOKEN_EXPIRATION: fromNullableE(-1)(process.env.TOKEN_EXPIRATION)
     .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
     .fold(() => 3600, identity),
-  USER_REGISTRY_URL: fromNullable(process.env.USER_REGISTRY_URL)
-    .getOrElse(""),
+  USER_REGISTRY_URL: fromNullable(process.env.USER_REGISTRY_URL).getOrElse(""),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

@@ -48,13 +48,13 @@ import {
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
 import * as cors from "cors";
+import { CertificationEnumEnum } from "../generated/userregistry-api/CertificationEnum";
 import { AdeAPIClient } from "./clients/ade";
+import { UserRegistryAPIClient } from "./clients/userregistry_client";
 import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 import { blurUser } from "./utils/user_registry";
-import { UserRegistryAPIClient } from "./clients/userregistry_client";
-import { CertificationEnumEnum } from "../generated/userregistry-api/CertificationEnum";
 
 const config = getConfigOrThrow();
 
@@ -173,23 +173,21 @@ const acs: AssertionConsumerServiceT = async user => {
       .chain(_ => {
         logger.info("USER REGISTRY | Check for User Registry");
         return config.ENABLE_USER_REGISTRY
-        ? blurUser(
-          UserRegistryAPIClient(config.USER_REGISTRY_URL),
-          {
-            externalId: _.fiscal_number,
-            name: _.name,
-            surname: _.family_name,
-            email: _.email,
-            certification: CertificationEnumEnum.SPID
-          },
-          _.fiscal_number,
-        ).map(
-          uid => ({
-            ..._,
-            uid: uid.id
-          })
-        )
-        : taskEither.of({ ..._ });
+          ? blurUser(
+              UserRegistryAPIClient(config.USER_REGISTRY_URL),
+              {
+                certification: CertificationEnumEnum.SPID,
+                email: _.email,
+                externalId: _.fiscal_number,
+                name: _.name,
+                surname: _.family_name
+              },
+              _.fiscal_number
+            ).map(uid => ({
+              ..._,
+              uid: uid.id
+            }))
+          : taskEither.of({ ..._ });
       })
       .chain(_ => {
         logger.info("ACS | Trying to decode TokenUser");

@@ -114,7 +114,7 @@ stages:
                     namespace: '$(deployNamespace)'
                     action: bake
                     renderType: helm2
-                    helmChart: '$(Pipeline.Workspace)/manifests/helmCharts/'
+                    helmChart: '$(Pipeline.Workspace)/manifests/helm/'
                     overrides: |
                       replicas:$(replicas)
                       port:$(port)

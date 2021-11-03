@@ -1,0 +1,4 @@
+replicas: 1
+port: 8080
+containerRegistry: ghcr.io
+imageRepository: pagopa/hub-spid-login-ms

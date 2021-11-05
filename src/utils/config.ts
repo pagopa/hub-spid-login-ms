@@ -199,7 +199,6 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   TOKEN_EXPIRATION: fromNullableE(-1)(process.env.TOKEN_EXPIRATION)
     .chain(_ => IntegerFromString.decode(_).mapLeft(() => -1))
     .fold(() => 3600, identity),
-  USER_REGISTRY_URL: fromNullable(process.env.USER_REGISTRY_URL).getOrElse(""),
   isProduction: process.env.NODE_ENV === "prod"
 });
 

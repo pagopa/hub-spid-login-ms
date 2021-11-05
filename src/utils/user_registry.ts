@@ -77,9 +77,7 @@ export const blurUser = (
   fiscalCode: FiscalCode
 ): TaskEither<IResponseErrorInternal, Pick<User, "id">> => {
   return getUserId(apiClient, fiscalCode)
-    .mapLeft(error => {
-      return toResponseErrorInternal(toError(error));
-    })
+    .mapLeft(error => toResponseErrorInternal(toError(error)))
     .chain(maybeUserID => {
       return maybeUserID.isSome()
         ? taskEither.of(maybeUserID.toUndefined())
@@ -89,4 +87,5 @@ export const blurUser = (
               return { id: u.id };
             });
     });
+
 };

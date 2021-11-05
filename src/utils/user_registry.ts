@@ -8,7 +8,7 @@ import {
 import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
 import { none, Option, some } from "fp-ts/lib/Option";
-import { taskEither } from "fp-ts/lib/TaskEither";
+import { TaskEither, taskEither } from "fp-ts/lib/TaskEither";
 import { fromEither, fromLeft, tryCatch } from "fp-ts/lib/TaskEither";
 import { User } from "../../generated/userregistry-api/User";
 
@@ -18,7 +18,10 @@ import { errorsToError, toResponseErrorInternal } from "./conversions";
 export const getUserId = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   externalId: FiscalCode
-) =>
+): TaskEither<
+  IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized,
+  Option<{ id: string }>
+> =>
   tryCatch(() => apiClient.getUserIdByExternalId({ externalId }), toError)
     .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
       toResponseErrorInternal
@@ -29,7 +32,7 @@ export const getUserId = (
         toResponseErrorInternal(errorsToError(errs))
       )
     )
-    .chain<Option<{ id: string }>>(res => {
+    .chain(res => {
       switch (res.status) {
         case 200:
           return taskEither.of(some(res.value));
@@ -43,7 +46,7 @@ export const getUserId = (
 export const postUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   user: User
-) => {
+): TaskEither<IResponseErrorInternal | IResponseErrorValidation, User> => {
   return tryCatch(
     () =>
       apiClient.createUser({
@@ -61,7 +64,7 @@ export const postUser = (
         toResponseErrorInternal(errorsToError(errs))
       )
     )
-    .chain<User>(res =>
+    .chain(res =>
       res.status === 201
         ? taskEither.of(res.value)
         : fromLeft(ResponseErrorValidation("Bad Input", res.value.detail))

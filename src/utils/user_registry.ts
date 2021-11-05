@@ -75,7 +75,7 @@ export const blurUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   user: User,
   fiscalCode: FiscalCode
-) => {
+): TaskEither<IResponseErrorInternal, Pick<User, "id">> => {
   return getUserId(apiClient, fiscalCode)
     .mapLeft(error => {
       return toResponseErrorInternal(toError(error));

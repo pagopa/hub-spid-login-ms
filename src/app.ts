@@ -183,9 +183,9 @@ const acs: AssertionConsumerServiceT = async user => {
                 surname: _.family_name
               },
               _.fiscal_number
-            ).map(uid => ({
+            ).map(maybeUid => ({
               ..._,
-              uid: uid.id
+              uid: maybeUid.map(uid => uid.id).toUndefined()
             }))
           : taskEither.of({ ..._ });
       })

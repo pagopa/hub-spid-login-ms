@@ -109,8 +109,8 @@ describe("UserRegistry#blurUser", () => {
     const response = await blurUser(userRegistryApiClientMock, aMockUser, aMockFiscalCode).run()
     expect(response.isRight()).toBeTruthy();
     if (isRight(response)) {
-      expect(response.value).toBeTruthy();
-      expect(response.value).toHaveProperty("id", aMockValidId.id)
+      expect(isSome(response.value)).toBeTruthy();
+      expect(response.value.toUndefined()).toEqual(aMockValidId);
     };
   });
   it("should create a User for a not found CF - Right path", async () => {
@@ -119,8 +119,8 @@ describe("UserRegistry#blurUser", () => {
     );
     const response = await blurUser(userRegistryApiClientMock, aMockUser, aMockFiscalCode).run()
     if (isRight(response)) {
-      expect(response.value).toBeTruthy();
-      expect(response.value).toHaveProperty("id", aMockValidId.id)
+      expect(isSome(response.value)).toBeTruthy();
+      expect(response.value.toUndefined()).toEqual(aMockValidId);
     };
 
   });

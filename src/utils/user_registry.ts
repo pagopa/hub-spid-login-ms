@@ -75,17 +75,16 @@ export const blurUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   user: User,
   fiscalCode: FiscalCode
-): TaskEither<IResponseErrorInternal, Pick<User, "id">> => {
+): TaskEither<IResponseErrorInternal, Option<Pick<User, "id">>> => {
   return getUserId(apiClient, fiscalCode)
     .mapLeft(error => toResponseErrorInternal(toError(error)))
-    .chain(maybeUserID => {
-      return maybeUserID.isSome()
-        ? taskEither.of(maybeUserID.toUndefined())
-        : postUser(apiClient, user)
+    .chain(maybeUserID =>
+      maybeUserID.foldL(
+        () =>
+          postUser(apiClient, user)
             .mapLeft(err => toResponseErrorInternal(toError(err)))
-            .map(u => {
-              return { id: u.id };
-            });
-    });
-
+            .map(u => some({ id: u.id })),
+        r => taskEither.of(some(r))
+      )
+    );
 };

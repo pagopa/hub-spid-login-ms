@@ -176,6 +176,9 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
+  ENABLE_USER_REGISTRY: fromNullable(process.env.ENABLE_USER_REGISTRY)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
   INCLUDE_SPID_USER_ON_INTROSPECTION: fromNullable(
     process.env.INCLUDE_SPID_USER_ON_INTROSPECTION
   )

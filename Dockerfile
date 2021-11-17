@@ -13,6 +13,6 @@ COPY /dist /usr/src/app/dist
 COPY /node_modules /usr/src/app/node_modules
 COPY /generated /usr/src/app/generated
 
-EXPOSE 8080
+EXPOSE 9090
 
 ENTRYPOINT ["node", "dist/src/server.js"]

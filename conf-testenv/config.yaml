@@ -13,15 +13,15 @@ cert_file: "conf/idp.crt"
 
 # CONFIGURAZIONE SERVICE PROVIDER
 
-# Si possono configurare più Service Provider. Per leggere i metadati da un 
-# file .xml è sufficiente inserirne il path sotto "local"; per leggerli da 
+# Si possono configurare più Service Provider. Per leggere i metadati da un
+# file .xml è sufficiente inserirne il path sotto "local"; per leggerli da
 # un URL remoto bisogna invece inserirlo sotto "remote" (insieme al path di
-# una copia locale del certificato del Service Provider, che per sicurezza 
+# una copia locale del certificato del Service Provider, che per sicurezza
 # deve coincidere con quello presente nei metadati).
 # cfr. https://pysaml2.readthedocs.io/en/latest/howto/config.html#metadata
 metadata:
   remote:
-    - "http://hub-spid-login-ms:8080/metadata"
+    - "http://hub-spid-login-ms:9090/metadata"
 
 # CONFIGURAZIONE TESTENV WEB SERVER
 

@@ -93,26 +93,40 @@ export const SpidParams = t.union([
     ContactPersonParams
   ])
 ]);
-
 export type SpidParams = t.TypeOf<typeof SpidParams>;
 
-const JWTParams = t.union([
+export const UserRegistryParams = t.union([
   t.interface({
-    ENABLE_JWT: t.literal(true),
-    JWT_TOKEN_ISSUER: NonEmptyString,
-    JWT_TOKEN_PRIVATE_KEY: NonEmptyString
+    ENABLE_USER_REGISTRY: t.literal(true),
+    USER_REGISTRY_URL: NonEmptyString
   }),
   t.interface({
-    ENABLE_JWT: t.literal(false)
+    ENABLE_USER_REGISTRY: t.literal(false)
+  })
+]);
+
+export type UserRegistryParams = t.TypeOf<typeof UserRegistryParams>;
+
+const JWTParams = t.union([
+  t.intersection([
+    t.interface({
+      ENABLE_JWT: t.literal(true),
+      JWT_TOKEN_ISSUER: NonEmptyString,
+      JWT_TOKEN_PRIVATE_KEY: NonEmptyString
+    }),
+    UserRegistryParams
+  ]),
+  t.interface({
+    ENABLE_JWT: t.literal(false),
+    ENABLE_USER_REGISTRY: t.literal(false)
   })
 ]);
 type JWTParams = t.TypeOf<typeof JWTParams>;
 
 const AttributeAuthorityParams = t.union([
   t.interface({
-    ENABLE_ADE_AA: t.literal(true),
-
     ADE_AA_API_ENDPOINT: NonEmptyString,
+    ENABLE_ADE_AA: t.literal(true),
     ENDPOINT_L1_SUCCESS: NonEmptyString,
     L1_TOKEN_EXPIRATION: NonNegativeInteger,
     L1_TOKEN_HEADER_NAME: NonEmptyString,
@@ -129,11 +143,10 @@ type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   t.interface({
-    isProduction: t.boolean,
-
     APPINSIGHTS_DISABLED: t.boolean,
     APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
-    SERVER_PORT: NonNegativeInteger
+    SERVER_PORT: NonNegativeInteger,
+    isProduction: t.boolean
   }),
   RedisParams,
   SpidParams,
@@ -161,6 +174,9 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
+  ENABLE_USER_REGISTRY: fromNullable(process.env.ENABLE_USER_REGISTRY)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
   INCLUDE_SPID_USER_ON_INTROSPECTION: fromNullable(

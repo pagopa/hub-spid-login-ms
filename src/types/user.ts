@@ -48,6 +48,7 @@ export const CommonTokenUser = t.intersection([
   t.partial({
     email: EmailString,
     family_name: NonEmptyString,
+    id: NonEmptyString,
     mobile_phone: NonEmptyString,
     name: NonEmptyString
   })

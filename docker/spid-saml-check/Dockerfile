@@ -12,7 +12,7 @@ RUN apt-get update \
         openssl \
         python3 \
         python3-pip \
-        xmlsec1 \ 
+        xmlsec1 \
         apache2 \
         git
 

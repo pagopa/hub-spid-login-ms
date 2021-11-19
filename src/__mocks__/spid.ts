@@ -131,7 +131,7 @@ export const aSAMLResponse = `<samlp:Response Destination="https://app-backend.d
 </saml:Assertion>
 </samlp:Response>`;
 
-export const aSAMLResponseWithoutResponseId = `<samlp:Response Destination="https://app-backend.dev.io.italia.it/assertionConsumerService" ID="_7080f453-78cb-4f57-9692-62dc8a5c23e8" IssueInstant="2020-02-26T07:32:05Z" Version="2.0" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol">
+export const aSAMLResponseWithoutRequestId = `<samlp:Response Destination="https://app-backend.dev.io.italia.it/assertionConsumerService" ID="_7080f453-78cb-4f57-9692-62dc8a5c23e8" IssueInstant="2020-02-26T07:32:05Z" Version="2.0" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol">
 <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">
     http://localhost:8080
 </saml:Issuer>

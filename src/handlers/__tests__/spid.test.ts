@@ -12,9 +12,9 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   aSAMLRequest,
   aSAMLResponse,
-  aSAMLResponseWithoutResponseId,
+  aSAMLResponseWithoutRequestId,
   aSAMLResponseWithoutFiscalCode,
-} from "../__mocks__/spid";
+} from "../../__mocks__/spid";
 import { left, right } from "fp-ts/lib/TaskEither";
 import { some } from "fp-ts/lib/Option";
 import { toError } from "fp-ts/lib/Either";
@@ -143,7 +143,7 @@ describe("accessLogHandler", () => {
       ({} as unknown) as BlobService,
       "a_container" as NonEmptyString,
       "aPublicKey" as NonEmptyString
-    )("0.0.0.0", aSAMLRequest, aSAMLResponseWithoutResponseId);
+    )("0.0.0.0", aSAMLRequest, aSAMLResponseWithoutRequestId);
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(

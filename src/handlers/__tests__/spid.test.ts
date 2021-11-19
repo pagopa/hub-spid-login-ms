@@ -24,18 +24,10 @@ const aMockedRequest = mockReq();
 const aMockedResponse = mockRes();
 
 // Mock access_log module to spy on storeSpidLogs function
-jest.mock("../../utils/access_log", () => ({
-  __esModule: true,
-  ...jest.requireActual("../../utils/access_log"),
-}));
 import * as accessLogUtility from "../../utils/access_log";
 const spiedStoreSpidLogs = jest.spyOn(accessLogUtility, "storeSpidLogs");
 
 // Mock logger to spy error
-jest.mock("../../utils/logger", () => ({
-  __esModule: true,
-  ...jest.requireActual("../../utils/logger"),
-}));
 import { logger } from "../../utils/logger";
 const spiedLoggerError = jest.spyOn(logger, "error");
 

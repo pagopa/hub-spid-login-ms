@@ -39,17 +39,13 @@ import * as encrypt from "@pagopa/ts-commons/lib/encrypt";
 const spiedToEncryptedPayload = jest.spyOn(encrypt, "toEncryptedPayload");
 
 // Mock access_log module to spy on storeSpidLogs function
-jest.mock("../blob", () => ({
-  __esModule: true,
-  ...jest.requireActual("../blob"),
-  upsertBlobFromObject: jest.fn((_, __, ___, ____) =>
-    taskEither.of<Error, Option<BlobService.BlobResult>>(
-      some(({} as unknown) as BlobService.BlobResult)
-    )
-  ),
-}));
 import * as blob from "../blob";
 const spiedUpsertBlobFromObject = jest.spyOn(blob, "upsertBlobFromObject");
+spiedUpsertBlobFromObject.mockImplementation((_, __, ___, ____) =>
+  taskEither.of<Error, Option<BlobService.BlobResult>>(
+    some(({} as unknown) as BlobService.BlobResult)
+  )
+);
 
 const requestXMLDocument = new DOMParser().parseFromString(
   aSAMLRequest,

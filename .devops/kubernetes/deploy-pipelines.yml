@@ -1,0 +1,139 @@
+# Azure DevOps pipeline to release a new version and deploy to production.
+
+# Only manual activations are intended
+trigger: none
+pr: none
+
+parameters:
+  - name: environment
+    displayName: Target Environment
+    type: string
+    default: dev
+    values:
+      - DEV
+      - UAT
+      - PROD
+  - name: version
+    displayName: Version of the docker image
+    type: string
+    default: 1.4.3
+  - name: publishBakedManifests
+    displayName: Publish Baked Manifests
+    type: boolean
+    default: false
+
+variables:
+  dockerfileRelativePath: '$(DOCKERFILE)' # DockerfileV1
+  imageRepository: '$(K8S_IMAGE_REPOSITORY_NAME)'
+  deployNamespace: '$(DEPLOY_NAMESPACE)'
+  port: 8080
+  ${{ if eq(parameters['environment'], 'DEV') }}:
+    dockerRegistryServiceConnection: '$(DEV_CONTAINER_REGISTRY_SERVICE_CONN)'
+    kubernetesServiceConnection: '$(DEV_KUBERNETES_SERVICE_CONN)'
+    containerRegistry: '$(DEV_CONTAINER_REGISTRY_NAME)'
+    selfHostedAgentPool: $(DEV_AGENT_POOL)
+    replicas: $(DEV_REPLICAS)
+  ${{ if eq(parameters['environment'], 'UAT') }}:
+    dockerRegistryServiceConnection: '$(UAT_CONTAINER_REGISTRY_SERVICE_CONN)'
+    kubernetesServiceConnection: '$(UAT_KUBERNETES_SERVICE_CONN)'
+    containerRegistry: '$(UAT_CONTAINER_REGISTRY_NAME)'
+    selfHostedAgentPool: $(UAT_AGENT_POOL)
+    replicas: $(UAT_REPLICAS)
+  ${{ if eq(parameters['environment'], 'PROD') }}:
+    dockerRegistryServiceConnection: '$(PROD_CONTAINER_REGISTRY_SERVICE_CONN)'
+    kubernetesServiceConnection: '$(PROD_KUBERNETES_SERVICE_CONN)'
+    containerRegistry: '$(PROD_CONTAINER_REGISTRY_NAME)'
+    selfHostedAgentPool: $(PROD_AGENT_POOL)
+    replicas: $(PROD_REPLICAS)
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+resources:
+  repositories:
+    - repository: pagopaCommons
+      type: github
+      name: pagopa/azure-pipeline-templates
+      ref: refs/tags/v14
+      endpoint: 'io-azure-devops-github-ro'
+
+stages:
+  # Prepare_artifact
+  - stage: Prepare_artifact
+    jobs:
+      - job: 'prepare_artifact'
+        steps:
+          # Build application
+          - template: templates/node-job-setup/template.yaml@pagopaCommons
+          - script: yarn predeploy
+            displayName: 'Build'
+          - task: Docker@2
+            displayName: 'Publish_image_to_${{ parameters.environment }}'
+            condition: succeeded()
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: '$(imageRepository)'
+              command: 'buildAndPush'
+              Dockerfile: '$(Build.Repository.LocalPath)/$(dockerfileRelativePath)'
+              buildContext: '$(Build.Repository.LocalPath)'
+              tags: |
+                $(Build.BuildId)
+                latest
+                ${{ parameters.environment }}
+                ${{ parameters.version }}
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Artifact manifests'
+            inputs:
+              targetPath: '$(Build.Repository.LocalPath)/.devops/kubernetes'
+              artifact: 'manifests'
+              publishLocation: 'pipeline'
+  - stage: 'Deploy'
+    displayName: 'Deploy_to_${{ parameters.environment }}'
+    dependsOn: [ 'Prepare_artifact' ]
+    condition: succeeded()
+    jobs:
+      - deployment: 'Deploy_to_${{ parameters.environment }}'
+        displayName: 'Deploy_to_${{ parameters.environment }}'
+        pool:
+          name: $(selfHostedAgentPool)
+        environment: '${{ parameters.environment }}'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: none
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    buildType: 'current'
+                    artifactName: 'manifests'
+                    targetPath: '$(Pipeline.Workspace)/manifests/'
+                - task: KubernetesManifest@0
+                  name: bake
+                  displayName: Bake K8s manifests from Helm chart
+                  inputs:
+                    namespace: '$(deployNamespace)'
+                    action: bake
+                    renderType: helm2
+                    helmChart: '$(Pipeline.Workspace)/manifests/helm/'
+                    overrides: |
+                      replicas:$(replicas)
+                      port:$(port)
+                      containerRegistry:$(containerRegistry)
+                      imageRepository:$(imageRepository)
+                - task: PublishPipelineArtifact@1
+                  displayName: 'Publish Artifact baked manifests'
+                  condition: ${{ parameters.publishBakedManifests }}
+                  inputs:
+                    targetPath: $(bake.manifestsBundle)
+                    artifact: 'baked'
+                    publishLocation: 'pipeline'
+                - task: KubernetesManifest@0
+                  displayName: Deploy to Kubernetes cluster
+                  inputs:
+                    action: deploy
+                    rolloutStatusTimeout: 120
+                    kubernetesServiceConnection: ${{ variables.kubernetesServiceConnection }}
+                    namespace: '$(deployNamespace)'
+                    manifests: |
+                      $(bake.manifestsBundle)
+                    containers: '$(containerRegistry)/$(imageRepository):${{ parameters.version }}'

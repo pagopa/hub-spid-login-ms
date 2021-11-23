@@ -1,6 +1,7 @@
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 import { tryCatch2v } from "fp-ts/lib/Either";
 import { toError } from "fp-ts/lib/Either";
 import { fromEither, TaskEither, taskify } from "fp-ts/lib/TaskEither";
@@ -34,12 +35,13 @@ export const getUserJwt = (
     jwt.sign(
       tokenUser,
       privateKey,
-      {
+      withoutUndefinedValues({
         algorithm: "RS256",
         expiresIn: `${tokenTtlSeconds} seconds`,
         issuer,
-        jwtid: ulid()
-      },
+        jwtid: ulid(),
+        subject: tokenUser.id
+      }),
       cb
     )
   )().mapLeft(toError);

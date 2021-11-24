@@ -191,7 +191,9 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ENABLE_JWT: fromNullable(process.env.ENABLE_JWT)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),
-  ENABLE_SPID_ACCESS_LOGS: fromNullable(process.env.ENABLE_SPID_ACCESS_LOGS),
+  ENABLE_SPID_ACCESS_LOGS: fromNullable(process.env.ENABLE_SPID_ACCESS_LOGS)
+    .map(_ => _.toLowerCase() === "true")
+    .getOrElseL(() => false),
   ENABLE_USER_REGISTRY: fromNullable(process.env.ENABLE_USER_REGISTRY)
     .map(_ => _.toLowerCase() === "true")
     .getOrElseL(() => false),

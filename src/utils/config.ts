@@ -122,7 +122,7 @@ export const UserRegistryParams = t.union([
 
 export type UserRegistryParams = t.TypeOf<typeof UserRegistryParams>;
 
-const JWTParams = t.union([
+export const JWTParams = t.union([
   t.intersection([
     t.interface({
       ENABLE_JWT: t.literal(true),
@@ -139,7 +139,7 @@ const JWTParams = t.union([
     ENABLE_USER_REGISTRY: t.literal(false)
   })
 ]);
-type JWTParams = t.TypeOf<typeof JWTParams>;
+export type JWTParams = t.TypeOf<typeof JWTParams>;
 
 const AttributeAuthorityParams = t.union([
   t.interface({

@@ -30,6 +30,8 @@ spec:
                 name: hub-spid-login-ms
             - configMapRef:
                 name: hub-spid-login-ms
+            - configMapRef:
+                name: jwt
           livenessProbe:
             httpGet:
               path: /info

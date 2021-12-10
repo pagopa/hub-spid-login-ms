@@ -26,25 +26,27 @@ const ExpireJWT = t.exact(
  * @param issuer: The Token issuer
  */
 export const getUserJwt = (
-  privateKey: NonEmptyString,
-  tokenUser: TokenUser | TokenUserL2,
-  tokenTtlSeconds: NonNegativeInteger,
-  issuer: NonEmptyString
-): TaskEither<Error, string> =>
-  taskify<Error, string>(cb =>
-    jwt.sign(
-      tokenUser,
-      privateKey,
-      withoutUndefinedValues({
-        algorithm: "RS256",
-        expiresIn: `${tokenTtlSeconds} seconds`,
-        issuer,
-        jwtid: ulid(),
-        subject: tokenUser.id
-      }),
-      cb
-    )
-  )().mapLeft(toError);
+         privateKey: NonEmptyString,
+         tokenUser: TokenUser | TokenUserL2,
+         tokenTtlSeconds: NonNegativeInteger,
+         issuer: NonEmptyString,
+         keyid?: NonEmptyString
+       ): TaskEither<Error, string> =>
+         taskify<Error, string>((cb) =>
+           jwt.sign(
+             tokenUser,
+             privateKey,
+             withoutUndefinedValues({
+               algorithm: "RS256",
+               expiresIn: `${tokenTtlSeconds} seconds`,
+               issuer,
+               jwtid: ulid(),
+               keyid,
+               subject: tokenUser.id,
+             }),
+             cb
+           )
+         )().mapLeft(toError);
 
 export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
   tryCatch2v(() => jwt.decode(jwtToken, { json: true }), toError);

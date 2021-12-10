@@ -67,6 +67,7 @@ export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
             config.JWT_TOKEN_PRIVATE_KEY,
             tokenUser,
             tokenExpiration,
+            config.JWT_TOKEN_KID,
             config.JWT_TOKEN_ISSUER
           ).bimap(
             () => new Error("Error generating JWT Token"),

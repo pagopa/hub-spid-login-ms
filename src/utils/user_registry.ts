@@ -67,7 +67,12 @@ export const postUser = (
     .chain(res =>
       res.status === 201
         ? taskEither.of(res.value)
-        : fromLeft(ResponseErrorValidation("Bad Input", res.value.detail))
+        : fromLeft(
+            ResponseErrorValidation(
+              "Bad Input",
+              res.value.detail || "Error creating the user"
+            )
+          )
     );
 };
 

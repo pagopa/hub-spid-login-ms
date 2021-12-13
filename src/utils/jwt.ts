@@ -73,6 +73,6 @@ export const verifyToken = (
   token: string,
   issuer: NonEmptyString
 ) =>
-  taskify<Error, object>(cb =>
+  taskify<Error, object | string>(cb =>
     jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
   )().mapLeft(toError);

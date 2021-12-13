@@ -33,7 +33,7 @@ import {
   invalidateHandler,
   upgradeTokenHandler
 } from "./handlers/token";
-import { SpidUser, TokenUser, TokenUserL2 } from "./types/user";
+import { SpidUser, TokenUser, TokenUserL2, UserCompanies, UserCompany } from "./types/user";
 import { getUserCompanies } from "./utils/attribute_authority";
 import { getConfigOrThrow } from "./utils/config";
 import {
@@ -168,9 +168,12 @@ const acs: AssertionConsumerServiceT = async user => {
             ).map(companies => ({
               ..._,
               companies,
-              from_aa: config.ENABLE_ADE_AA
+              from_aa: config.ENABLE_ADE_AA as boolean
             }))
-          : taskEither.of({ ..._, from_aa: config.ENABLE_ADE_AA });
+          : taskEither.of({
+              ..._,
+              from_aa: config.ENABLE_ADE_AA as boolean
+            });
       })
       .chain(_ => {
         logger.info("USER REGISTRY | Check for User Registry");

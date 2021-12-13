@@ -8,6 +8,8 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import { TokenUser, TokenUserL2, UserCompanies } from "../../types/user";
 import { getUserJwt } from "../jwt";
+import * as jwt from "jsonwebtoken";
+import { string } from "yargs";
 
 const aPrivateRsaKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIBOgIBAAJBAPX91rBDbLk5Pr0/lf4y1a8oz75sYa+slTqpfVHUrYb22qy4rY6Z
@@ -46,8 +48,19 @@ describe("Generate a valid JWT Header", () => {
       aTokenIssuer,
       aKeyid
     ).run();
+
     expect(isRight(errorOrNewJwtToken)).toBeTruthy();
     expect(errorOrNewJwtToken.value).toHaveLength(aTokenLengthBytesWithKeyId);
+    if (isRight(errorOrNewJwtToken)) {
+      const decodedToken = jwt.decode(errorOrNewJwtToken.value, {
+        complete: true,
+      });
+
+      if (!decodedToken) {
+        fail();
+      }
+      expect(decodedToken["header"].kid).toEqual(aKeyid);
+    }
   });
   it("should generate it without keyd as parameter", async () => {
     const errorOrNewJwtToken = await getUserJwt(

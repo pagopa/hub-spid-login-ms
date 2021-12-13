@@ -5,7 +5,7 @@ import {
   ResponseErrorForbiddenNotAuthorized,
   ResponseErrorValidation
 } from "@pagopa/ts-commons/lib/responses";
-import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
+import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
 import { none, Option, some } from "fp-ts/lib/Option";
 import { TaskEither, taskEither } from "fp-ts/lib/TaskEither";
@@ -17,12 +17,20 @@ import { errorsToError, toResponseErrorInternal } from "./conversions";
 
 export const getUserId = (
   apiClient: ReturnType<UserRegistryAPIClient>,
-  externalId: FiscalCode
+  externalId: FiscalCode,
+  subscriptionKey: NonEmptyString
 ): TaskEither<
   IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized,
   Option<{ id: string }>
 > =>
-  tryCatch(() => apiClient.getUserIdByExternalId({ externalId }), toError)
+  tryCatch(
+    () =>
+      apiClient.getUserIdByExternalId({
+        SubscriptionKey: subscriptionKey,
+        externalId
+      }),
+    toError
+  )
     .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
       toResponseErrorInternal
     )
@@ -45,11 +53,13 @@ export const getUserId = (
 
 export const postUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
-  user: User
+  user: User,
+  subscriptionKey: NonEmptyString
 ): TaskEither<IResponseErrorInternal | IResponseErrorValidation, User> => {
   return tryCatch(
     () =>
       apiClient.createUser({
+        SubscriptionKey: subscriptionKey,
         body: {
           ...user
         }
@@ -68,10 +78,7 @@ export const postUser = (
       res.status === 201
         ? taskEither.of(res.value)
         : fromLeft(
-            ResponseErrorValidation(
-              "Bad Input",
-              res.value.detail || "Error creating the user"
-            )
+            ResponseErrorValidation("Bad Input", "Error creating the user")
           )
     );
 };
@@ -79,14 +86,15 @@ export const postUser = (
 export const blurUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   user: User,
-  fiscalCode: FiscalCode
+  fiscalCode: FiscalCode,
+  subscriptionKey: NonEmptyString
 ): TaskEither<IResponseErrorInternal, Option<Pick<User, "id">>> => {
-  return getUserId(apiClient, fiscalCode)
+  return getUserId(apiClient, fiscalCode, subscriptionKey)
     .mapLeft(error => toResponseErrorInternal(toError(error)))
     .chain(maybeUserID =>
       maybeUserID.foldL(
         () =>
-          postUser(apiClient, user)
+          postUser(apiClient, user, subscriptionKey)
             .mapLeft(err => toResponseErrorInternal(toError(err)))
             .map(u => some({ id: u.id })),
         r => taskEither.of(some(r))

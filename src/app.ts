@@ -187,7 +187,8 @@ const acs: AssertionConsumerServiceT = async user => {
                 name: _.name,
                 surname: _.family_name
               },
-              _.fiscal_number
+              _.fiscal_number,
+              config.USER_REGISTRY_API_KEY
             ).map(maybeUid => ({
               ..._,
               uid: maybeUid.map(uid => uid.id).toUndefined()

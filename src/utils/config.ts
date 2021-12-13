@@ -113,6 +113,7 @@ export type SpidParams = t.TypeOf<typeof SpidParams>;
 export const UserRegistryParams = t.union([
   t.interface({
     ENABLE_USER_REGISTRY: t.literal(true),
+    USER_REGISTRY_API_KEY: NonEmptyString,
     USER_REGISTRY_URL: NonEmptyString
   }),
   t.interface({

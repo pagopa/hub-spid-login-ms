@@ -1,4 +1,26 @@
+swagger: '2.0'
 basePath: /pdnd-interop-uservice-user-registry-management/%7B%7Bversion%7D%7D
+schemes:
+  - https
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: 'http://www.example.com/support'
+  description: User Registry Management
+  termsOfService: 'http://swagger.io/terms/'
+  title: User Registry Management
+  version: '{{version}}'
+  x-api-id: an x-api-id
+  x-summary: an x-summary
+securityDefinitions:
+  SubscriptionKey:
+    type: apiKey
+    name: Ocp-Apim-Subscription-Key
+    in: header
+    description: The API key obtained through the developer portal.
+security:
+  - SubscriptionKey: []
 definitions:
   CertificationEnum:
     description: Certified source of information
@@ -14,7 +36,7 @@ definitions:
         type: string
       externalId:
         type: string
-        desription: User fiscal code or any other user identifier
+        description: User fiscal code or any other user identifier
       id:
         format: uuid
         type: string
@@ -76,17 +98,6 @@ definitions:
       - externalId
       - certification
     type: object
-info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: 'http://www.example.com/support'
-  description: User Registry Management
-  termsOfService: 'http://swagger.io/terms/'
-  title: User Registry Management
-  version: '{{version}}'
-  x-api-id: an x-api-id
-  x-summary: an x-summary
 paths:
   /status:
     get:
@@ -100,6 +111,8 @@ paths:
           description: successful operation
           schema:
             $ref: '#/definitions/Problem'
+        '401':
+          description: Unauthorized
       summary: Health status endpoint
       tags:
         - health
@@ -127,6 +140,8 @@ paths:
           description: Invalid input
           schema:
             $ref: '#/definitions/Problem'
+        '401':
+          description: Unauthorized
       summary: Create a new user
       tags:
         - user
@@ -147,6 +162,8 @@ paths:
           description: User not found
           schema:
             $ref: '#/definitions/Problem'
+        '401':
+          description: Unauthorized
       summary: Retrieve the user ID for the given external ID
       tags:
         - user
@@ -179,6 +196,8 @@ paths:
           description: Invalid input
           schema:
             $ref: '#/definitions/Problem'
+        '401':
+          description: Unauthorized
       summary: Update an existing user
       tags:
         - user
@@ -199,6 +218,8 @@ paths:
           description: User not found
           schema:
             $ref: '#/definitions/Problem'
+        '401':
+          description: Unauthorized
       summary: Retrieve the user for the given internal id
       tags:
         - user
@@ -209,7 +230,6 @@ paths:
         name: id
         required: true
         type: string
-swagger: '2.0'
 tags:
   - description: Users
     externalDocs:

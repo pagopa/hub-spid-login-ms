@@ -33,7 +33,7 @@ import {
   invalidateHandler,
   upgradeTokenHandler
 } from "./handlers/token";
-import { SpidUser, TokenUser, TokenUserL2, UserCompanies, UserCompany } from "./types/user";
+import { SpidUser, TokenUser, TokenUserL2 } from "./types/user";
 import { getUserCompanies } from "./utils/attribute_authority";
 import { getConfigOrThrow } from "./utils/config";
 import {

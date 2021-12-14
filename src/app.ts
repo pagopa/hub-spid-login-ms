@@ -49,6 +49,7 @@ import {
   ContactType,
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
+import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 import { createBlobService } from "azure-storage";
 import * as cors from "cors";
 import { CertificationEnum } from "../generated/userregistry-api/Certification";
@@ -185,11 +186,13 @@ const acs: AssertionConsumerServiceT = async user => {
             });
       })
       .chain(_ => {
-        logger.info("USER REGISTRY | Check for User Registry");
+        logger.info(
+          `USER REGISTRY | Check for User Registry | ${config.ENABLE_USER_REGISTRY}`
+        );
         return config.ENABLE_USER_REGISTRY
           ? blurUser(
               UserRegistryAPIClient(config.USER_REGISTRY_URL),
-              {
+              withoutUndefinedValues({
                 certification: CertificationEnum.SPID,
                 externalId: _.fiscal_number,
                 extras: {
@@ -197,7 +200,7 @@ const acs: AssertionConsumerServiceT = async user => {
                 },
                 name: _.name,
                 surname: _.family_name
-              },
+              }),
               _.fiscal_number,
               config.USER_REGISTRY_API_KEY
             ).map(maybeUid => ({
@@ -234,10 +237,14 @@ const acs: AssertionConsumerServiceT = async user => {
       .fold<ResponseUnionType>(
         _ => {
           logger.info(
-            `ACS | Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
+            `ACS | Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
+              _.detail
+            )}`
           );
           logger.error(
-            `Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
+            `Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
+              _.detail
+            )}`
           );
           return _;
         },

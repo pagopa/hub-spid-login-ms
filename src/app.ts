@@ -168,9 +168,12 @@ const acs: AssertionConsumerServiceT = async user => {
             ).map(companies => ({
               ..._,
               companies,
-              from_aa: config.ENABLE_ADE_AA
+              from_aa: config.ENABLE_ADE_AA as boolean
             }))
-          : taskEither.of({ ..._, from_aa: config.ENABLE_ADE_AA });
+          : taskEither.of({
+              ..._,
+              from_aa: config.ENABLE_ADE_AA as boolean
+            });
       })
       .chain(_ => {
         logger.info("USER REGISTRY | Check for User Registry");
@@ -184,7 +187,8 @@ const acs: AssertionConsumerServiceT = async user => {
                 name: _.name,
                 surname: _.family_name
               },
-              _.fiscal_number
+              _.fiscal_number,
+              config.USER_REGISTRY_API_KEY
             ).map(maybeUid => ({
               ..._,
               uid: maybeUid.map(uid => uid.id).toUndefined()

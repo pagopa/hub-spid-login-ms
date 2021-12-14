@@ -29,7 +29,8 @@ export const getUserJwt = (
   privateKey: NonEmptyString,
   tokenUser: TokenUser | TokenUserL2,
   tokenTtlSeconds: NonNegativeInteger,
-  issuer: NonEmptyString
+  issuer: NonEmptyString,
+  keyid?: NonEmptyString
 ): TaskEither<Error, string> =>
   taskify<Error, string>(cb =>
     jwt.sign(
@@ -40,6 +41,7 @@ export const getUserJwt = (
         expiresIn: `${tokenTtlSeconds} seconds`,
         issuer,
         jwtid: ulid(),
+        keyid,
         subject: tokenUser.id
       }),
       cb
@@ -71,6 +73,6 @@ export const verifyToken = (
   token: string,
   issuer: NonEmptyString
 ) =>
-  taskify<Error, object>(cb =>
+  taskify<Error, object | string>(cb =>
     jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
   )().mapLeft(toError);

@@ -8,6 +8,8 @@ import { UserId } from "../../../generated/userregistry-api/UserId";
 
 const aMockFiscalCode = "AAAAAA00A00A000A" as FiscalCode;
 const aUserId = "1000" as NonEmptyString;
+const apiKey = "afakeapikey" as NonEmptyString;
+
 const aMockValidId = {
   id: aUserId,
 };
@@ -40,7 +42,8 @@ describe("UserRegistry#getUserId", () => {
   it("should get a valid User ID - Right path", async () => {
     const response = await getUserId(
       userRegistryApiClientMock,
-      aMockFiscalCode
+      aMockFiscalCode,
+      apiKey
     ).run();
     expect(response.isRight()).toBeTruthy();
     if (isRight(response)) {
@@ -54,7 +57,8 @@ describe("UserRegistry#getUserId", () => {
     );
     const response = await getUserId(
       userRegistryApiClientMock,
-      aMockFiscalCode
+      aMockFiscalCode,
+      apiKey
     ).run();
     expect(response.isRight()).toBeTruthy();
     if (isRight(response)) {
@@ -68,7 +72,8 @@ describe("UserRegistry#getUserId", () => {
     });
     const response = await getUserId(
       userRegistryApiClientMock,
-      aMockFiscalCode
+      aMockFiscalCode,
+      apiKey
     ).run();
     expect(response.isLeft()).toBeTruthy();
     expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
@@ -80,7 +85,8 @@ describe("UserRegistry#getUserId", () => {
     );
     const response = await getUserId(
       userRegistryApiClientMock,
-      aMockFiscalCode
+      aMockFiscalCode,
+      apiKey
     ).run();
     expect(response.isLeft()).toBeTruthy();
     expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
@@ -89,7 +95,11 @@ describe("UserRegistry#getUserId", () => {
 
 describe("UserRegistry#postUser#ClientMock", () => {
   it("should create a User - Right path", async () => {
-    const response = await postUser(userRegistryApiClientMock, aMockUser).run();
+    const response = await postUser(
+      userRegistryApiClientMock,
+      aMockUser,
+      apiKey
+    ).run();
     expect(response.isRight()).toBeTruthy();
     if (isRight(response)) {
       expect(response.value).toBeTruthy();
@@ -106,11 +116,15 @@ describe("UserRegistry#postUser#ClientMock", () => {
         },
       })
     );
-    const response = await postUser(userRegistryApiClientMock, aMockUser).run();
+    const response = await postUser(
+      userRegistryApiClientMock,
+      aMockUser,
+      apiKey
+    ).run();
     expect(response.isLeft()).toBeTruthy();
     expect(response.value).toHaveProperty(
       "detail",
-      "Bad Input: Not valid input for creating a user"
+      "Bad Input: Error creating the user"
     );
     expect(response.value).toHaveProperty("kind", "IResponseErrorValidation");
   });
@@ -118,7 +132,11 @@ describe("UserRegistry#postUser#ClientMock", () => {
     createUserMock.mockImplementationOnce(async () => {
       throw new Error("Error");
     });
-    const response = await postUser(userRegistryApiClientMock, aMockUser).run();
+    const response = await postUser(
+      userRegistryApiClientMock,
+      aMockUser,
+      apiKey
+    ).run();
     expect(response.isLeft()).toBeTruthy();
     expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
   });
@@ -129,7 +147,8 @@ describe("UserRegistry#blurUser", () => {
     const response = await blurUser(
       userRegistryApiClientMock,
       aMockUser,
-      aMockFiscalCode
+      aMockFiscalCode,
+      apiKey
     ).run();
     expect(response.isRight()).toBeTruthy();
     if (isRight(response)) {
@@ -144,7 +163,8 @@ describe("UserRegistry#blurUser", () => {
     const response = await blurUser(
       userRegistryApiClientMock,
       aMockUser,
-      aMockFiscalCode
+      aMockFiscalCode,
+      apiKey
     ).run();
     if (isRight(response)) {
       expect(isSome(response.value)).toBeTruthy();
@@ -167,7 +187,8 @@ describe("UserRegistry#blurUser", () => {
     const response = await blurUser(
       userRegistryApiClientMock,
       aMockUser,
-      aMockFiscalCode
+      aMockFiscalCode,
+      apiKey
     ).run();
     expect(response.isLeft()).toBeTruthy();
     expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");

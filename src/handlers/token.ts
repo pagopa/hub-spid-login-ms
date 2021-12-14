@@ -67,7 +67,8 @@ export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
             config.JWT_TOKEN_PRIVATE_KEY,
             tokenUser,
             tokenExpiration,
-            config.JWT_TOKEN_ISSUER
+            config.JWT_TOKEN_ISSUER,
+            config.JWT_TOKEN_KID
           ).bimap(
             () => new Error("Error generating JWT Token"),
             _ => ({ tokenUser, tokenStr: _ })
@@ -111,11 +112,9 @@ export const introspectHandler = async (
     .chain(
       fromPredicate(
         () => !config.ENABLE_JWT,
-        () => void 0
+        () => res.status(200).json({ active: true })
       )
     )
-    // if token is a JWT we must check only if this jwt is blacklisted
-    .mapLeft(() => res.status(200).json({ active: true }))
     .chain(() =>
       getRawTokenUserFromRedis(req.body.token, res)
         .chain<TokenUser | TokenUserL2>(_ =>

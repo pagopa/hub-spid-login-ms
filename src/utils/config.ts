@@ -113,6 +113,7 @@ export type SpidParams = t.TypeOf<typeof SpidParams>;
 export const UserRegistryParams = t.union([
   t.interface({
     ENABLE_USER_REGISTRY: t.literal(true),
+    USER_REGISTRY_API_KEY: NonEmptyString,
     USER_REGISTRY_URL: NonEmptyString
   }),
   t.interface({
@@ -122,12 +123,15 @@ export const UserRegistryParams = t.union([
 
 export type UserRegistryParams = t.TypeOf<typeof UserRegistryParams>;
 
-const JWTParams = t.union([
+export const JWTParams = t.union([
   t.intersection([
     t.interface({
       ENABLE_JWT: t.literal(true),
       JWT_TOKEN_ISSUER: NonEmptyString,
       JWT_TOKEN_PRIVATE_KEY: NonEmptyString
+    }),
+    t.partial({
+      JWT_TOKEN_KID: NonEmptyString
     }),
     UserRegistryParams
   ]),
@@ -136,7 +140,7 @@ const JWTParams = t.union([
     ENABLE_USER_REGISTRY: t.literal(false)
   })
 ]);
-type JWTParams = t.TypeOf<typeof JWTParams>;
+export type JWTParams = t.TypeOf<typeof JWTParams>;
 
 const AttributeAuthorityParams = t.union([
   t.interface({

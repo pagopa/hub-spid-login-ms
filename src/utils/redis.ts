@@ -33,7 +33,7 @@ function createSimpleRedisClient(
 
       if (retryOptions.attempt > 3) {
         // End reconnecting with built in error
-        return undefined;
+        return new Error("Retry attempt exhausted");
       }
 
       // Reconnect after

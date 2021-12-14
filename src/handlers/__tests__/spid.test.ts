@@ -117,11 +117,15 @@ describe("accessLogHandler", () => {
   });
 
   it("should fail if not able to parse response", async () => {
+    // undefined value is needed to test error case but
+    // we have to cast to avoid type check at compile time
+    const anEmptyResponsePayload = (undefined as unknown) as string;
+
     accessLogHandler(
       ({} as unknown) as BlobService,
       "a_container" as NonEmptyString,
       "aPublicKey" as NonEmptyString
-    )("0.0.0.0", aSAMLRequest, undefined);
+    )("0.0.0.0", aSAMLRequest, anEmptyResponsePayload);
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(

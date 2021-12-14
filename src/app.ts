@@ -50,13 +50,13 @@ import {
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
 import { createBlobService } from "azure-storage";
 import * as cors from "cors";
+import { CertificationEnum } from "../generated/userregistry-api/Certification";
 import { AdeAPIClient } from "./clients/ade";
 import { UserRegistryAPIClient } from "./clients/userregistry_client";
 import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 import { blurUser } from "./utils/user_registry";
-import { CertificationEnum } from "../generated/userregistry-api/Certification";
 
 const config = getConfigOrThrow();
 
@@ -191,9 +191,9 @@ const acs: AssertionConsumerServiceT = async user => {
               },
               _.fiscal_number,
               config.USER_REGISTRY_API_KEY
-            ).map((maybeUid) => ({
+            ).map(maybeUid => ({
               ..._,
-              uid: maybeUid.map((uid) => uid.id).toUndefined(),
+              uid: maybeUid.map(uid => uid.id).toUndefined()
             }))
           : taskEither.of({ ..._ });
       })

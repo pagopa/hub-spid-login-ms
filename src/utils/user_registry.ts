@@ -11,6 +11,7 @@ import { none, Option, some } from "fp-ts/lib/Option";
 import { TaskEither, taskEither } from "fp-ts/lib/TaskEither";
 import { fromEither, fromLeft, tryCatch } from "fp-ts/lib/TaskEither";
 import { User } from "../../generated/userregistry-api/User";
+import { UserSeed } from "../../generated/userregistry-api/UserSeed";
 
 import { UserRegistryAPIClient } from "../clients/userregistry_client";
 import { errorsToError, toResponseErrorInternal } from "./conversions";
@@ -25,9 +26,11 @@ export const getUserId = (
 > =>
   tryCatch(
     () =>
-      apiClient.getUserIdByExternalId({
+      apiClient.getUserByExternalId({
         SubscriptionKey: subscriptionKey,
-        externalId
+        body: {
+          externalId
+        }
       }),
     toError
   )
@@ -43,7 +46,7 @@ export const getUserId = (
     .chain(res => {
       switch (res.status) {
         case 200:
-          return taskEither.of(some(res.value));
+          return taskEither.of(some({ id: res.value.id }));
         case 404:
           return taskEither.of(none);
         default:
@@ -53,7 +56,7 @@ export const getUserId = (
 
 export const postUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
-  user: User,
+  user: UserSeed,
   subscriptionKey: NonEmptyString
 ): TaskEither<IResponseErrorInternal | IResponseErrorValidation, User> => {
   return tryCatch(
@@ -85,7 +88,7 @@ export const postUser = (
 
 export const blurUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
-  user: User,
+  user: UserSeed,
   fiscalCode: FiscalCode,
   subscriptionKey: NonEmptyString
 ): TaskEither<IResponseErrorInternal, Option<Pick<User, "id">>> => {

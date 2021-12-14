@@ -1,10 +1,11 @@
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { CertificationEnumEnum } from "../../../generated/userregistry-api/CertificationEnum";
 import { UserRegistryAPIClient } from "../../clients/userregistry_client";
 import { blurUser, getUserId, postUser } from "../user_registry";
 import { isNone, isSome } from "fp-ts/lib/Option";
 import { isRight, right } from "fp-ts/lib/Either";
-import { UserId } from "../../../generated/userregistry-api/UserId";
+import { UserSeed } from "../../../generated/userregistry-api/UserSeed";
+import { CertificationEnum } from "../../../generated/userregistry-api/Certification";
+import { User } from "../../../generated/userregistry-api/User";
 
 const aMockFiscalCode = "AAAAAA00A00A000A" as FiscalCode;
 const aUserId = "1000" as NonEmptyString;
@@ -13,10 +14,21 @@ const apiKey = "afakeapikey" as NonEmptyString;
 const aMockValidId = {
   id: aUserId,
 };
-const aMockUser = {
-  certification: CertificationEnumEnum.SPID,
-  email: "test@email.com",
+const aMockUserSeed: UserSeed = {
+  certification: CertificationEnum.SPID,
   externalId: "AAAAAA00A00A000A",
+  extras:{
+    email: "test@email.com"
+  },
+  name: "Nome",
+  surname: "Cognome",
+};
+const aMockUser: User = {
+  certification: CertificationEnum.SPID,
+  externalId: "AAAAAA00A00A000A",
+  extras: {
+    email: "test@email.com",
+  },
   id: aUserId,
   name: "Nome",
   surname: "Cognome",
@@ -27,7 +39,7 @@ const createUserMock = jest.fn().mockImplementation(async () =>
     value: aMockUser,
   })
 );
-const getUserIdByExternalIdMock = jest.fn().mockImplementation(async () =>
+const getUserByExternalIdMock = jest.fn().mockImplementation(async () =>
   right({
     status: 200,
     value: aMockValidId,
@@ -35,7 +47,7 @@ const getUserIdByExternalIdMock = jest.fn().mockImplementation(async () =>
 );
 const userRegistryApiClientMock = ({
   createUser: createUserMock,
-  getUserIdByExternalId: getUserIdByExternalIdMock,
+  getUserByExternalId: getUserByExternalIdMock,
 } as unknown) as ReturnType<UserRegistryAPIClient>;
 
 describe("UserRegistry#getUserId", () => {
@@ -52,7 +64,7 @@ describe("UserRegistry#getUserId", () => {
     }
   });
   it("should send a none for a not found CF (404) - Right path", async () => {
-    getUserIdByExternalIdMock.mockImplementationOnce(async () =>
+    getUserByExternalIdMock.mockImplementationOnce(async () =>
       right({ status: 404, title: "Not Found" })
     );
     const response = await getUserId(
@@ -67,22 +79,9 @@ describe("UserRegistry#getUserId", () => {
     }
   });
   it("should raise a network error - Left path", async () => {
-    getUserIdByExternalIdMock.mockImplementationOnce(async () => {
+    getUserByExternalIdMock.mockImplementationOnce(async () => {
       throw new Error("Error");
     });
-    const response = await getUserId(
-      userRegistryApiClientMock,
-      aMockFiscalCode,
-      apiKey
-    ).run();
-    expect(response.isLeft()).toBeTruthy();
-    expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
-  });
-  it("should not pass decode validation for a bad response payload - Left path", async () => {
-    const decodeValueMock = UserId.decode({});
-    getUserIdByExternalIdMock.mockImplementationOnce(
-      async () => decodeValueMock
-    );
     const response = await getUserId(
       userRegistryApiClientMock,
       aMockFiscalCode,
@@ -157,7 +156,7 @@ describe("UserRegistry#blurUser", () => {
     }
   });
   it("should create a User for a not found CF - Right path", async () => {
-    getUserIdByExternalIdMock.mockImplementationOnce(async () =>
+    getUserByExternalIdMock.mockImplementationOnce(async () =>
       right({ status: 404, title: "Not Found" })
     );
     const response = await blurUser(
@@ -172,7 +171,7 @@ describe("UserRegistry#blurUser", () => {
     }
   });
   it("should not create a user for bad input - Left path", async () => {
-    getUserIdByExternalIdMock.mockImplementationOnce(async () =>
+    getUserByExternalIdMock.mockImplementationOnce(async () =>
       right({ status: 404, title: "Not Found" })
     );
     createUserMock.mockImplementationOnce(async () =>
@@ -193,4 +192,5 @@ describe("UserRegistry#blurUser", () => {
     expect(response.isLeft()).toBeTruthy();
     expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
   });
+  
 });

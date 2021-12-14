@@ -8,6 +8,7 @@ import {
 import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import {
   IResponseErrorForbiddenNotAuthorized,
+  IResponseErrorValidation,
   IResponsePermanentRedirect
 } from "@pagopa/ts-commons/lib/responses";
 import * as bodyParser from "body-parser";
@@ -145,12 +146,20 @@ const samlConfig: SamlConfig = {
   validateInResponseTo: true
 };
 
+type ResponseUnionType =
+  | IResponseErrorInternal
+  | IResponseErrorValidation
+  | IResponseErrorForbiddenNotAuthorized
+  | IResponsePermanentRedirect;
+
 const acs: AssertionConsumerServiceT = async user => {
   return (
     fromEither(SpidUser.decode(user))
-      .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
-        errs => toResponseErrorInternal(errorsToError(errs))
-      )
+      .mapLeft<
+        | IResponseErrorInternal
+        | IResponseErrorValidation
+        | IResponseErrorForbiddenNotAuthorized
+      >(errs => toResponseErrorInternal(errorsToError(errs)))
       .chain(_ => {
         logger.info("ACS | Trying to map user to Common User");
         return fromEither(toCommonTokenUser(_)).mapLeft(
@@ -222,11 +231,7 @@ const acs: AssertionConsumerServiceT = async user => {
         logger.info("ACS | Generating token");
         return generateToken(tokenUser).mapLeft(toResponseErrorInternal);
       })
-      .fold<
-        | IResponseErrorInternal
-        | IResponseErrorForbiddenNotAuthorized
-        | IResponsePermanentRedirect
-      >(
+      .fold<ResponseUnionType>(
         _ => {
           logger.info(
             `ACS | Assertion Consumer Service ERROR|${_.kind} ${_.detail}`

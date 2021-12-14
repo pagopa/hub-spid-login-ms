@@ -190,7 +190,7 @@ describe("UserRegistry#blurUser", () => {
       apiKey
     ).run();
     expect(response.isLeft()).toBeTruthy();
-    expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
+    expect(response.value).toHaveProperty("kind", "IResponseErrorValidation");
   });
   
 });

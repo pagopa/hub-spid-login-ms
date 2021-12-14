@@ -15,6 +15,7 @@ import { UserSeed } from "../../generated/userregistry-api/UserSeed";
 
 import { UserRegistryAPIClient } from "../clients/userregistry_client";
 import { errorsToError, toResponseErrorInternal } from "./conversions";
+import { logger } from "./logger";
 export const getUserId = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   externalId: FiscalCode,
@@ -34,7 +35,10 @@ export const getUserId = (
     toError
   )
     .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
-      toResponseErrorInternal
+      err => {
+        logger.error(`USER REGISTRY getUserByExternalId: ${err.message}`);
+        return toResponseErrorInternal(err);
+      }
     )
     // Validation (Either) -> taskEither
     .chain(_ => {
@@ -66,9 +70,10 @@ export const postUser = (
       }
     });
   }, toError)
-    .mapLeft<IResponseErrorInternal | IResponseErrorValidation>(
-      toResponseErrorInternal
-    )
+    .mapLeft<IResponseErrorInternal | IResponseErrorValidation>(err => {
+      logger.error(`USER REGISTRY postUser: ${err.message}`);
+      return toResponseErrorInternal(err);
+    })
     .chain(_ =>
       fromEither(_).mapLeft(errs =>
         ResponseErrorValidation("Validation Error", errs.join("/"))

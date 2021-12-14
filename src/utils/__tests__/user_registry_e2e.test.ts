@@ -3,7 +3,6 @@ import { CertificationEnum } from "../../../generated/userregistry-api/Certifica
 import { UserRegistryAPIClient } from "../../clients/userregistry_client";
 import { blurUser, getUserId } from "../user_registry";
 
-
 it("e2e should retrieve a User by a CF", async () => {
   const response = await getUserId(
     UserRegistryAPIClient(
@@ -12,7 +11,6 @@ it("e2e should retrieve a User by a CF", async () => {
     "DNIVNI82L21L719J" as FiscalCode,
     "9b20e355f89c4a15bf3ee1f251d6d062" as NonEmptyString
   ).run();
-  console.log(response);
 });
 
 it("e2e should create a User for a not found CF - Right path", async () => {
@@ -22,14 +20,12 @@ it("e2e should create a User for a not found CF - Right path", async () => {
     ),
     {
       certification: CertificationEnum.SPID,
-      externalId: "DNIVNI82L21L719J",
-      extras: {}
+      externalId: "DNIVNI82L21L719Z",
+      name: "TestName",
+      surname: "TestSurname",
+      extras: {},
     },
-    "DNIVNI82L21L719J" as FiscalCode,
+    "DNIVNI82L21L719Z" as FiscalCode,
     "9b20e355f89c4a15bf3ee1f251d6d062" as NonEmptyString
   ).run();
-  console.log(response);
-  console.log(JSON.stringify(response));
 });
-
-

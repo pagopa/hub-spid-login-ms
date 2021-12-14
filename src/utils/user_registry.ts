@@ -3,7 +3,8 @@ import {
   IResponseErrorInternal,
   IResponseErrorValidation,
   ResponseErrorForbiddenNotAuthorized,
-  ResponseErrorValidation
+  ResponseErrorFromValidationErrors,
+  ResponseErrorValidation,
 } from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
@@ -15,7 +16,7 @@ import { UserSeed } from "../../generated/userregistry-api/UserSeed";
 
 import { UserRegistryAPIClient } from "../clients/userregistry_client";
 import { errorsToError, toResponseErrorInternal } from "./conversions";
-
+import nodefetch from "node-fetch";
 export const getUserId = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   externalId: FiscalCode,
@@ -29,8 +30,8 @@ export const getUserId = (
       apiClient.getUserByExternalId({
         SubscriptionKey: subscriptionKey,
         body: {
-          externalId
-        }
+          externalId,
+        },
       }),
     toError
   )
@@ -38,12 +39,12 @@ export const getUserId = (
       toResponseErrorInternal
     )
     // Validation (Either) -> taskEither
-    .chain(_ =>
-      fromEither(_).mapLeft(errs =>
+    .chain((_) => {
+      return fromEither(_).mapLeft((errs) =>
         toResponseErrorInternal(errorsToError(errs))
-      )
-    )
-    .chain(res => {
+      );
+    })
+    .chain((res) => {
       switch (res.status) {
         case 200:
           return taskEither.of(some({ id: res.value.id }));
@@ -59,25 +60,23 @@ export const postUser = (
   user: UserSeed,
   subscriptionKey: NonEmptyString
 ): TaskEither<IResponseErrorInternal | IResponseErrorValidation, User> => {
-  return tryCatch(
-    () =>
-      apiClient.createUser({
-        SubscriptionKey: subscriptionKey,
-        body: {
-          ...user
-        }
-      }),
-    toError
-  )
+  return tryCatch(() => {
+    return apiClient.createUser({
+      SubscriptionKey: subscriptionKey,
+      body: {
+        ...user,
+      },
+    });
+  }, toError)
     .mapLeft<IResponseErrorInternal | IResponseErrorValidation>(
       toResponseErrorInternal
     )
-    .chain(_ =>
-      fromEither(_).mapLeft(errs =>
-        toResponseErrorInternal(errorsToError(errs))
+    .chain((_) =>
+      fromEither(_).mapLeft((_) =>
+        ResponseErrorValidation("Validation Error", _.join("/"))
       )
     )
-    .chain(res =>
+    .chain((res) =>
       res.status === 201
         ? taskEither.of(res.value)
         : fromLeft(
@@ -85,22 +84,26 @@ export const postUser = (
           )
     );
 };
-
 export const blurUser = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   user: UserSeed,
   fiscalCode: FiscalCode,
   subscriptionKey: NonEmptyString
-): TaskEither<IResponseErrorInternal, Option<Pick<User, "id">>> => {
+): TaskEither<
+  IResponseErrorInternal | IResponseErrorValidation,
+  Option<Pick<User, "id">>
+> => {
   return getUserId(apiClient, fiscalCode, subscriptionKey)
-    .mapLeft(error => toResponseErrorInternal(toError(error)))
-    .chain(maybeUserID =>
+    .mapLeft<IResponseErrorInternal | IResponseErrorValidation>((error) =>
+      toResponseErrorInternal(toError(error))
+    )
+    .chain((maybeUserID) =>
       maybeUserID.foldL(
         () =>
-          postUser(apiClient, user, subscriptionKey)
-            .mapLeft(err => toResponseErrorInternal(toError(err)))
-            .map(u => some({ id: u.id })),
-        r => taskEither.of(some(r))
+          postUser(apiClient, user, subscriptionKey).map((u) =>
+            some({ id: u.id })
+          ),
+        (r) => taskEither.of(some(r))
       )
     );
 };

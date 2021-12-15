@@ -9,7 +9,10 @@ import {
   IntegerFromString,
   NonNegativeInteger,
 } from "@pagopa/ts-commons/lib/numbers";
-import { EmailString, WithinRangeString } from "@pagopa/ts-commons/lib/strings";
+import {
+  EmailString,
+  OrganizationFiscalCode,
+} from "@pagopa/ts-commons/lib/strings";
 import { fromNullable as fromNullableE } from "fp-ts/lib/Either";
 import { identity } from "fp-ts/lib/function";
 import { fromNullable } from "fp-ts/lib/Option";
@@ -33,7 +36,7 @@ export type RedisParams = t.TypeOf<typeof RedisParams>;
 export const ContactPersonParams = t.intersection([
   t.interface({
     COMPANY_EMAIL: EmailString,
-    COMPANY_FISCAL_CODE: WithinRangeString(8, 16),
+    COMPANY_FISCAL_CODE: OrganizationFiscalCode,
     COMPANY_IPA_CODE: NonEmptyString,
     COMPANY_NAME: NonEmptyString,
     COMPANY_VAT_NUMBER: NonEmptyString,

@@ -41,11 +41,11 @@ export const getUserId = (
       }
     )
     // Validation (Either) -> taskEither
-    .chain(_ => {
-      return fromEither(_).mapLeft(errs =>
+    .chain(_ =>
+      fromEither(_).mapLeft(errs =>
         toResponseErrorInternal(errorsToError(errs))
-      );
-    })
+      )
+    )
     .chain(res => {
       switch (res.status) {
         case 200:

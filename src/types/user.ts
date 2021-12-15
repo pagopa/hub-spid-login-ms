@@ -2,7 +2,7 @@ import {
   EmailString,
   FiscalCode,
   NonEmptyString,
-  OrganizationFiscalCode
+  WithinRangeString
 } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 import * as t from "io-ts";
@@ -33,7 +33,7 @@ export type SpidUser = t.TypeOf<typeof SpidUser>;
 
 export const UserCompany = t.interface({
   email: EmailString,
-  organization_fiscal_code: OrganizationFiscalCode,
+  organization_fiscal_code: WithinRangeString(8, 16),
   organization_name: NonEmptyString
 });
 export type UserCompany = t.TypeOf<typeof UserCompany>;

@@ -8,6 +8,7 @@ import {
 import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import {
   IResponseErrorForbiddenNotAuthorized,
+  IResponseErrorValidation,
   IResponsePermanentRedirect
 } from "@pagopa/ts-commons/lib/responses";
 import * as bodyParser from "body-parser";
@@ -48,9 +49,10 @@ import {
   ContactType,
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
+import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 import { createBlobService } from "azure-storage";
 import * as cors from "cors";
-import { CertificationEnumEnum } from "../generated/userregistry-api/CertificationEnum";
+import { CertificationEnum } from "../generated/userregistry-api/Certification";
 import { AdeAPIClient } from "./clients/ade";
 import { UserRegistryAPIClient } from "./clients/userregistry_client";
 import { healthcheckHandler } from "./handlers/general";
@@ -145,12 +147,20 @@ const samlConfig: SamlConfig = {
   validateInResponseTo: true
 };
 
+type ResponseUnionType =
+  | IResponseErrorInternal
+  | IResponseErrorValidation
+  | IResponseErrorForbiddenNotAuthorized
+  | IResponsePermanentRedirect;
+
 const acs: AssertionConsumerServiceT = async user => {
   return (
     fromEither(SpidUser.decode(user))
-      .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
-        errs => toResponseErrorInternal(errorsToError(errs))
-      )
+      .mapLeft<
+        | IResponseErrorInternal
+        | IResponseErrorValidation
+        | IResponseErrorForbiddenNotAuthorized
+      >(errs => toResponseErrorInternal(errorsToError(errs)))
       .chain(_ => {
         logger.info("ACS | Trying to map user to Common User");
         return fromEither(toCommonTokenUser(_)).mapLeft(
@@ -176,17 +186,21 @@ const acs: AssertionConsumerServiceT = async user => {
             });
       })
       .chain(_ => {
-        logger.info("USER REGISTRY | Check for User Registry");
+        logger.info(
+          `USER REGISTRY | Check for User Registry | ${config.ENABLE_USER_REGISTRY}`
+        );
         return config.ENABLE_USER_REGISTRY
           ? blurUser(
               UserRegistryAPIClient(config.USER_REGISTRY_URL),
-              {
-                certification: CertificationEnumEnum.SPID,
-                email: _.email,
+              withoutUndefinedValues({
+                certification: CertificationEnum.SPID,
                 externalId: _.fiscal_number,
+                extras: {
+                  email: _.email
+                },
                 name: _.name,
                 surname: _.family_name
-              },
+              }),
               _.fiscal_number,
               config.USER_REGISTRY_API_KEY
             ).map(maybeUid => ({
@@ -220,17 +234,17 @@ const acs: AssertionConsumerServiceT = async user => {
         logger.info("ACS | Generating token");
         return generateToken(tokenUser).mapLeft(toResponseErrorInternal);
       })
-      .fold<
-        | IResponseErrorInternal
-        | IResponseErrorForbiddenNotAuthorized
-        | IResponsePermanentRedirect
-      >(
+      .fold<ResponseUnionType>(
         _ => {
           logger.info(
-            `ACS | Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
+            `ACS | Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
+              _.detail
+            )}`
           );
           logger.error(
-            `Assertion Consumer Service ERROR|${_.kind} ${_.detail}`
+            `Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
+              _.detail
+            )}`
           );
           return _;
         },

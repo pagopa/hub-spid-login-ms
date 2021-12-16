@@ -231,8 +231,6 @@ definitions:
       title:
         description: A short, summary of the problem type. Written in english and readable
         example: Service Unavailable
-        maxLength: 64
-        pattern: ^[ -~]{0,64}$
         type: string
       detail:
         description: A human readable explanation of the problem.

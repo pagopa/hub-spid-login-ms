@@ -99,7 +99,6 @@ describe("Generate a valid JWT Header", () => {
       if (!decodedToken) {
         fail();
       }
-      console.log(decodedToken);
       expect(decodedToken["payload"].aud).toEqual(aTokenAudience);
     }
   });

@@ -30,7 +30,8 @@ export const getUserJwt = (
   tokenUser: TokenUser | TokenUserL2,
   tokenTtlSeconds: NonNegativeInteger,
   issuer: NonEmptyString,
-  keyid?: NonEmptyString
+  keyid?: NonEmptyString,
+  audience?: NonEmptyString
 ): TaskEither<Error, string> =>
   taskify<Error, string>(cb =>
     jwt.sign(
@@ -38,6 +39,7 @@ export const getUserJwt = (
       privateKey,
       withoutUndefinedValues({
         algorithm: "RS256",
+        audience,
         expiresIn: `${tokenTtlSeconds} seconds`,
         issuer,
         jwtid: ulid(),

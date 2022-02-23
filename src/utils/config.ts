@@ -131,6 +131,7 @@ export const JWTParams = t.union([
       JWT_TOKEN_PRIVATE_KEY: NonEmptyString
     }),
     t.partial({
+      JWT_TOKEN_AUDIENCE: NonEmptyString,
       JWT_TOKEN_KID: NonEmptyString
     }),
     UserRegistryParams

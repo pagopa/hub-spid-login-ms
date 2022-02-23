@@ -34,6 +34,7 @@ const tokenUser: TokenUser | TokenUserL2 = {
   level: "L1",
 };
 const tokenTtlSeconds = 3600 as NonNegativeInteger;
+const aTokenAudience = "AUDIENCE" as NonEmptyString;
 const aTokenIssuer = "ISSUER" as NonEmptyString;
 const aKeyid = "AKEYID" as NonEmptyString;
 const aTokenLengthBytesWithKeyId = 496;
@@ -74,6 +75,34 @@ describe("Generate a valid JWT Header", () => {
       aTokenLengthBytesWithoutKeyId
     );
   });
+
+
+  it("should generate it without keyd but with audience", async () => {
+    const errorOrNewJwtToken = await getUserJwt(
+      aPrivateRsaKey,
+      tokenUser,
+      tokenTtlSeconds,
+      aTokenIssuer,
+      undefined,
+      aTokenAudience
+    ).run();
+    expect(isRight(errorOrNewJwtToken)).toBeTruthy();
+
+    if (isRight(errorOrNewJwtToken)) {
+      const decodedToken = jwt.decode(
+        errorOrNewJwtToken.value,
+        {
+          complete: true,
+        }
+      );
+
+      if (!decodedToken) {
+        fail();
+      }
+      expect(decodedToken["payload"].aud).toEqual(aTokenAudience);
+    }
+  });
+
   it("should return an error if an error occurs during token generation", async () => {
     const errorOrNewJwtToken = await getUserJwt(
       "aPanInvalidRsaKey" as NonEmptyString,

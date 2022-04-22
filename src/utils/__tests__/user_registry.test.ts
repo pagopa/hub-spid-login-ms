@@ -1,11 +1,11 @@
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { UserRegistryAPIClient } from "../../clients/userregistry_client";
 import { blurUser, getUserId, postUser } from "../user_registry";
-import { isNone, isSome } from "fp-ts/lib/Option";
-import { isRight, right } from "fp-ts/lib/Either";
 import { UserSeed } from "../../../generated/userregistry-api/UserSeed";
 import { CertificationEnum } from "../../../generated/userregistry-api/Certification";
 import { User } from "../../../generated/userregistry-api/User";
+import * as E from "fp-ts/lib/Either";
+import * as O from "fp-ts/lib/Option";
 
 const aMockFiscalCode = "AAAAAA00A00A000A" as FiscalCode;
 const aUserId = "1000" as NonEmptyString;
@@ -17,8 +17,8 @@ const aMockValidId = {
 const aMockUserSeed: UserSeed = {
   certification: CertificationEnum.SPID,
   externalId: "AAAAAA00A00A000A",
-  extras:{
-    email: "test@email.com"
+  extras: {
+    email: "test@email.com",
   },
   name: "Nome",
   surname: "Cognome",
@@ -34,13 +34,13 @@ const aMockUser: User = {
   surname: "Cognome",
 };
 const createUserMock = jest.fn().mockImplementation(async () =>
-  right({
+  E.right({
     status: 201,
     value: aMockUser,
   })
 );
 const getUserByExternalIdMock = jest.fn().mockImplementation(async () =>
-  right({
+  E.right({
     status: 200,
     value: aMockValidId,
   })
@@ -56,26 +56,26 @@ describe("UserRegistry#getUserId", () => {
       userRegistryApiClientMock,
       aMockFiscalCode,
       apiKey
-    ).run();
-    expect(response.isRight()).toBeTruthy();
-    if (isRight(response)) {
-      expect(isSome(response.value)).toBeTruthy();
-      expect(response.value.toUndefined()).toEqual(aMockValidId);
+    )();
+    expect(E.isRight(response)).toBeTruthy();
+    if (E.isRight(response) && O.isSome(response.right)) {
+      expect(O.isSome(response.right)).toBeTruthy();
+      expect(response.right.value).toEqual(aMockValidId);
     }
   });
   it("should send a none for a not found CF (404) - Right path", async () => {
     getUserByExternalIdMock.mockImplementationOnce(async () =>
-      right({ status: 404, title: "Not Found" })
+      E.right({ status: 404, title: "Not Found" })
     );
     const response = await getUserId(
       userRegistryApiClientMock,
       aMockFiscalCode,
       apiKey
-    ).run();
-    expect(response.isRight()).toBeTruthy();
-    if (isRight(response)) {
-      expect(isNone(response.value)).toBeTruthy();
-      expect(response.value.toUndefined()).toEqual(undefined);
+    )();
+    expect(E.isRight(response)).toBeTruthy();
+    if (E.isRight(response) && O.isSome(response.right)) {
+      expect(O.isSome(response.right)).toBeTruthy();
+      expect(response.right.value).toEqual(undefined);
     }
   });
   it("should raise a network error - Left path", async () => {
@@ -86,9 +86,11 @@ describe("UserRegistry#getUserId", () => {
       userRegistryApiClientMock,
       aMockFiscalCode,
       apiKey
-    ).run();
-    expect(response.isLeft()).toBeTruthy();
-    expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
+    )();
+    expect(E.isLeft(response)).toBeTruthy();
+    if (E.isLeft(response)) {
+      expect(response.left).toHaveProperty("kind", "IResponseErrorInternal");
+    }
   });
 });
 
@@ -98,16 +100,16 @@ describe("UserRegistry#postUser#ClientMock", () => {
       userRegistryApiClientMock,
       aMockUser,
       apiKey
-    ).run();
-    expect(response.isRight()).toBeTruthy();
-    if (isRight(response)) {
-      expect(response.value).toBeTruthy();
-      expect(response.value).toEqual(aMockUser);
+    )();
+    expect(E.isRight(response)).toBe(true);
+    if (E.isRight(response)) {
+      expect(response.right).toBeTruthy();
+      expect(response.right).toEqual(aMockUser);
     }
   });
   it("should not create a user for bad input - Left path", async () => {
     createUserMock.mockImplementationOnce(async () =>
-      right({
+      E.right({
         status: 400,
         value: {
           title: "Bad Input",
@@ -119,13 +121,15 @@ describe("UserRegistry#postUser#ClientMock", () => {
       userRegistryApiClientMock,
       aMockUser,
       apiKey
-    ).run();
-    expect(response.isLeft()).toBeTruthy();
-    expect(response.value).toHaveProperty(
-      "detail",
-      "Bad Input: Error creating the user"
-    );
-    expect(response.value).toHaveProperty("kind", "IResponseErrorValidation");
+    )();
+    expect(E.isLeft(response)).toBeTruthy();
+    if (E.isLeft(response)) {
+      expect(response.left).toHaveProperty(
+        "detail",
+        "Bad Input: Error creating the user"
+      );
+      expect(response.left).toHaveProperty("kind", "IResponseErrorValidation");
+    }
   });
   it("should reject for a network error - Left path", async () => {
     createUserMock.mockImplementationOnce(async () => {
@@ -135,9 +139,11 @@ describe("UserRegistry#postUser#ClientMock", () => {
       userRegistryApiClientMock,
       aMockUser,
       apiKey
-    ).run();
-    expect(response.isLeft()).toBeTruthy();
-    expect(response.value).toHaveProperty("kind", "IResponseErrorInternal");
+    )();
+    expect(E.isLeft(response)).toBeTruthy();
+    if (E.isLeft(response)) {
+      expect(response.left).toHaveProperty("kind", "IResponseErrorInternal");
+    }
   });
 });
 
@@ -148,34 +154,35 @@ describe("UserRegistry#blurUser", () => {
       aMockUser,
       aMockFiscalCode,
       apiKey
-    ).run();
-    expect(response.isRight()).toBeTruthy();
-    if (isRight(response)) {
-      expect(isSome(response.value)).toBeTruthy();
-      expect(response.value.toUndefined()).toEqual(aMockValidId);
+    )();
+    expect(E.isRight(response)).toBe(true);
+    if (E.isRight(response) && O.isSome(response.right)) {
+      expect(O.isSome(response.right)).toBeTruthy();
+      expect(response.right.value).toEqual(aMockValidId);
     }
   });
   it("should create a User for a not found CF - Right path", async () => {
     getUserByExternalIdMock.mockImplementationOnce(async () =>
-      right({ status: 404, title: "Not Found" })
+      E.right({ status: 404, title: "Not Found" })
     );
     const response = await blurUser(
       userRegistryApiClientMock,
       aMockUser,
       aMockFiscalCode,
       apiKey
-    ).run();
-    if (isRight(response)) {
-      expect(isSome(response.value)).toBeTruthy();
-      expect(response.value.toUndefined()).toEqual(aMockValidId);
+    )();
+
+    if (E.isRight(response) && O.isSome(response.right)) {
+      expect(O.isSome(response.right)).toBeTruthy();
+      expect(response.right.value).toEqual(aMockValidId);
     }
   });
   it("should not create a user for bad input - Left path", async () => {
     getUserByExternalIdMock.mockImplementationOnce(async () =>
-      right({ status: 404, title: "Not Found" })
+      E.right({ status: 404, title: "Not Found" })
     );
     createUserMock.mockImplementationOnce(async () =>
-      right({
+      E.right({
         status: 400,
         value: {
           title: "Bad Input",
@@ -188,9 +195,14 @@ describe("UserRegistry#blurUser", () => {
       aMockUser,
       aMockFiscalCode,
       apiKey
-    ).run();
-    expect(response.isLeft()).toBeTruthy();
-    expect(response.value).toHaveProperty("kind", "IResponseErrorValidation");
+    )();
+    expect(E.isLeft(response)).toBeTruthy();
+    if (E.isLeft(response)) {
+      expect(response.left).toHaveProperty(
+        "detail",
+        "Bad Input: Error creating the user"
+      );
+      expect(response.left).toHaveProperty("kind", "IResponseErrorValidation");
+    }
   });
-  
 });

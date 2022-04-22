@@ -2,9 +2,10 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
-import { tryCatch2v } from "fp-ts/lib/Either";
-import { toError } from "fp-ts/lib/Either";
-import { fromEither, TaskEither, taskify } from "fp-ts/lib/TaskEither";
+import * as E from "fp-ts/lib/Either";
+import { flow, pipe } from "fp-ts/lib/function";
+
+import * as TE from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
 import * as jwt from "jsonwebtoken";
 import { ulid } from "ulid";
@@ -13,7 +14,7 @@ import { errorsToError } from "./conversions";
 
 const ExpireJWT = t.exact(
   t.interface({
-    exp: t.number
+    exp: t.number,
   })
 );
 
@@ -32,49 +33,58 @@ export const getUserJwt = (
   issuer: NonEmptyString,
   keyid?: NonEmptyString,
   audience?: NonEmptyString
-): TaskEither<Error, string> =>
-  taskify<Error, string>(cb =>
-    jwt.sign(
-      tokenUser,
-      privateKey,
-      withoutUndefinedValues({
-        algorithm: "RS256",
-        audience,
-        expiresIn: `${tokenTtlSeconds} seconds`,
-        issuer,
-        jwtid: ulid(),
-        keyid,
-        subject: tokenUser.id
-      }),
-      cb
-    )
-  )().mapLeft(toError);
+): TE.TaskEither<Error, string> =>
+  pipe(
+    TE.taskify<Error, string>((cb) =>
+      jwt.sign(
+        tokenUser,
+        privateKey,
+        withoutUndefinedValues({
+          algorithm: "RS256",
+          audience,
+          expiresIn: `${tokenTtlSeconds} seconds`,
+          issuer,
+          jwtid: ulid(),
+          keyid,
+          subject: tokenUser.id,
+        }),
+        cb
+      )
+    )(),
+    TE.mapLeft(E.toError)
+  );
 
 export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
-  tryCatch2v(() => jwt.decode(jwtToken, { json: true }), toError);
+  E.tryCatch(() => jwt.decode(jwtToken, { json: true }), E.toError);
 
 export const extractTypeFromJwt = <S, A>(
   jwtToken: NonEmptyString,
   typeToExtract: t.Type<A, S>
 ) =>
-  fromEither(extractRawDataFromJwt(jwtToken)).chain(_ =>
-    fromEither(typeToExtract.decode(_)).mapLeft(errorsToError)
+  pipe(
+    jwtToken,
+    extractRawDataFromJwt,
+    flow(typeToExtract.decode, E.mapLeft(errorsToError)),
+    TE.fromEither
   );
 
 export const extractJwtRemainingValidTime = (jwtToken: string) =>
-  fromEither(
-    ExpireJWT.decode(jwt.decode(jwtToken)).mapLeft(
-      err => new Error(errorsToReadableMessages(err).join("|"))
-    )
-  )
-    // Calculate remaining token validity
-    .map(_ => _.exp - Math.floor(new Date().valueOf() / 1000));
+  pipe(
+    jwtToken,
+    jwt.decode,
+    ExpireJWT.decode,
+    E.mapLeft((err) => new Error(errorsToReadableMessages(err).join("|"))),
+    TE.fromEither
+  );
 
 export const verifyToken = (
   publicCert: NonEmptyString,
   token: string,
   issuer: NonEmptyString
 ) =>
-  taskify<Error, object | string>(cb =>
-    jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
-  )().mapLeft(toError);
+  pipe(
+    TE.taskify<Error, object | string>((cb) =>
+      jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
+    )(),
+    TE.mapLeft(E.toError)
+  );

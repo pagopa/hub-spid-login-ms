@@ -1,4 +1,4 @@
-import { isLeft, isRight } from "fp-ts/lib/Either";
+import * as E from "fp-ts/lib/Either";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import {
   EmailString,
@@ -9,7 +9,6 @@ import {
 import { TokenUser, TokenUserL2, UserCompanies } from "../../types/user";
 import { getUserJwt } from "../jwt";
 import * as jwt from "jsonwebtoken";
-import { string } from "yargs";
 
 const aPrivateRsaKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIBOgIBAAJBAPX91rBDbLk5Pr0/lf4y1a8oz75sYa+slTqpfVHUrYb22qy4rY6Z
@@ -48,12 +47,12 @@ describe("Generate a valid JWT Header", () => {
       tokenTtlSeconds,
       aTokenIssuer,
       aKeyid
-    ).run();
+    )();
 
-    expect(isRight(errorOrNewJwtToken)).toBeTruthy();
-    expect(errorOrNewJwtToken.value).toHaveLength(aTokenLengthBytesWithKeyId);
-    if (isRight(errorOrNewJwtToken)) {
-      const decodedToken = jwt.decode(errorOrNewJwtToken.value, {
+    expect(E.isRight(errorOrNewJwtToken)).toBeTruthy();
+    if (E.isRight(errorOrNewJwtToken)) {
+      expect(errorOrNewJwtToken.right).toHaveLength(aTokenLengthBytesWithKeyId);
+      const decodedToken = jwt.decode(errorOrNewJwtToken.right, {
         complete: true,
       });
 
@@ -69,13 +68,14 @@ describe("Generate a valid JWT Header", () => {
       tokenUser,
       tokenTtlSeconds,
       aTokenIssuer
-    ).run();
-    expect(isRight(errorOrNewJwtToken)).toBeTruthy();
-    expect(errorOrNewJwtToken.value).toHaveLength(
-      aTokenLengthBytesWithoutKeyId
-    );
+    )();
+    expect(E.isRight(errorOrNewJwtToken)).toBeTruthy();
+    if (E.isRight(errorOrNewJwtToken)) {
+      expect(errorOrNewJwtToken.right).toHaveLength(
+        aTokenLengthBytesWithoutKeyId
+      );
+    }
   });
-
 
   it("should generate it without keyd but with audience", async () => {
     const errorOrNewJwtToken = await getUserJwt(
@@ -85,16 +85,13 @@ describe("Generate a valid JWT Header", () => {
       aTokenIssuer,
       undefined,
       aTokenAudience
-    ).run();
-    expect(isRight(errorOrNewJwtToken)).toBeTruthy();
+    )();
+    expect(E.isRight(errorOrNewJwtToken)).toBeTruthy();
 
-    if (isRight(errorOrNewJwtToken)) {
-      const decodedToken = jwt.decode(
-        errorOrNewJwtToken.value,
-        {
-          complete: true,
-        }
-      );
+    if (E.isRight(errorOrNewJwtToken)) {
+      const decodedToken = jwt.decode(errorOrNewJwtToken.right, {
+        complete: true,
+      });
 
       if (!decodedToken) {
         fail();
@@ -109,7 +106,7 @@ describe("Generate a valid JWT Header", () => {
       tokenUser,
       tokenTtlSeconds,
       aTokenIssuer
-    ).run();
-    expect(isLeft(errorOrNewJwtToken)).toBeTruthy();
+    )();
+    expect(E.isLeft(errorOrNewJwtToken)).toBeTruthy();
   });
 });

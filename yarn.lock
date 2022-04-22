@@ -360,26 +360,26 @@
   dependencies:
     "@types/node" ">= 8"
 
-"@pagopa/io-spid-commons@^6.5.0":
-  version "6.5.0"
-  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-6.5.0.tgz#c71c8bbad75fbb54d8351084269e2d7e6993f9e4"
-  integrity sha512-TmDAD2lwRXllPiCXVzFKB+dYR1fuYrhD8RZXAdWwrxAd6q4hMB3NUgOWrY+39eW7H+QKAIO79OWwYArUPgS0pw==
+"@pagopa/io-spid-commons@^7.0.1":
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-7.0.1.tgz#1df31087e475c2ceac863af9a3bacd93cb0cb84b"
+  integrity sha512-qL2yUP53vNiyd20hnllwlG+IxXpKG/3SJs7z5svYBxfrJM0bahuP+hDqVGUd1B4+nxswv7mf6u6QYkfMWTuczw==
   dependencies:
+    "@pagopa/ts-commons" "^10.0.0"
     "@types/redis" "^2.8.14"
     date-fns "^1.30.1"
-    fp-ts "1.17.0"
-    io-ts "1.8.5"
-    io-ts-types "^0.4.7"
-    italia-ts-commons "^5.1.4"
+    fp-ts "^2.11.1"
+    io-ts "^2.2.16"
+    io-ts-types "^0.5.16"
     node-fetch "^2.2.0"
-    node-forge "^0.9.1"
+    node-forge "^1.0.0"
     passport "^0.4.1"
-    passport-saml "1.2.0"
+    passport-saml "1.3.5"
     redis "^2.8.0"
     winston "^3.0.0"
     xml-crypto "^1.4.0"
     xml2js "^0.4.23"
-    xmldom "^0.1.27"
+    xmldom "^0.6.0"
     yargs "^15.3.0"
 
 "@pagopa/openapi-codegen-ts@^10.0.6":
@@ -1989,7 +1989,7 @@ es6-promisify@^5.0.0:
   dependencies:
     es6-promise "^4.0.3"
 
-escape-html@~1.0.3:
+escape-html@^1.0.3, escape-html@~1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/escape-html/-/escape-html-1.0.3.tgz#0258eae4d3d0c0974de1c169188ef0051d1d1988"
   integrity sha1-Aljq5NPQwJdN4cFpGI7wBR0dGYg=
@@ -2329,17 +2329,7 @@ forwarded@~0.1.2:
   resolved "https://registry.yarnpkg.com/forwarded/-/forwarded-0.1.2.tgz#98c23dab1175657b8c0573e8ceccd91b0ff18c84"
   integrity sha1-mMI9qxF1ZXuMBXPozszZGw/xjIQ=
 
-fp-ts@1.12.0:
-  version "1.12.0"
-  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-1.12.0.tgz#d333310e4ac104cdcb6bea47908e381bb09978e7"
-  integrity sha512-fWwnAgVlTsV26Ruo9nx+fxNHIm6l1puE1VJ/C0XJ3nRQJJJIgRHYw6sigB3MuNFZL1o4fpGlhwFhcbxHK0RsOA==
-
-fp-ts@1.17.0, fp-ts@^1.0.0:
-  version "1.17.0"
-  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-1.17.0.tgz#289127353ddbb4622ada1920d4ad6643182c1f1f"
-  integrity sha512-nBq25aCAMbCwVLobUUuM/MZihPKyjn0bCVBf6xMAGriHlf8W8Ze9UhyfLnbmfp0ekFTxMuTfLXrCzpJ34px7PQ==
-
-fp-ts@2, fp-ts@^2.11.0:
+fp-ts@2, fp-ts@^2.11.0, fp-ts@^2.11.1:
   version "2.12.0"
   resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.12.0.tgz#6a0c9e99f69576aaa5a6c94c1284ba977f5569b7"
   integrity sha512-ZIMpTxc4Vadj3gs3Geg4tohB7eSkC125TA7ZH2ddEcREmjpjpbq6wUxWQmFFfAOCRWEkljh3BPLZGBVj9HB9Xw==
@@ -2786,12 +2776,10 @@ io-ts-types@^0.4.7:
   resolved "https://registry.yarnpkg.com/io-ts-types/-/io-ts-types-0.4.8.tgz#e5fd8940ce7a5ddd780083c33989b3f8978918c2"
   integrity sha512-E/o4y8I/yP5sVcC731K3T2Zi6BTvJljyJLqhHYkxzkc9fr9vAC2cU0y0xZ5aJqEDfl76zMeEiXkAkf/3gQYlvA==
 
-io-ts@1.8.5:
-  version "1.8.5"
-  resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-1.8.5.tgz#2e102f7f518abe17b0f7e7ede0db54a4c4ddc188"
-  integrity sha512-4HzDeg7mTygFjFIKh7ajBSanoVaFryYSFI0ocdwndSWl3eWQXhg3wVR0WI+Li5Vq11TIsoIngQszVbN4dy//9A==
-  dependencies:
-    fp-ts "^1.0.0"
+io-ts-types@^0.5.16:
+  version "0.5.16"
+  resolved "https://registry.yarnpkg.com/io-ts-types/-/io-ts-types-0.5.16.tgz#e9eed75371e217c97050cc507915e8eedc250946"
+  integrity sha512-h9noYVfY9rlbmKI902SJdnV/06jgiT2chxG6lYDxaYNp88HscPi+SBCtmcU+m0E7WT5QSwt7sIMj93+qu0FEwQ==
 
 io-ts@2, io-ts@^2.2.16:
   version "2.2.16"
@@ -3157,16 +3145,6 @@ istanbul-reports@^2.2.6:
   integrity sha512-uu1F/L1o5Y6LzPVSVZXNOoD/KXpJue9aeLRd0sM9uMXfZvzomB0WxVamWb5ue8kA2vVWEmW7EG+A5n3f1kqHKg==
   dependencies:
     html-escaper "^2.0.0"
-
-italia-ts-commons@^5.1.4:
-  version "5.1.13"
-  resolved "https://registry.yarnpkg.com/italia-ts-commons/-/italia-ts-commons-5.1.13.tgz#7ae919374f9c03c04e38603b7f7e9681ebee79b7"
-  integrity sha512-mXtrNG/HR6lRCOTtBrEzsxGmkHccoDXKqoc9i+J2+yGhhxcznASu+0KMC05ZR1yJP4bWliC9rXJ3hnCw0rMSnQ==
-  dependencies:
-    fp-ts "1.12.0"
-    io-ts "1.8.5"
-    json-set-map "^1.0.2"
-    validator "^10.1.0"
 
 italia-tslint-rules@*:
   version "1.1.3"
@@ -3641,11 +3619,6 @@ json-schema@0.2.3:
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/json-schema/-/json-schema-0.2.3.tgz#b480c892e59a2f05954ce727bd3f2a4e882f9e13"
   integrity sha1-tIDIkuWaLwWVTOcnvT8qTogvnhM=
-
-json-set-map@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/json-set-map/-/json-set-map-1.0.2.tgz#608aacb5464d9759158d06523a6e30be5650adc4"
-  integrity sha1-YIqstUZNl1kVjQZSOm4wvlZQrcQ=
 
 json-set-map@^1.1.2:
   version "1.1.2"
@@ -4290,10 +4263,10 @@ node-forge@^0.7.0:
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.7.6.tgz#fdf3b418aee1f94f0ef642cd63486c77ca9724ac"
   integrity sha512-sol30LUpz1jQFBjOKwbjxijiE3b6pjd74YwfD0fJOKPjF+fONKb2Yg8rYgS6+bK6VDl+/wfr4IYpC7jDzLUIfw==
 
-node-forge@^0.9.1:
-  version "0.9.2"
-  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.9.2.tgz#b35a44c28889b2ea55cabf8c79e3563f9676190a"
-  integrity sha512-naKSScof4Wn+aoHU6HBsifh92Zeicm1GDQKd1vp3Y/kOi8ub0DozCa9KpvYNCXslFHYRmLNiqRopGdTGwNLpNw==
+node-forge@^1.0.0:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-1.3.1.tgz#be8da2af243b2417d5f646a770663a92b7e9ded3"
+  integrity sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==
 
 node-int64@^0.4.0:
   version "0.4.0"
@@ -4730,6 +4703,20 @@ passport-saml@1.2.0:
     q "^1.5.0"
     xml-crypto "^1.1.4"
     xml-encryption "^0.11.0"
+    xml2js "0.4.x"
+    xmlbuilder "^11.0.0"
+    xmldom "0.1.x"
+
+passport-saml@1.3.5:
+  version "1.3.5"
+  resolved "https://registry.yarnpkg.com/passport-saml/-/passport-saml-1.3.5.tgz#747f2c8bb8b9fed41e8cd14586df5aa83e8a8996"
+  integrity sha512-HFamiqgGiMRCbUBm3wx02WYWKb6ojke0WJHrg4QXI8tx35HrTmDiY8MksUXhouJtEkfcRwXjBL2cSEpRQ6+PgQ==
+  dependencies:
+    debug "^3.1.0"
+    passport-strategy "*"
+    q "^1.5.0"
+    xml-crypto "^1.4.0"
+    xml-encryption "1.2.1"
     xml2js "0.4.x"
     xmlbuilder "^11.0.0"
     xmldom "0.1.x"
@@ -6307,11 +6294,6 @@ validate-npm-package-license@^3.0.1:
     spdx-correct "^3.0.0"
     spdx-expression-parse "^3.0.0"
 
-validator@^10.1.0:
-  version "10.11.0"
-  resolved "https://registry.yarnpkg.com/validator/-/validator-10.11.0.tgz#003108ea6e9a9874d31ccc9e5006856ccd76b228"
-  integrity sha512-X/p3UZerAIsbBfN/IwahhYaBbY68EN/UQBWHtsbXGT5bfrH/p4NQzUCG1kF/rtKaNpnJ7jAu6NGTdSNtyNIXMw==
-
 validator@^12.0.0:
   version "12.2.0"
   resolved "https://registry.yarnpkg.com/validator/-/validator-12.2.0.tgz#660d47e96267033fd070096c3b1a6f2db4380a0a"
@@ -6554,6 +6536,16 @@ xml-crypto@^1.1.4, xml-crypto@^1.4.0:
     xmldom "0.1.27"
     xpath "0.0.27"
 
+xml-encryption@1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/xml-encryption/-/xml-encryption-1.2.1.tgz#e6d18817c4309fd07ca7793cca93c3fd06745baa"
+  integrity sha512-hn5w3l5p2+nGjlmM0CAhMChDzVGhW+M37jH35Z+GJIipXbn9PUlAIRZ6I5Wm7ynlqZjFrMAr83d/CIp9VZJMTA==
+  dependencies:
+    escape-html "^1.0.3"
+    node-forge "^0.10.0"
+    xmldom "~0.1.15"
+    xpath "0.0.27"
+
 xml-encryption@^0.11.0:
   version "0.11.2"
   resolved "https://registry.yarnpkg.com/xml-encryption/-/xml-encryption-0.11.2.tgz#c217f5509547e34b500b829f2c0bca85cca73a21"
@@ -6604,6 +6596,11 @@ xmldom@0.1.x, xmldom@^0.1.27, xmldom@~0.1.15:
   version "0.1.31"
   resolved "https://registry.yarnpkg.com/xmldom/-/xmldom-0.1.31.tgz#b76c9a1bd9f0a9737e5a72dc37231cf38375e2ff"
   integrity sha512-yS2uJflVQs6n+CyjHoaBmVSqIDevTAWrzMmjG1Gc7h1qQ7uVozNhEPJAwZXWyGQ/Gafo3fCwrcaokezLPupVyQ==
+
+xmldom@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/xmldom/-/xmldom-0.6.0.tgz#43a96ecb8beece991cef382c08397d82d4d0c46f"
+  integrity sha512-iAcin401y58LckRZ0TkI4k0VSM1Qg0KGSc3i8rU+xrxe19A/BN1zHyVSJY7uoutVlaTSzYyk/v5AmkewAP7jtg==
 
 xpath@0.0.27:
   version "0.0.27"

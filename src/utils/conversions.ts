@@ -4,14 +4,14 @@ import { Either } from "fp-ts/lib/Either";
 import { fromEither } from "fp-ts/lib/TaskEither";
 import { Errors } from "io-ts";
 import * as t from "io-ts";
-import { errorsToReadableMessages } from "italia-ts-commons/lib/reporters";
+import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import {
   CommonTokenUser,
   FISCAL_NUMBER_INTERNATIONAL_PREFIX,
   SpidUser,
   TokenUser,
   TokenUserL2,
-  UserCompany
+  UserCompany,
 } from "../types/user";
 
 export function errorsToError(errors: Errors): Error {
@@ -26,14 +26,14 @@ export const toCommonTokenUser = (
     fiscalNumber: from.fiscalNumber.replace(
       FISCAL_NUMBER_INTERNATIONAL_PREFIX,
       ""
-    )
+    ),
   };
   return CommonTokenUser.decode({
     email: normalizedUser.email,
     family_name: normalizedUser.familyName,
     fiscal_number: normalizedUser.fiscalNumber,
     mobile_phone: normalizedUser.mobilePhone,
-    name: normalizedUser.name
+    name: normalizedUser.name,
   }).mapLeft(errorsToError);
 };
 
@@ -48,7 +48,7 @@ export const toTokenUserL2 = (
     fiscal_number: from.fiscal_number,
     from_aa: from.from_aa,
     mobile_phone: from.mobile_phone,
-    name: from.name
+    name: from.name,
   }).mapLeft(errorsToError);
 };
 
@@ -62,7 +62,7 @@ export const toBadRequest = (res: express.Response) => (
   res.status(400).json({
     detail: errs instanceof Error ? errs.message : errorsToError(errs).message,
     error: "Bad Request",
-    message
+    message,
   });
 
 export const mapDecoding = <S, A>(type: t.Type<A, S>, toDecode: unknown) =>

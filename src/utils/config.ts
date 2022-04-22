@@ -222,26 +222,26 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   L1_TOKEN_EXPIRATION: pipe(
     process.env.L1_TOKEN_EXPIRATION,
     IntegerFromString.decode,
-    E.mapLeft((_) => undefined),
-    E.fold(identity, identity)
+    E.getOrElseW((_) => undefined)
   ),
   L2_TOKEN_EXPIRATION: pipe(
     process.env.L2_TOKEN_EXPIRATION,
     IntegerFromString.decode,
-    E.mapLeft((_) => undefined),
-    E.fold(identity, identity)
+    E.getOrElseW((_) => undefined)
   ),
   REDIS_CLUSTER_ENABLED: pipe(
     O.fromNullable(process.env.REDIS_CLUSTER_ENABLED),
     O.map((_) => _.toLowerCase() === "true"),
-    O.getOrElseW(() => undefined) // O.toUndefined()
+    O.toUndefined
   ),
   REDIS_TLS_ENABLED: pipe(
     O.fromNullable(process.env.REDIS_TLS_ENABLED),
     O.map((_) => _.toLowerCase() === "true"),
-    O.getOrElseW(() => undefined) // O.toUndefined()
+    O.toUndefined
   ),
   SERVER_PORT: pipe(
+    // FIXME: if env var is empty string, the result of the pipe would be 0.
+    //  Should we consider empty string same as nullable input?
     E.fromNullable(DEFAULT_SERVER_PORT)(process.env.SERVER_PORT),
     E.chain(
       flow(
@@ -249,9 +249,11 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
         E.mapLeft(() => DEFAULT_SERVER_PORT)
       )
     ),
-    E.fold(identity, identity)
+    E.toUnion
   ),
   TOKEN_EXPIRATION: pipe(
+    // FIXME: if env var is empty string, the result of the pipe would be 0.
+    //  Should we consider empty string same as nullable input?
     E.fromNullable(-1)(process.env.TOKEN_EXPIRATION),
     E.chain(
       flow(

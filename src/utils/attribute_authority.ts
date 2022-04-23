@@ -1,18 +1,8 @@
-import {
-  IResponseErrorForbiddenNotAuthorized,
-  IResponseErrorInternal,
-  ResponseErrorForbiddenNotAuthorized
-} from "@pagopa/ts-commons/lib/responses";
+import { ResponseErrorForbiddenNotAuthorized } from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
-import { toError } from "fp-ts/lib/Either";
-import { taskEither } from "fp-ts/lib/TaskEither";
-import {
-  fromEither,
-  fromLeft,
-  fromPredicate,
-  tryCatch
-} from "fp-ts/lib/TaskEither";
-import { Companies } from "../../generated/ade-api/Companies";
+import { pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/lib/Either";
+import * as TE from "fp-ts/lib/TaskEither";
 
 import { AdeAPIClient } from "../clients/ade";
 import { UserCompanies, UserCompany } from "../types/user";
@@ -21,40 +11,49 @@ import { errorsToError, toResponseErrorInternal } from "./conversions";
 export const getUserCompanies = (
   apiClient: ReturnType<AdeAPIClient>,
   userFiscalCode: FiscalCode
-) => {
-  return tryCatch(
-    () => apiClient.getUserCompanies({ body: { fiscalCode: userFiscalCode } }),
-    toError
-  )
-    .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
-      toResponseErrorInternal
-    )
-    .chain(_ =>
-      fromEither(_).mapLeft(errs =>
-        toResponseErrorInternal(errorsToError(errs))
-      )
-    )
-    .chain<Companies>(res =>
-      res.status === 200
-        ? taskEither.of(res.value)
-        : fromLeft(ResponseErrorForbiddenNotAuthorized)
-    )
+) =>
+  pipe(
+    TE.tryCatch(
+      () =>
+        apiClient.getUserCompanies({
+          body: { fiscalCode: userFiscalCode },
+        }),
+      E.toError
+    ),
+    TE.mapLeft((err) => toResponseErrorInternal(err)),
 
-    .chain(
-      fromPredicate(
-        _ => _.length > 0,
-        () => ResponseErrorForbiddenNotAuthorized
+    TE.chain((_) =>
+      pipe(
+        TE.fromEither(_),
+        TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs)))
       )
-    )
-    .map(_ =>
-      UserCompanies.encode(
-        _.map(company =>
-          UserCompany.encode({
-            email: company.pec,
-            organization_fiscal_code: company.fiscalCode,
-            organization_name: company.organizationName
-          })
+    ),
+
+    TE.chainW((res) =>
+      res.status !== 200
+        ? TE.left(ResponseErrorForbiddenNotAuthorized)
+        : TE.of(res.value)
+    ),
+
+    TE.chain((arr) => {
+      return arr.length > 0
+        ? TE.left(ResponseErrorForbiddenNotAuthorized)
+        : TE.of(arr);
+    }),
+
+    TE.map((d) =>
+      pipe(
+        UserCompanies.encode(
+          d.map((company) =>
+            pipe(
+              UserCompany.encode({
+                email: company.pec,
+                organization_fiscal_code: company.fiscalCode,
+                organization_name: company.organizationName,
+              })
+            )
+          )
         )
       )
-    );
-};
+    )
+  );

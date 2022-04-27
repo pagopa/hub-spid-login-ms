@@ -1,11 +1,6 @@
 import * as express from "express";
 import { toError } from "fp-ts/lib/Either";
-import {
-  fromEither,
-  fromLeft,
-  taskEither,
-  tryCatch,
-} from "fp-ts/lib/TaskEither";
+
 import * as TE from "fp-ts/lib/TaskEither";
 import { RedisClient } from "redis";
 import { AdeAPIClient } from "../clients/ade";

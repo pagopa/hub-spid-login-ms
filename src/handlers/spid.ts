@@ -3,36 +3,38 @@ import { IPString, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
 import { format as dateFnsFormat } from "date-fns";
 import * as express from "express";
-import { isLeft, tryCatch2v } from "fp-ts/lib/Either";
+import * as E from "fp-ts/lib/Either";
+import { pipe } from "fp-ts/lib/function";
 import { isNone } from "fp-ts/lib/Option";
+import * as TE from "fp-ts/lib/TaskEither";
 import { Task } from "fp-ts/lib/Task";
 import { DOMParser } from "xmldom";
 import { SpidLogMsg } from "../types/access_log";
 import {
   getFiscalNumberFromPayload,
   getRequestIDFromResponse,
-  storeSpidLogs
+  storeSpidLogs,
 } from "../utils/access_log";
 import { logger } from "../utils/logger";
 export const successHandler = (req: express.Request, res: express.Response) =>
   res.json({
     success: "success",
-    token: req.query.token
+    token: req.query.token,
   });
 
 export const errorHandler = (_: express.Request, res: express.Response) =>
   res
     .json({
-      error: "error"
+      error: "error",
     })
     .status(400);
 
 export const metadataRefreshHandler = (
   idpMetadataRefresher: () => Task<void>
 ) => async (_: express.Request, res: express.Response) => {
-  await idpMetadataRefresher().run();
+  await idpMetadataRefresher()();
   res.json({
-    metadataUpdate: "completed"
+    metadataUpdate: "completed",
   });
 };
 
@@ -46,7 +48,7 @@ export const accessLogHandler = (
   responsePayload: string
 ): void => {
   const logPrefix = `SpidLogCallback`;
-  tryCatch2v(
+  E.tryCatch(
     async () => {
       const responseXML = new DOMParser().parseFromString(
         responsePayload,
@@ -80,32 +82,28 @@ export const accessLogHandler = (
         ip: sourceIp as IPString,
         requestPayload,
         responsePayload,
-        spidRequestId: requestId
+        spidRequestId: requestId,
       } as SpidLogMsg);
 
-      if (isLeft(errorOrSpidMsg)) {
+      if (E.isLeft(errorOrSpidMsg)) {
         logger.error(`${logPrefix}|ERROR=Invalid format for SPID log payload`);
         logger.debug(
-          `${logPrefix}|ERROR_DETAILS=${readableReport(errorOrSpidMsg.value)}`
+          `${logPrefix}|ERROR_DETAILS=${readableReport(errorOrSpidMsg.left)}`
         );
         return;
       }
-      const spidMsg = errorOrSpidMsg.value;
+      const spidMsg = errorOrSpidMsg.right;
 
       // We store Spid logs in a fire&forget pattern
-      await storeSpidLogs(
-        blobService,
-        containerName,
-        spidLogsPublicKey,
-        spidMsg
-      )
-        .mapLeft(err => {
+      await pipe(
+        storeSpidLogs(blobService, containerName, spidLogsPublicKey, spidMsg),
+        TE.mapLeft((err) => {
           logger.error(`${logPrefix}|ERROR=Cannot store SPID log`);
           logger.debug(`${logPrefix}|ERROR_DETAILS=${err}`);
         })
-        .run();
+      )();
     },
-    err => {
+    (err) => {
       logger.error(`${logPrefix}|ERROR=${err}`);
     }
   );

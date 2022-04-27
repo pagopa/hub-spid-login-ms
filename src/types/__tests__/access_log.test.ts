@@ -1,4 +1,5 @@
 import { SpidBlobItem, SpidLogMsg } from "../access_log";
+import * as E from "fp-ts/lib/Either";
 
 describe("SpidBlobItem", () => {
   it("Should succeed decoding a valid object", async () => {
@@ -18,7 +19,7 @@ describe("SpidBlobItem", () => {
       spidRequestId: "1234567890",
     });
 
-    expect(decoded.isRight()).toBe(true);
+    expect(E.isRight(decoded)).toBe(true);
   });
 
   it("Should succeed decoding a valid object 2", async () => {
@@ -38,7 +39,7 @@ describe("SpidBlobItem", () => {
       spidRequestId: "1234567890",
     });
 
-    expect(decoded.isRight()).toBe(true);
+    expect(E.isRight(decoded)).toBe(true);
   });
 
   it("Should fail decoding an invalid object", async () => {
@@ -46,7 +47,7 @@ describe("SpidBlobItem", () => {
       createdAt: "Wed, 17 Nov 2021 16:52:56 GMT",
     });
 
-    expect(decoded.isRight()).toBe(false);
+    expect(E.isRight(decoded)).toBe(false);
   });
 });
 
@@ -62,7 +63,7 @@ describe("SpidLogMsg", () => {
       spidRequestId: "a spi request id",
     });
 
-    expect(decoded.isRight()).toBe(true);
+    expect(E.isRight(decoded)).toBe(true);
   });
 
   it("Should succeed decoding a valid object 2", async () => {
@@ -76,7 +77,7 @@ describe("SpidLogMsg", () => {
       spidRequestId: "a spi request id",
     });
 
-    expect(decoded.isRight()).toBe(true);
+    expect(E.isRight(decoded)).toBe(true);
   });
 
   it("Should fail decoding an invalid object", async () => {
@@ -84,6 +85,6 @@ describe("SpidLogMsg", () => {
       createdAt: "Wed, 17 Nov 2021 16:52:56 GMT",
     });
 
-    expect(decoded.isRight()).toBe(false);
+    expect(E.isRight(decoded)).toBe(false);
   });
 });

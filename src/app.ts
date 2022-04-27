@@ -14,7 +14,7 @@ import {
 import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as express from "express";
-import { fromEither, taskEither } from "fp-ts/lib/TaskEither";
+// import { fromEither, taskEither } from "fp-ts/lib/TaskEither";
 import { generateToken } from "./handlers/token";
 
 import {
@@ -59,6 +59,10 @@ import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 import { blurUser } from "./utils/user_registry";
+import { pipe } from "fp-ts/lib/function";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
 
 const config = getConfigOrThrow();
 
@@ -153,44 +157,51 @@ type ResponseUnionType =
   | IResponseErrorForbiddenNotAuthorized
   | IResponsePermanentRedirect;
 
-const acs: AssertionConsumerServiceT = async (user) => {
-  return (
-    fromEither(SpidUser.decode(user))
-      .mapLeft<
-        | IResponseErrorInternal
-        | IResponseErrorValidation
-        | IResponseErrorForbiddenNotAuthorized
-      >((errs) => toResponseErrorInternal(errorsToError(errs)))
-      .chain((_) => {
-        logger.info("ACS | Trying to map user to Common User");
-        return fromEither(toCommonTokenUser(_)).mapLeft(
-          toResponseErrorInternal
-        );
-      })
-      .chain((_) => {
-        logger.info(
-          "ACS | Trying to retreive UserCompanies or map over a default user"
-        );
-        return config.ENABLE_ADE_AA
-          ? getUserCompanies(
+const acs: AssertionConsumerServiceT = async (user) =>
+  pipe(
+    user,
+    SpidUser.decode,
+    TE.fromEither,
+    TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs))),
+    TE.chain((_) => {
+      logger.info("ACS | Trying to map user to Common User");
+      return pipe(
+        _,
+        toCommonTokenUser,
+        TE.fromEither,
+        TE.mapLeft(toResponseErrorInternal)
+      );
+    }),
+    (a) => a,
+    TE.chain((_) => {
+      logger.info(
+        "ACS | Trying to retreive UserCompanies or map over a default user"
+      );
+      return config.ENABLE_ADE_AA
+        ? pipe(
+            getUserCompanies(
               AdeAPIClient(config.ADE_AA_API_ENDPOINT),
               _.fiscal_number
-            ).map((companies) => ({
+            ),
+            TE.map((companies) => ({
               ..._,
               companies,
               from_aa: config.ENABLE_ADE_AA as boolean,
             }))
-          : taskEither.of({
-              ..._,
-              from_aa: config.ENABLE_ADE_AA as boolean,
-            });
-      })
-      .chain((_) => {
-        logger.info(
-          `USER REGISTRY | Check for User Registry | ${config.ENABLE_USER_REGISTRY}`
-        );
-        return config.ENABLE_USER_REGISTRY
-          ? blurUser(
+          )
+        : TE.of({
+            ..._,
+            from_aa: config.ENABLE_ADE_AA as boolean,
+          });
+    }),
+    (b) => b,
+    TE.chainW((_) => {
+      logger.info(
+        `USER REGISTRY | Check for User Registry | ${config.ENABLE_USER_REGISTRY}`
+      );
+      return config.ENABLE_USER_REGISTRY
+        ? pipe(
+            blurUser(
               UserRegistryAPIClient(config.USER_REGISTRY_URL),
               withoutUndefinedValues({
                 certification: CertificationEnum.SPID,
@@ -203,65 +214,75 @@ const acs: AssertionConsumerServiceT = async (user) => {
               }),
               _.fiscal_number,
               config.USER_REGISTRY_API_KEY
-            ).map((maybeUid) => ({
+            ),
+            TE.map((maybeUid) => ({
               ..._,
-              uid: maybeUid.map((uid) => uid.id).toUndefined(),
+              uid: pipe(
+                maybeUid,
+                O.map((uid) => uid.id),
+                O.toUndefined
+              ),
             }))
-          : taskEither.of({ ..._ });
-      })
-      .chain((_) => {
-        logger.info("ACS | Trying to decode TokenUser");
-        return fromEither(TokenUser.decode(_)).mapLeft((errs) =>
-          toResponseErrorInternal(errorsToError(errs))
-        );
-      })
-      // If User is related to one company we can directly release an L2 token
-      .chain<TokenUser | TokenUserL2>((_) => {
-        logger.info("ACS | Companies length decision making");
-        return _.from_aa
-          ? _.companies.length === 1
-            ? fromEither(
-                toTokenUserL2(_, _.companies[0]).mapLeft(
-                  toResponseErrorInternal
-                )
-              )
-            : taskEither.of(_)
-          : fromEither(
-              TokenUserL2.decode({ ..._, level: "L2" })
-            ).mapLeft((errs) => toResponseErrorInternal(errorsToError(errs)));
-      })
-      .chain((tokenUser) => {
-        logger.info("ACS | Generating token");
-        return generateToken(tokenUser).mapLeft(toResponseErrorInternal);
-      })
-      .fold<ResponseUnionType>(
-        (_) => {
-          logger.info(
-            `ACS | Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
-              _.detail
-            )}`
+          )
+        : TE.of({ ..._ });
+    }),
+    TE.chainW((_) => {
+      logger.info("ACS | Trying to decode TokenUser");
+      return pipe(
+        _,
+        TokenUser.decode,
+        TE.fromEither,
+        TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs)))
+      );
+    }),
+    // If User is related to one company we can directly release an L2 token
+    TE.chainW((a) => {
+      logger.info("ACS | Companies length decision making");
+      return a.from_aa
+        ? a.companies.length === 1
+          ? pipe(
+              toTokenUserL2(a, a.companies[0]),
+              TE.fromEither,
+              TE.mapLeft(toResponseErrorInternal)
+            )
+          : TE.of(a as TokenUser | TokenUserL2)
+        : pipe(
+            TokenUserL2.decode({ ...a, level: "L2" }),
+            TE.fromEither,
+            TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs)))
           );
-          logger.error(
-            `Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
-              _.detail
-            )}`
-          );
-          return _;
-        },
-        ({ tokenStr, tokenUser }) => {
-          logger.info("ACS | Redirect to success endpoint");
-          return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
-            ? ResponsePermanentRedirect({
-                href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`,
-              })
-            : ResponsePermanentRedirect({
-                href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`,
-              });
-        }
-      )
-      .run()
-  );
-};
+    }),
+    TE.chainW((tokenUser) => {
+      logger.info("ACS | Generating token");
+      return pipe(
+        tokenUser,
+        generateToken,
+        TE.mapLeft(toResponseErrorInternal)
+      );
+    }),
+    TE.mapLeft((_) => {
+      logger.info(
+        `ACS | Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
+          _.detail
+        )}`
+      );
+      logger.error(
+        `Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(_.detail)}`
+      );
+      return _;
+    }),
+    TE.map(({ tokenStr, tokenUser }) => {
+      logger.info("ACS | Redirect to success endpoint");
+      return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
+        ? ResponsePermanentRedirect({
+            href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`,
+          })
+        : ResponsePermanentRedirect({
+            href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`,
+          });
+    }),
+    TE.toUnion
+  )();
 
 const logout: LogoutT = async () =>
   ResponsePermanentRedirect({
@@ -295,68 +316,69 @@ const doneCb = config.ENABLE_SPID_ACCESS_LOGS
  * /login
  *
  */
-export const createAppTask = withSpid({
-  acs,
-  app,
-  appConfig,
-  doneCb,
-  logout,
-  redisClient, // redisClient for authN request
-  samlConfig,
-  serviceProviderConfig,
-}).map(({ app: withSpidApp, idpMetadataRefresher }) => {
-  withSpidApp.get(config.ENDPOINT_SUCCESS, successHandler);
+export const createAppTask = pipe(
+  withSpid({
+    acs,
+    app,
+    appConfig,
+    doneCb,
+    logout,
+    redisClient, // redisClient for authN request
+    samlConfig,
+    serviceProviderConfig,
+  }),
+  T.map(({ app: withSpidApp, idpMetadataRefresher }) => {
+    withSpidApp.get(config.ENDPOINT_SUCCESS, successHandler);
 
-  if (config.ENABLE_ADE_AA) {
-    withSpidApp.get(config.ENDPOINT_L1_SUCCESS, successHandler);
-    withSpidApp.post(
-      "/upgradeToken",
-      upgradeTokenHandler(config.L1_TOKEN_HEADER_NAME)
-    );
-  }
-  withSpidApp.get("/error", errorHandler);
-  withSpidApp.get("/refresh", metadataRefreshHandler(idpMetadataRefresher));
-  // Add info endpoint
-  withSpidApp.get("/info", async (_, res) => {
-    res.json({
-      ping: "pong",
-    });
-  });
-
-  withSpidApp.get("/healthcheck", healthcheckHandler(redisClient));
-
-  withSpidApp.post("/introspect", introspectHandler);
-
-  withSpidApp.post("/invalidate", invalidateHandler);
-
-  withSpidApp.use(
-    (
-      error: Error,
-      _: express.Request,
-      res: express.Response,
-      ___: express.NextFunction
-    ) =>
-      res.status(505).send({
-        error: error.message,
-      })
-  );
-
-  // tslint:disable-next-line: no-let prefer-const
-  let countInterval = 0;
-  const startIdpMetadataRefreshTimer = setInterval(() => {
-    countInterval += 1;
-    if (countInterval > 10) {
-      clearInterval(startIdpMetadataRefreshTimer);
+    if (config.ENABLE_ADE_AA) {
+      withSpidApp.get(config.ENDPOINT_L1_SUCCESS, successHandler);
+      withSpidApp.post(
+        "/upgradeToken",
+        upgradeTokenHandler(config.L1_TOKEN_HEADER_NAME)
+      );
     }
-    idpMetadataRefresher()
-      .run()
-      .catch((e) => {
+    withSpidApp.get("/error", errorHandler);
+    withSpidApp.get("/refresh", metadataRefreshHandler(idpMetadataRefresher));
+    // Add info endpoint
+    withSpidApp.get("/info", async (_, res) => {
+      res.json({
+        ping: "pong",
+      });
+    });
+
+    withSpidApp.get("/healthcheck", healthcheckHandler(redisClient));
+
+    withSpidApp.post("/introspect", introspectHandler);
+
+    withSpidApp.post("/invalidate", invalidateHandler);
+
+    withSpidApp.use(
+      (
+        error: Error,
+        _: express.Request,
+        res: express.Response,
+        ___: express.NextFunction
+      ) =>
+        res.status(505).send({
+          error: error.message,
+        })
+    );
+
+    // tslint:disable-next-line: no-let prefer-const
+    let countInterval = 0;
+    const startIdpMetadataRefreshTimer = setInterval(() => {
+      countInterval += 1;
+      if (countInterval > 10) {
+        clearInterval(startIdpMetadataRefreshTimer);
+      }
+      idpMetadataRefresher()().catch((e) => {
         logger.error("idpMetadataRefresher|error:%s", e);
       });
-  }, 5000);
-  withSpidApp.on("server:stop", () =>
-    clearInterval(startIdpMetadataRefreshTimer)
-  );
+    }, 5000);
+    withSpidApp.on("server:stop", () =>
+      clearInterval(startIdpMetadataRefreshTimer)
+    );
 
-  return withSpidApp;
-});
+    return withSpidApp;
+  })
+);

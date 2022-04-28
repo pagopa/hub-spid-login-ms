@@ -199,7 +199,7 @@ export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
   res: express.Response
 ) => {
   const fromErrToBadRequest = toBadRequest(res);
-  pipe(
+  return pipe(
     req.body,
     UpgradeTokenBody.decode,
     E.mapLeft(fromErrToBadRequest),

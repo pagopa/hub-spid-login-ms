@@ -11,7 +11,7 @@ import * as t from "io-ts";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 
-const curry = <I, II extends any[], R>(fn: (a: I, ...aa: II) => R) => (
+const curry = <I, II extends readonly unknown[], R>(fn: (a: I, ...aa: II) => R) => (
   a: I
 ) => (...aa: II): R => fn(a, ...aa);
 

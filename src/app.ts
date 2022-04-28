@@ -14,7 +14,6 @@ import {
 import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as express from "express";
-// import { fromEither, taskEither } from "fp-ts/lib/TaskEither";
 import { generateToken } from "./handlers/token";
 
 import {

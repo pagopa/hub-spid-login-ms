@@ -108,8 +108,8 @@ export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
 export const introspectHandler = async (
   req: express.Request,
   res: express.Response // first check if token is blacklisted
-): Promise<express.Response> => {
-  const result = pipe(
+): Promise<express.Response> => 
+  pipe(
     existsKeyTask(
       redisClient,
       `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`
@@ -172,9 +172,6 @@ export const introspectHandler = async (
       (_) => T.of(res.status(200).json(_))
     )
   )();
-
-  return result;
-};
 
 export const invalidateHandler = async (
   req: express.Request,

@@ -6,7 +6,7 @@ import { SESSION_INVALIDATE_TOKEN_PREFIX, SESSION_TOKEN_PREFIX } from "../app";
 import { UpgradeTokenBody } from "../types/request";
 import { TokenUser, TokenUserL2 } from "../types/user";
 import { getConfigOrThrow } from "../utils/config";
-import { mapDecoding, toBadRequest, toTokenUserL2 } from "../utils/conversions";
+import { toBadRequest, toTokenUserL2 } from "../utils/conversions";
 import {
   extractJwtRemainingValidTime,
   extractRawDataFromJwt,

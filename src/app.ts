@@ -150,12 +150,6 @@ const samlConfig: SamlConfig = {
   validateInResponseTo: true,
 };
 
-type ResponseUnionType =
-  | IResponseErrorInternal
-  | IResponseErrorValidation
-  | IResponseErrorForbiddenNotAuthorized
-  | IResponsePermanentRedirect;
-
 const acs: AssertionConsumerServiceT = async (user) =>
   pipe(
     user,

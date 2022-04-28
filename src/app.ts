@@ -6,20 +6,12 @@ import {
   withSpid,
 } from "@pagopa/io-spid-commons";
 import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
-import {
-  IResponseErrorForbiddenNotAuthorized,
-  IResponseErrorValidation,
-  IResponsePermanentRedirect,
-} from "@pagopa/ts-commons/lib/responses";
 import * as bodyParser from "body-parser";
 import { debug } from "console";
 import * as express from "express";
 import { generateToken } from "./handlers/token";
 
-import {
-  IResponseErrorInternal,
-  ResponsePermanentRedirect,
-} from "@pagopa/ts-commons/lib/responses";
+import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
 import {

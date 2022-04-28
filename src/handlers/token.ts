@@ -19,13 +19,15 @@ import {
   getTask,
   setWithExpirationTask,
 } from "../utils/redis_storage";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
 import * as O from "fp-ts/lib/Option";
 import * as J from "fp-ts/Json";
 import * as b from "fp-ts/boolean";
+import * as t from "io-ts";
+import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 
 const config = getConfigOrThrow();
 
@@ -107,9 +109,10 @@ export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
 
 export const introspectHandler = async (
   req: express.Request,
-  res: express.Response // first check if token is blacklisted
+  res: express.Response
 ): Promise<express.Response> =>
   pipe(
+    // first check if token is blacklisted
     existsKeyTask(
       redisClient,
       `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`
@@ -130,35 +133,26 @@ export const introspectHandler = async (
         () => res.status(200).json({ active: true })
       )
     ),
-    TE.chain(() =>
-      pipe(getRawTokenUserFromRedis(req.body.token, res), (_) =>
-        TokenUserL2.is(_)
-          ? pipe(
-              mapDecoding(TokenUserL2, _),
-              TE.mapLeft((e) =>
-                res.status(500).json({
-                  detail: String(e),
-                  error: "Error decoding L2 token",
-                })
-              )
-            )
-          : pipe(
-              mapDecoding(TokenUserL2, _),
-              TE.mapLeft((e) =>
-                res.status(500).json({
-                  detail: String(e),
-                  error: "Error decoding L2 token",
-                })
-              )
-            )
+    TE.chain(() => getRawTokenUserFromRedis(req.body.token, res)),
+    // ensure raw token is in the correct shape
+    TE.chain(
+      flow(
+        t.union([TokenUser, TokenUserL2]).decode,
+        E.mapLeft((e) =>
+          res.status(500).json({
+            detail: readableReport(e),
+            error: "Error decoding token",
+          })
+        ),
+        TE.fromEither
       )
     ),
-    TE.chain((x) =>
+    TE.chain((token) =>
       pipe(
-        x,
+        token,
         TE.fromPredicate(
           () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
-          (_) => res.status(200).json({ active: true, level: x.level })
+          (_) => res.status(200).json({ active: true, level: token.level })
         )
       )
     ),

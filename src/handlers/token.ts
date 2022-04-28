@@ -108,7 +108,7 @@ export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
 export const introspectHandler = async (
   req: express.Request,
   res: express.Response // first check if token is blacklisted
-): Promise<express.Response> => 
+): Promise<express.Response> =>
   pipe(
     existsKeyTask(
       redisClient,
@@ -130,7 +130,7 @@ export const introspectHandler = async (
         () => res.status(200).json({ active: true })
       )
     ),
-    TE.chain<any, boolean, TokenUser | TokenUserL2>(() =>
+    TE.chain(() =>
       pipe(getRawTokenUserFromRedis(req.body.token, res), (_) =>
         TokenUserL2.is(_)
           ? pipe(

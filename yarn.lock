@@ -360,10 +360,10 @@
   dependencies:
     "@types/node" ">= 8"
 
-"@pagopa/io-spid-commons@^7.0.1":
-  version "7.0.1"
-  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-7.0.1.tgz#1df31087e475c2ceac863af9a3bacd93cb0cb84b"
-  integrity sha512-qL2yUP53vNiyd20hnllwlG+IxXpKG/3SJs7z5svYBxfrJM0bahuP+hDqVGUd1B4+nxswv7mf6u6QYkfMWTuczw==
+"@pagopa/io-spid-commons@^7.0.2":
+  version "7.0.2"
+  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-7.0.2.tgz#6270d392b43b84f4f83138b03f87474b2086c20b"
+  integrity sha512-ZW98VUitwdcAEGDjAblaxPiKHzPCyCnMuI/Yh5dJ8RYsDx222i0epceCS+jVNS1N8btD9N4CCxrwsP0ntjB9Jw==
   dependencies:
     "@pagopa/ts-commons" "^10.0.0"
     "@types/redis" "^2.8.14"

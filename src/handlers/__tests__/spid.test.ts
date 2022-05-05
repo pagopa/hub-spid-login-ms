@@ -6,7 +6,6 @@ import {
 } from "../spid";
 import mockReq from "../../__mocks__/request";
 import mockRes from "../../__mocks__/response";
-import { task, Task } from "fp-ts/lib/Task";
 import { BlobService } from "azure-storage";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
@@ -15,9 +14,9 @@ import {
   aSAMLResponseWithoutRequestId,
   aSAMLResponseWithoutFiscalCode,
 } from "../../__mocks__/spid";
-import { left, right } from "fp-ts/lib/TaskEither";
-import { some } from "fp-ts/lib/Option";
-import { toError } from "fp-ts/lib/Either";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
 
 // Mock an express request and response
 const aMockedRequest = mockReq();
@@ -65,8 +64,8 @@ describe("errorHandler", () => {
 });
 
 describe("metadataRefreshHandler", () => {
-  const mockIdpMetadataRefresher: () => Task<void> = jest.fn(() =>
-    task.of(void 0)
+  const mockIdpMetadataRefresher: () => T.Task<void> = jest.fn(() => async () =>
+    void 0
   );
   it("should succeed when metadata update is completed", async () => {
     await metadataRefreshHandler(mockIdpMetadataRefresher)(
@@ -84,7 +83,7 @@ describe("metadataRefreshHandler", () => {
 describe("accessLogHandler", () => {
   it("should succeed calling storeSpidLogs function if it returns right", async () => {
     spiedStoreSpidLogs.mockReturnValue(
-      right(task.of(some({} as BlobService.BlobResult)))
+      TE.right(O.some({} as BlobService.BlobResult))
     );
 
     accessLogHandler(
@@ -101,7 +100,7 @@ describe("accessLogHandler", () => {
   });
 
   it("should fail calling storeSpidLogs function if returns left", async () => {
-    spiedStoreSpidLogs.mockReturnValue(left(task.of(toError("any error"))));
+    spiedStoreSpidLogs.mockReturnValue(TE.left(new Error("any error")));
 
     accessLogHandler(
       ({} as unknown) as BlobService,

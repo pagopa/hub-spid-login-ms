@@ -1,7 +1,7 @@
 import * as t from "io-ts";
 // tslint:disable-next-line: no-submodule-imports
 import { createNonEmptyArrayFromArray } from "io-ts-types/lib/fp-ts/createNonEmptyArrayFromArray";
-import { NonEmptyString } from "italia-ts-commons/lib/strings";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 export const IDPEntityDescriptor = t.interface({
   cert: createNonEmptyArrayFromArray(NonEmptyString),
@@ -10,7 +10,7 @@ export const IDPEntityDescriptor = t.interface({
 
   entryPoint: t.string,
 
-  logoutUrl: t.string
+  logoutUrl: t.string,
 });
 
 export type IDPEntityDescriptor = t.TypeOf<typeof IDPEntityDescriptor>;

@@ -1,16 +1,18 @@
 {
-    "defaultSeverity": "error",
-    "extends": [
-      "italia-tslint-rules/strong"
-    ],
-    "jsRules": {},
-    "rules": {
-      "no-submodule-imports": false
-    },
-    "rulesDirectory": [],
-    "linterOptions": {
-      "exclude": [
-        "generated/**/*"
-      ]
-    }
+  "defaultSeverity": "error",
+  "extends": [
+    "italia-tslint-rules/strong"
+  ],
+  "jsRules": {},
+  "rules": {
+    "no-submodule-imports": false,
+    "prettier": false,
+    "ordered-imports": false
+  },
+  "rulesDirectory": [],
+  "linterOptions": {
+    "exclude": [
+      "generated/**/*"
+    ]
+  }
 }

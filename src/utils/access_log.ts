@@ -3,39 +3,49 @@ import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
 import { sequenceS } from "fp-ts/lib/Apply";
-import { either } from "fp-ts/lib/Either";
-import { curry } from "fp-ts/lib/function";
-import { fromEither } from "fp-ts/lib/Option";
-import { fromNullable, Option } from "fp-ts/lib/Option";
-import { fromEither as fromEitherT, fromLeft } from "fp-ts/lib/TaskEither";
+import * as E from "fp-ts/lib/Either";
+import { pipe } from "fp-ts/lib/function";
+import * as O from "fp-ts/lib/Option";
+import * as TE from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 
+const curry = <I, II extends readonly unknown[], R>(fn: (a: I, ...aa: II) => R) => (
+  a: I
+) => (...aa: II): R => fn(a, ...aa);
+
 export const SAML_NAMESPACE = {
   ASSERTION: "urn:oasis:names:tc:SAML:2.0:assertion",
-  PROTOCOL: "urn:oasis:names:tc:SAML:2.0:protocol"
+  PROTOCOL: "urn:oasis:names:tc:SAML:2.0:protocol",
 };
 
-export const getFiscalNumberFromPayload = (doc: Document): Option<FiscalCode> =>
-  fromNullable(
-    doc.getElementsByTagNameNS(SAML_NAMESPACE.ASSERTION, "Attribute")
-  )
-    .mapNullable(collection =>
+export const getFiscalNumberFromPayload = (
+  doc: Document
+): O.Option<FiscalCode> =>
+  pipe(
+    O.fromNullable(
+      doc.getElementsByTagNameNS(SAML_NAMESPACE.ASSERTION, "Attribute")
+    ),
+    O.mapNullable((collection) =>
       Array.from(collection).find(
-        elem => elem.getAttribute("Name") === "fiscalNumber"
+        (elem) => elem.getAttribute("Name") === "fiscalNumber"
       )
-    )
-    .mapNullable(_ => _.textContent?.trim().replace("TINIT-", ""))
-    .chain(_ => fromEither(FiscalCode.decode(_)));
+    ),
+    O.mapNullable((_) => _.textContent?.trim().replace("TINIT-", "")),
+    O.chain((_) => O.fromEither(FiscalCode.decode(_)))
+  );
 
 export const getRequestIDFromPayload = (tagName: string, attrName: string) => (
   doc: Document
-): Option<string> =>
-  fromNullable(
-    doc.getElementsByTagNameNS(SAML_NAMESPACE.PROTOCOL, tagName).item(0)
-  ).chain(element =>
-    fromEither(NonEmptyString.decode(element.getAttribute(attrName)))
+): O.Option<string> =>
+  pipe(
+    O.fromNullable(
+      doc.getElementsByTagNameNS(SAML_NAMESPACE.PROTOCOL, tagName).item(0)
+    ),
+    O.chain((element) =>
+      O.fromEither(NonEmptyString.decode(element.getAttribute(attrName)))
+    )
   );
 
 export const getRequestIDFromRequest = getRequestIDFromPayload(
@@ -55,30 +65,32 @@ export const storeSpidLogs = (
   spidLogMsg: SpidLogMsg
 ) => {
   const encrypt = curry(toEncryptedPayload)(spidLogsPublicKey);
-  return sequenceS(either)({
-    encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
-    encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
-  })
-    .map(item => ({
+  return pipe(
+    sequenceS(E.Applicative)({
+      encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
+      encryptedResponsePayload: encrypt(spidLogMsg.responsePayload),
+    }),
+    E.map((item) => ({
       ...spidLogMsg,
-      ...item
-    }))
-    .fold(
-      err =>
-        fromLeft(
-          new Error(`StoreSpidLogs|ERROR=Cannot encrypt payload|${err}`)
-        ),
+      ...item,
+    })),
+    E.fold(
+      (err) =>
+        TE.left(new Error(`StoreSpidLogs|ERROR=Cannot encrypt payload|${err}`)),
       (encryptedBlobItem: SpidBlobItem) =>
-        fromEitherT(t.exact(SpidBlobItem).decode(encryptedBlobItem))
-          .mapLeft(
-            errs =>
+        pipe(
+          encryptedBlobItem,
+          t.exact(SpidBlobItem).decode,
+          TE.fromEither,
+          TE.mapLeft(
+            (errs) =>
               new Error(
                 `StoreSpidLogs|ERROR=Cannot decode payload|ERROR_DETAILS=${readableReport(
                   errs
                 )}`
               )
-          )
-          .chain(spidBlobItem =>
+          ),
+          TE.chain((spidBlobItem) =>
             upsertBlobFromObject(
               blobService,
               containerName,
@@ -86,5 +98,7 @@ export const storeSpidLogs = (
               spidBlobItem
             )
           )
-    );
+        )
+    )
+  );
 };

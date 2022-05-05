@@ -2,15 +2,15 @@ import { IDPEntityDescriptor } from "../types/IDPEntityDescriptor";
 
 import { NonEmptyArray } from "fp-ts/lib/NonEmptyArray";
 
-import { NonEmptyString } from "italia-ts-commons/lib/strings";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
 export const mockIdpMetadata: Record<string, IDPEntityDescriptor> = {
   intesaid: {
     cert: (["CERT"] as unknown) as NonEmptyArray<NonEmptyString>,
     entityID: "https://spid.intesa.it",
     entryPoint: "https://spid.intesa.it/acs",
-    logoutUrl: "https://spid.intesa.it/logout"
-  }
+    logoutUrl: "https://spid.intesa.it/logout",
+  },
 };
 
 export const mockCIEIdpMetadata: Record<string, IDPEntityDescriptor> = {
@@ -20,8 +20,8 @@ export const mockCIEIdpMetadata: Record<string, IDPEntityDescriptor> = {
       "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/POST/SSO",
     entryPoint:
       "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/POST/SSO",
-    logoutUrl: ""
-  }
+    logoutUrl: "",
+  },
 };
 
 export const mockTestenvIdpMetadata: Record<string, IDPEntityDescriptor> = {
@@ -29,6 +29,6 @@ export const mockTestenvIdpMetadata: Record<string, IDPEntityDescriptor> = {
     cert: (["CERT"] as unknown) as NonEmptyArray<NonEmptyString>,
     entityID: "https://spid-testenv.dev.io.italia.it",
     entryPoint: "https://spid-testenv.dev.io.italia.it/sso",
-    logoutUrl: "https://spid-testenv.dev.io.italia.it/slo"
-  }
+    logoutUrl: "https://spid-testenv.dev.io.italia.it/slo",
+  },
 };

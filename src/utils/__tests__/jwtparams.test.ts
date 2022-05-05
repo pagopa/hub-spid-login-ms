@@ -1,4 +1,5 @@
 import { JWTParams } from "../config";
+import * as E from "fp-ts/lib/Either";
 
 describe("Validate an unknown type as JWTParams Interface", () => {
   it("should validate a correct JWT Param", () => {
@@ -11,7 +12,7 @@ describe("Validate an unknown type as JWTParams Interface", () => {
 
     const value = JWTParams.decode(JWTParamMock);
 
-    expect(value.isRight()).toBe(true);
+    expect(E.isRight(value)).toBe(true);
   });
   it("should validate a correct JWT Param", () => {
     const JWTParamMock: unknown = {
@@ -24,7 +25,7 @@ describe("Validate an unknown type as JWTParams Interface", () => {
 
     const value = JWTParams.decode(JWTParamMock);
 
-    expect(value.isRight()).toBe(true);
+    expect(E.isRight(value)).toBe(true);
   });
   it("should not validate an incorrect incoming JWT Param", () => {
     const JWTParamMock: unknown = {
@@ -34,7 +35,7 @@ describe("Validate an unknown type as JWTParams Interface", () => {
 
     const value = JWTParams.decode(JWTParamMock);
 
-    expect(value.isLeft()).toBe(true);
+    expect(E.isLeft(value)).toBe(true);
   });
   it("should not validate an incorrect incoming JWT Param", () => {
     const JWTParamMock: unknown = {
@@ -44,6 +45,6 @@ describe("Validate an unknown type as JWTParams Interface", () => {
 
     const value = JWTParams.decode(JWTParamMock);
 
-    expect(value.isLeft()).toBe(true);
+    expect(E.isLeft(value)).toBe(true);
   });
 });

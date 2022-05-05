@@ -1,10 +1,8 @@
-import {
-  FiscalCode,
-  IPString,
-  NonEmptyString,
-} from "@pagopa/ts-commons/lib/strings";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
 import { upsertBlobFromObject, upsertBlobFromText } from "../blob";
+
+import * as E from "fp-ts/lib/Either";
 
 const mockedCallback = jest.fn(
   (_, __, ___, ____, cb: (err, result, _____) => void) =>
@@ -29,10 +27,10 @@ describe("upsertBlobFromText", () => {
       mockedContainerName,
       mockedBlobName,
       aText
-    ).run();
+    )();
 
     expect(mockedCallback).toBeCalledTimes(1);
-    expect(result.isRight()).toBe(true);
+    expect(E.isRight(result)).toBe(true);
   });
 
   it("Should return left when createBlockBlobFromText calls the callback with an error that rejects the promise", async () => {
@@ -46,46 +44,46 @@ describe("upsertBlobFromText", () => {
       mockedContainerName,
       mockedBlobName,
       aText
-    ).run();
+    )();
 
     expect(mockedCallback).toBeCalledTimes(1);
-    expect(result.isLeft()).toBe(true);
-    if (result.isLeft()) {
-      expect(result.value.message).toEqual("an error");
+    expect(E.isLeft(result)).toBe(true);
+    if (E.isLeft(result)) {
+      expect(result.left.message).toEqual("an error");
     }
   });
 });
 
 describe("upsertBlobFromObject", () => {
-    it("Should return right when createBlockBlobFromText calls the callback with a result that resolves the promise", async () => {
-        const result = await upsertBlobFromObject(
-          mockedBlobService,
-          mockedContainerName,
-          mockedBlobName,
-          anObject
-        ).run();
-    
-        expect(mockedCallback).toBeCalledTimes(1);
-        expect(result.isRight()).toBe(true);
-      });
-    
-    it("Should return left when createBlockBlobFromText calls the callback with an error that rejects the promise", async () => {
-        mockedCallback.mockImplementationOnce(
-          (_, __, ___, ____, cb: (err, result, _____) => void) =>
-            cb("an error", undefined, undefined)
-        );
-    
-        const result = await upsertBlobFromObject(
-          mockedBlobService,
-          mockedContainerName,
-          mockedBlobName,
-          anObject
-        ).run();
-    
-        expect(mockedCallback).toBeCalledTimes(1);
-        expect(result.isLeft()).toBe(true);
-        if (result.isLeft()) {
-          expect(result.value.message).toEqual("an error");
-        }
-      });
+  it("Should return right when createBlockBlobFromText calls the callback with a result that resolves the promise", async () => {
+    const result = await upsertBlobFromObject(
+      mockedBlobService,
+      mockedContainerName,
+      mockedBlobName,
+      anObject
+    )();
+
+    expect(mockedCallback).toBeCalledTimes(1);
+    expect(E.isRight(result)).toBe(true);
+  });
+
+  it("Should return left when createBlockBlobFromText calls the callback with an error that rejects the promise", async () => {
+    mockedCallback.mockImplementationOnce(
+      (_, __, ___, ____, cb: (err, result, _____) => void) =>
+        cb("an error", undefined, undefined)
+    );
+
+    const result = await upsertBlobFromObject(
+      mockedBlobService,
+      mockedContainerName,
+      mockedBlobName,
+      anObject
+    )();
+
+    expect(mockedCallback).toBeCalledTimes(1);
+    expect(E.isLeft(result)).toBe(true);
+    if (E.isLeft(result)) {
+      expect(result.left.message).toEqual("an error");
+    }
+  });
 });

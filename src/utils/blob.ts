@@ -3,10 +3,10 @@
  */
 import * as azureStorage from "azure-storage";
 
-import { toError, tryCatch2v } from "fp-ts/lib/Either";
-import { fromNullable, Option } from "fp-ts/lib/Option";
-
-import { fromEither, TaskEither, tryCatch } from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
+import * as E from "fp-ts/lib/Either";
+import * as TE from "fp-ts/lib/TaskEither";
+import { pipe } from "fp-ts/lib/function";
 
 export type StorageError = Error & {
   readonly code?: string;
@@ -33,10 +33,10 @@ export const upsertBlobFromText = (
   blobName: string,
   text: string | Buffer,
   options: azureStorage.BlobService.CreateBlobRequestOptions = {}
-): TaskEither<Error, Option<azureStorage.BlobService.BlobResult>> =>
-  tryCatch(
+): TE.TaskEither<Error, O.Option<azureStorage.BlobService.BlobResult>> =>
+  TE.tryCatch(
     () =>
-      new Promise<Option<azureStorage.BlobService.BlobResult>>(
+      new Promise<O.Option<azureStorage.BlobService.BlobResult>>(
         (resolve, reject) =>
           blobService.createBlockBlobFromText(
             containerName,
@@ -47,12 +47,12 @@ export const upsertBlobFromText = (
               if (err) {
                 return reject(err);
               } else {
-                return resolve(fromNullable(result));
+                return resolve(O.fromNullable(result));
               }
             }
           )
       ),
-    toError
+    E.toError
   );
 
 /**
@@ -70,9 +70,10 @@ export const upsertBlobFromObject = <T>(
   blobName: string,
   content: T,
   options: azureStorage.BlobService.CreateBlobRequestOptions = {}
-): TaskEither<Error, Option<azureStorage.BlobService.BlobResult>> =>
-  fromEither(
-    tryCatch2v(() => JSON.stringify(content), toError)
-  ).chain(rawJson =>
-    upsertBlobFromText(blobService, containerName, blobName, rawJson, options)
+): TE.TaskEither<Error, O.Option<azureStorage.BlobService.BlobResult>> =>
+  pipe(
+    TE.fromEither(E.tryCatch(() => JSON.stringify(content), E.toError)),
+    TE.chain((rawJson) =>
+      upsertBlobFromText(blobService, containerName, blobName, rawJson, options)
+    )
   );

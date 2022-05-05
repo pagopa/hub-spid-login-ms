@@ -1,18 +1,19 @@
 import { ResponseErrorInternal } from "@pagopa/ts-commons/lib/responses";
 import express = require("express");
-import { Either } from "fp-ts/lib/Either";
-import { fromEither } from "fp-ts/lib/TaskEither";
+import * as E from "fp-ts/lib/Either";
+import * as TE from "fp-ts/lib/TaskEither";
 import { Errors } from "io-ts";
 import * as t from "io-ts";
-import { errorsToReadableMessages } from "italia-ts-commons/lib/reporters";
+import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import {
   CommonTokenUser,
   FISCAL_NUMBER_INTERNATIONAL_PREFIX,
   SpidUser,
   TokenUser,
   TokenUserL2,
-  UserCompany
+  UserCompany,
 } from "../types/user";
+import { pipe } from "fp-ts/lib/function";
 
 export function errorsToError(errors: Errors): Error {
   return new Error(errorsToReadableMessages(errors).join(" / "));
@@ -20,36 +21,44 @@ export function errorsToError(errors: Errors): Error {
 
 export const toCommonTokenUser = (
   from: SpidUser
-): Either<Error, CommonTokenUser> => {
+): E.Either<Error, CommonTokenUser> => {
   const normalizedUser = {
     ...from,
     fiscalNumber: from.fiscalNumber.replace(
       FISCAL_NUMBER_INTERNATIONAL_PREFIX,
       ""
-    )
+    ),
   };
-  return CommonTokenUser.decode({
-    email: normalizedUser.email,
-    family_name: normalizedUser.familyName,
-    fiscal_number: normalizedUser.fiscalNumber,
-    mobile_phone: normalizedUser.mobilePhone,
-    name: normalizedUser.name
-  }).mapLeft(errorsToError);
+  return pipe(
+    {
+      email: normalizedUser.email,
+      family_name: normalizedUser.familyName,
+      fiscal_number: normalizedUser.fiscalNumber,
+      mobile_phone: normalizedUser.mobilePhone,
+      name: normalizedUser.name,
+    },
+    CommonTokenUser.decode,
+    E.mapLeft(errorsToError)
+  );
 };
 
 export const toTokenUserL2 = (
   from: TokenUser,
   company: UserCompany
-): Either<Error, TokenUserL2> => {
-  return TokenUserL2.decode({
-    company,
-    email: from.email,
-    family_name: from.family_name,
-    fiscal_number: from.fiscal_number,
-    from_aa: from.from_aa,
-    mobile_phone: from.mobile_phone,
-    name: from.name
-  }).mapLeft(errorsToError);
+): E.Either<Error, TokenUserL2> => {
+  return pipe(
+    {
+      company,
+      email: from.email,
+      family_name: from.family_name,
+      fiscal_number: from.fiscal_number,
+      from_aa: from.from_aa,
+      mobile_phone: from.mobile_phone,
+      name: from.name,
+    },
+    TokenUserL2.decode,
+    E.mapLeft(errorsToError)
+  );
 };
 
 export const toResponseErrorInternal = (err: Error) =>
@@ -62,8 +71,8 @@ export const toBadRequest = (res: express.Response) => (
   res.status(400).json({
     detail: errs instanceof Error ? errs.message : errorsToError(errs).message,
     error: "Bad Request",
-    message
+    message,
   });
 
 export const mapDecoding = <S, A>(type: t.Type<A, S>, toDecode: unknown) =>
-  fromEither(type.decode(toDecode)).mapLeft(errorsToError);
+  pipe(toDecode, type.decode, E.mapLeft(errorsToError), TE.fromEither);

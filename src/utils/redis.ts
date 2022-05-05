@@ -1,4 +1,5 @@
-import { fromPredicate } from "fp-ts/lib/Option";
+import { pipe } from "fp-ts/lib/function";
+import * as O from "fp-ts/lib/Option";
 import * as redis from "redis";
 import RedisClustr = require("redis-clustr");
 import { getConfigOrThrow } from "./config";
@@ -18,7 +19,7 @@ function createSimpleRedisClient(
     auth_pass: password,
     host: redisUrl,
     port: redisPort,
-    retry_strategy: retryOptions => {
+    retry_strategy: (retryOptions) => {
       if (retryOptions.error && retryOptions.error.code === "ECONNREFUSED") {
         // End reconnecting on a specific error and flush all commands with
         // a individual error
@@ -40,7 +41,7 @@ function createSimpleRedisClient(
       return Math.min(retryOptions.attempt * 100, 3000);
     },
     socket_keepalive: true,
-    tls: useTls ? { servername: redisUrl } : undefined
+    tls: useTls ? { servername: redisUrl } : undefined,
   });
 }
 
@@ -56,36 +57,38 @@ function createClusterRedisClient(
     redisOptions: {
       auth_pass: password,
       tls: {
-        servername: redisUrl
-      }
+        servername: redisUrl,
+      },
     },
     servers: [
       {
         host: redisUrl,
-        port: redisPort
-      }
-    ]
+        port: redisPort,
+      },
+    ],
   }) as redis.RedisClient; // Casting RedisClustr with missing typings to RedisClient (same usage).
 }
 
-export const REDIS_CLIENT = fromPredicate<boolean>(_ => _)(config.isProduction)
-  .mapNullable(_ => config.REDIS_CLUSTER_ENABLED)
-  .chain(fromPredicate(_ => _))
-  .map(() =>
+export const REDIS_CLIENT = pipe(
+  O.fromPredicate<boolean>((_) => _)(config.isProduction),
+  O.mapNullable((_) => config.REDIS_CLUSTER_ENABLED),
+  O.chain(O.fromPredicate((_) => _)),
+  O.map(() =>
     createClusterRedisClient(
       config.REDIS_URL,
       config.REDIS_PASSWORD,
       config.REDIS_PORT
     )
-  )
-  .getOrElseL(() =>
+  ),
+  O.getOrElse(() =>
     createSimpleRedisClient(
       config.REDIS_URL,
       config.REDIS_PASSWORD,
       config.REDIS_PORT,
       config.REDIS_TLS_ENABLED
     )
-  );
+  )
+);
 
 REDIS_CLIENT.on("connect", () => {
   logger.info("Client connected to redis...");
@@ -99,7 +102,7 @@ REDIS_CLIENT.on("reconnecting", () => {
   logger.info("Client reconnecting...");
 });
 
-REDIS_CLIENT.on("error", err => {
+REDIS_CLIENT.on("error", (err) => {
   logger.info(`Redis error: ${err}`);
 });
 

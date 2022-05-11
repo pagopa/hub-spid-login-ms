@@ -26,6 +26,7 @@
     "dist:modules": "modclean -r -n default:safe && yarn install --production",
     "generate:api-ade": "rm -rf generated/ade-api && gen-api-models --api-spec https://raw.githubusercontent.com/pagopa/ade-aa-ms-mock/master/openapi/index.yaml --no-strict --out-dir generated/ade-api --request-types --response-decoders --client",
     "generate:api-userregistry": "shx rm -rf generated/userregistry-api && gen-api-models --api-spec openapi/userregistry.yaml --no-strict --out-dir generated/userregistry-api --request-types --response-decoders --client",
+    "generate:api-pdv-userregistry": "shx rm -rf generated/pdv-userregistry-api && gen-api-models --api-spec openapi/pdv-userregistry-v1.0.yaml --no-strict --out-dir generated/pdv-userregistry-api --request-types --response-decoders --client",
     "generate": "npm-run-all generate:*",
     "predeploy": "npm-run-all build dist:modules",
     "test": "jest -i",

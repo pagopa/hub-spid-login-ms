@@ -3,124 +3,150 @@ import {
   IResponseErrorInternal,
   IResponseErrorValidation,
   ResponseErrorForbiddenNotAuthorized,
-  ResponseErrorValidation,
+  ResponseErrorValidation
 } from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
-import { pipe } from "fp-ts/lib/function";
-import * as E from "fp-ts/lib/Either";
-import * as O from "fp-ts/lib/Option";
-
-import * as TE from "fp-ts/lib/TaskEither";
 import { none, Option, some } from "fp-ts/lib/Option";
-import { User } from "../../generated/userregistry-api/User";
-import { UserSeed } from "../../generated/userregistry-api/UserSeed";
+import { TaskEither, taskEither } from "fp-ts/lib/TaskEither";
+import { fromEither, fromLeft, tryCatch } from "fp-ts/lib/TaskEither";
+import { SaveUserDto } from "../../generated/pdv-userregistry-api/SaveUserDto";
+import { UserId } from "../../generated/pdv-userregistry-api/UserId";
 
 import { UserRegistryAPIClient } from "../clients/userregistry_client";
+import { PersonalDatavaultAPIClient } from "../clients/pdv_client";
 import { errorsToError, toResponseErrorInternal } from "./conversions";
 import { logger } from "./logger";
+
+/*
 export const getUserId = (
   apiClient: ReturnType<UserRegistryAPIClient>,
   externalId: FiscalCode,
   subscriptionKey: NonEmptyString
-): TE.TaskEither<
+): TaskEither<
   IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized,
   Option<{ id: string }>
 > =>
-  pipe(
-    TE.tryCatch(
-      () =>
-        apiClient.getUserByExternalId({
-          SubscriptionKey: subscriptionKey,
-          body: {
-            externalId,
-          },
-        }),
-      toError
-    ),
-    TE.mapLeft((err) => {
-      logger.error(`USER REGISTRY getUserByExternalId: ${err.message}`);
-      return toResponseErrorInternal(err);
-    }),
-    // Validation (Either) -> taskEither
-    TE.chain((_) =>
-      pipe(
-        _,
-        E.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs))),
-        TE.fromEither
-      )
-    ),
-    TE.chainW((res) => {
-      switch (res.status) {
-        case 200:
-          return TE.of(some({ id: res.value.id }));
-        case 404:
-          return TE.of(none);
-        default:
-          return TE.left(ResponseErrorForbiddenNotAuthorized);
-      }
-    })
-  );
-
-export const postUser = (
-  apiClient: ReturnType<UserRegistryAPIClient>,
-  user: UserSeed,
-  subscriptionKey: NonEmptyString
-): TE.TaskEither<IResponseErrorInternal | IResponseErrorValidation, User> =>
-  pipe(
-    TE.tryCatch(() => {
-      return apiClient.createUser({
+  tryCatch(
+    () =>
+      apiClient.getUserByExternalId({
         SubscriptionKey: subscriptionKey,
         body: {
-          ...user,
-        },
-      });
-    }, toError),
-    TE.mapLeft((err) => {
-      logger.error(`USER REGISTRY postUser: ${err.message}`);
-      return toResponseErrorInternal(err);
-    }),
-    TE.chainW((_) =>
-      pipe(
-        _,
-        E.mapLeft((errs) =>
-          ResponseErrorValidation("Validation Error", errs.join("/"))
-        ),
-        TE.fromEither
-      )
-    ),
-    TE.chain((res) =>
-      res.status === 201
-        ? TE.of(res.value)
-        : TE.left(
-            ResponseErrorValidation("Bad Input", "Error creating the user")
-          )
+          externalId
+        }
+      }),
+    toError
+  )
+    .mapLeft<IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized>(
+      err => {
+        console.log(`0: USER REGISTRY getUserByExternalId: ${err.message}`);
+        return toResponseErrorInternal(err);
+      }
     )
-  );
+    // Validation (Either) -> taskEither
+    .chain(_ =>
+      fromEither(_).mapLeft(errs => {
+        return toResponseErrorInternal(errorsToError(errs));
+      })
+    )
+    .chain(res => {
+      console.log("4" + res);
+      switch (res.status) {
+        case 200:
+          return taskEither.of(some({ id: res.value.id }));
+        case 404:
+          return taskEither.of(none);
+        case 401:
+          return fromLeft(ResponseErrorForbiddenNotAuthorized);
+        default:
+          return fromLeft(ResponseErrorForbiddenNotAuthorized);
+      }
+    });
+
+export const postUser = (
+         apiClient: ReturnType<UserRegistryAPIClient>,
+         user: user.SaveUserDto,
+         subscriptionKey: NonEmptyString
+       ): TaskEither<
+         | IResponseErrorInternal
+         | IResponseErrorValidation
+         | IResponseErrorForbiddenNotAuthorized,
+         User
+       > => {
+         return tryCatch(
+           () => {
+             return apiClient.createUser({
+               SubscriptionKey: subscriptionKey,
+               body: {
+                 ...user,
+               },
+             });
+           },
+           (err) => {
+             return toError(err);
+           }
+         )
+           .mapLeft<
+             | IResponseErrorInternal
+             | IResponseErrorValidation
+             | IResponseErrorForbiddenNotAuthorized
+           >((err) => {
+             return toResponseErrorInternal(err);
+           })
+           .chain((_) =>
+             fromEither(_).mapLeft((errs) => {
+               return ResponseErrorValidation(
+                 "Validation Error",
+                 errs.join("/")
+               );
+             })
+           )
+           .chain((res) => {
+             switch (res.status) {
+               case 201:
+                 return taskEither.of(res.value);
+               case 401:
+                 return fromLeft(ResponseErrorForbiddenNotAuthorized);
+               default:
+                 return fromLeft(
+                   ResponseErrorValidation(
+                     "Bad Input",
+                     "Error creating the user"
+                   )
+                 );
+             }
+           });
+       };
+
+       */
+
 export const blurUser = (
-  apiClient: ReturnType<UserRegistryAPIClient>,
-  user: UserSeed,
-  fiscalCode: FiscalCode,
-  subscriptionKey: NonEmptyString
-): TE.TaskEither<
-  IResponseErrorInternal | IResponseErrorValidation,
-  Option<Pick<User, "id">>
-> => {
-  return pipe(
-    getUserId(apiClient, fiscalCode, subscriptionKey),
-    TE.mapLeft((error) => toResponseErrorInternal(toError(error))),
-    TE.chain((maybeUserID) =>
-      pipe(
-        maybeUserID,
-        O.fold(
-          () =>
-            pipe(
-              postUser(apiClient, user, subscriptionKey),
-              TE.map((u) => some({ id: u.id }))
-            ),
-          (r) => TE.of(some(r))
-        )
-      )
-    )
-  );
-};
+         apiClient: ReturnType<UserRegistryAPIClient>,
+         pdvClinet: ReturnType<PersonalDatavaultAPIClient>,
+         user: SaveUserDto,
+         fiscalCode: FiscalCode,
+         subscriptionKey: NonEmptyString
+       ): TaskEither<
+         | IResponseErrorInternal
+         | IResponseErrorValidation
+         | IResponseErrorForbiddenNotAuthorized,
+         Option<Pick<UserId, "id">>
+       > => {
+
+              pdvClinet.saveUsingPATCH() 
+         return getUserId(apiClient, fiscalCode, subscriptionKey)
+           .mapLeft<
+             | IResponseErrorInternal
+             | IResponseErrorValidation
+             | IResponseErrorForbiddenNotAuthorized
+           >((error) => toResponseErrorInternal(toError(error)))
+           .chain((maybeUserID) =>
+             maybeUserID.foldL(
+               () =>
+                 postUser(apiClient, user, subscriptionKey).map((u) =>
+                   some({ id: u.id })
+                 ),
+               (r) => taskEither.of(some(r))
+             )
+           );
+       };

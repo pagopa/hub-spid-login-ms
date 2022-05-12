@@ -383,11 +383,11 @@
     yargs "^15.3.0"
 
 "@pagopa/openapi-codegen-ts@^10.0.6":
-  version "10.0.7"
-  resolved "https://registry.yarnpkg.com/@pagopa/openapi-codegen-ts/-/openapi-codegen-ts-10.0.7.tgz#c4135f2e04ded2e05d12a48d5401f0830bf6a8ea"
-  integrity sha512-HURd+vG0wN9/F61y1+nGmoQxjPnF2cTnmgmQyy4Vzym58/meaQx7kCPoOZ4Pr6C04ey5WkYPJ/pawCXfFfKDkA==
+  version "10.1.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/openapi-codegen-ts/-/openapi-codegen-ts-10.1.0.tgz#947712e362d12accb78dd789e5da566627d8c973"
+  integrity sha512-hWhpM0Vd07DnxUrZwRU/uSg78uSpwaTu4Q451+sWt48Mn+2AYdY130rL5o/wuiitmXBNEjz8LslLgR+qEy/KhQ==
   dependencies:
-    "@pagopa/ts-commons" "^10.0.0"
+    "@pagopa/ts-commons" "^10.3.0"
     fs-extra "^6.0.0"
     nunjucks "^3.2.3"
     prettier "^1.12.1"

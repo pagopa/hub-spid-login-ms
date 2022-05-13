@@ -1,5 +1,8 @@
 import nodeFetch from "node-fetch";
-import { Client, createClient } from "../../generated/userregistry-api/client";
+import {
+  Client,
+  createClient,
+} from "../../generated/pdv-userregistry-api/client";
 
 export function UserRegistryAPIClient(
   baseUrl: string,
@@ -9,7 +12,7 @@ export function UserRegistryAPIClient(
   return createClient({
     basePath: "",
     baseUrl,
-    fetchApi
+    fetchApi,
   });
 }
 

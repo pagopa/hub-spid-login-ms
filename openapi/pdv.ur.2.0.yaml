@@ -20,7 +20,7 @@ paths:
           application/json: ${write_request_template}
         responses:
           default:
-            statusCode: '200'
+            statusCode: "200"
       tags:
         - user
       summary: Upsert user
@@ -29,13 +29,13 @@ paths:
         not present create a new one
       operationId: saveUsingPATCH
       responses:
-        '200':
+        "200":
           description: OK
           schema:
-            $ref: '#/definitions/UserId'
-        '401':
+            $ref: "#/definitions/UserId"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
       security:
         - api_key: []
@@ -43,7 +43,7 @@ paths:
         - name: body
           in: body
           schema:
-            $ref: '#/definitions/SaveUserDto'
+            $ref: "#/definitions/SaveUserDto"
       consumes:
         - application/json
       produces:
@@ -63,7 +63,7 @@ paths:
           application/json: ${write_request_template}
         responses:
           default:
-            statusCode: '200'
+            statusCode: "200"
       tags:
         - user
       summary: Search user
@@ -76,24 +76,23 @@ paths:
             Field list. Subset of fields to be retrieved for the requested
             resource
           required: true
-          type: array
-          items:
-            $ref: "#/definitions/FieldListItem"
+          schema:
+            $ref: "#/definitions/FieldList"
           collectionFormat: multi
         - name: body
           in: body
           schema:
-            $ref: '#/definitions/UserSearchDto'
+            $ref: "#/definitions/UserSearchDto"
       responses:
-        '200':
+        "200":
           description: OK
           schema:
-            $ref: '#/definitions/UserResource'
-        '401':
+            $ref: "#/definitions/UserResource"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '404':
+        "404":
           description: Not Found
       security:
         - api_key: []
@@ -113,7 +112,7 @@ paths:
           integration.request.path.id: method.request.path.id
         responses:
           default:
-            statusCode: '200'
+            statusCode: "200"
       tags:
         - user
       summary: Find user
@@ -132,20 +131,19 @@ paths:
             Field list. Subset of fields to be retrieved for the requested
             resource
           required: true
-          type: array
-          schema: 
-            $ref: "#/definitions/FieldListItem"
+          schema:
+            $ref: "#/definitions/FieldList"
           collectionFormat: multi
       responses:
-        '200':
+        "200":
           description: OK
           schema:
-            $ref: '#/definitions/UserResource'
-        '401':
+            $ref: "#/definitions/UserResource"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '404':
+        "404":
           description: Not Found
       security:
         - api_key: []
@@ -162,7 +160,7 @@ paths:
           integration.request.path.id: method.request.path.id
         responses:
           default:
-            statusCode: '200'
+            statusCode: "200"
       tags:
         - user
       summary: Delete user
@@ -176,11 +174,11 @@ paths:
           format: uuid
           type: string
       responses:
-        '204':
+        "204":
           description: No Content
-        '401':
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
       security:
         - api_key: []
@@ -195,7 +193,7 @@ paths:
           integration.request.path.id: method.request.path.id
         responses:
           default:
-            statusCode: '200'
+            statusCode: "200"
       tags:
         - user
       summary: Update user
@@ -213,21 +211,25 @@ paths:
         - name: body
           in: body
           schema:
-            $ref: '#/definitions/MutableUserFieldsDto'
+            $ref: "#/definitions/MutableUserFieldsDto"
       responses:
-        '204':
+        "204":
           description: No Content
-        '401':
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
       security:
         - api_key: []
       consumes:
         - application/json
-swagger: '2.0'
+swagger: "2.0"
 basePath: /$%7Buri%7D/%7BbasePath%7D
 definitions:
+  FieldList:
+    type: array
+    items:
+      $ref: "#/definitions/FieldListItem"
   FieldListItem:
     type: string
     enum:
@@ -276,20 +278,20 @@ definitions:
     properties:
       birthDate:
         description: User date of birth
-        $ref: '#/definitions/CertifiableFieldResourceOfLocalDate'
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
       email:
         description: User email
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       familyName:
         description: User family name
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       name:
         description: User name
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       workContacts:
         type: object
         additionalProperties:
-          $ref: '#/definitions/WorkContactResource'
+          $ref: "#/definitions/WorkContactResource"
         description: User work contacts
   SaveUserDto:
     title: SaveUserDto
@@ -299,23 +301,23 @@ definitions:
     properties:
       birthDate:
         description: User date of birth
-        $ref: '#/definitions/CertifiableFieldResourceOfLocalDate'
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
       email:
         description: User email
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       familyName:
         description: User family name
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       fiscalCode:
         type: string
         description: User fiscal code
       name:
         description: User name
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       workContacts:
         type: object
         additionalProperties:
-          $ref: '#/definitions/WorkContactResource'
+          $ref: "#/definitions/WorkContactResource"
         description: User work contacts
   UserId:
     title: UserId
@@ -335,13 +337,13 @@ definitions:
     properties:
       birthDate:
         description: User date of birth
-        $ref: '#/definitions/CertifiableFieldResourceOfLocalDate'
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
       email:
         description: User email
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       familyName:
         description: User family name
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       fiscalCode:
         type: string
         description: User fiscal code
@@ -351,11 +353,11 @@ definitions:
         format: uuid
       name:
         description: User name
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
       workContacts:
         type: object
         additionalProperties:
-          $ref: '#/definitions/WorkContactResource'
+          $ref: "#/definitions/WorkContactResource"
         description: User work contacts
   UserSearchDto:
     title: UserSearchDto
@@ -372,7 +374,7 @@ definitions:
     properties:
       email:
         description: User work email
-        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
 securityDefinitions:
   api_key:
     type: apiKey

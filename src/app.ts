@@ -43,7 +43,6 @@ import {
 import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 import { createBlobService } from "azure-storage";
 import * as cors from "cors";
-import { CertificationEnum } from "../generated/userregistry-api/Certification";
 import { AdeAPIClient } from "./clients/ade";
 import { UserRegistryAPIClient } from "./clients/userregistry_client";
 import { healthcheckHandler } from "./handlers/general";
@@ -189,15 +188,8 @@ const acs: AssertionConsumerServiceT = async (user) =>
             blurUser(
               UserRegistryAPIClient(config.USER_REGISTRY_URL),
               withoutUndefinedValues({
-                certification: CertificationEnum.SPID,
-                externalId: _.fiscal_number,
-                extras: {
-                  email: _.email,
-                },
-                name: _.name,
-                surname: _.family_name,
+                fiscalCode: _.fiscal_number,
               }),
-              _.fiscal_number,
               config.USER_REGISTRY_API_KEY
             ),
             TE.map((maybeUid) => ({

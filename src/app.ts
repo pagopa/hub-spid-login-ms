@@ -53,6 +53,7 @@ import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
+import { CertificationEnum } from "../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
 
 const config = getConfigOrThrow();
 
@@ -189,6 +190,24 @@ const acs: AssertionConsumerServiceT = async (user) =>
               UserRegistryAPIClient(config.USER_REGISTRY_URL),
               withoutUndefinedValues({
                 fiscalCode: _.fiscal_number,
+                ...(_.email && {
+                  email: {
+                    certification: CertificationEnum.SPID,
+                    value: _.email,
+                  },
+                }),
+                ...(_.family_name && {
+                  familyName: {
+                    certification: CertificationEnum.SPID,
+                    value: _.family_name,
+                  },
+                }),
+                ...(_.name && {
+                  name: {
+                    certification: CertificationEnum.SPID,
+                    value: _.name,
+                  },
+                }),
               }),
               config.USER_REGISTRY_API_KEY
             ),

@@ -1,0 +1,381 @@
+info:
+  title: pdv-ms-user-registry
+  description: User Registry API documentation
+  version: 1.0-SNAPSHOT
+tags:
+  - name: user
+    description: User operations
+paths:
+  /users:
+    patch:
+      x-amazon-apigateway-integration:
+        type: HTTP
+        httpMethod: PATCH
+        uri: ${uri}/users
+        connectionType: VPC_LINK
+        connectionId: ${connection_id}
+        requestParameters: {}
+        passthroughBehavior: WHEN_NO_TEMPLATES
+        requestTemplates:
+          application/json: ${write_request_template}
+        responses:
+          default:
+            statusCode: '200'
+      tags:
+        - user
+      summary: Upsert user
+      description: >-
+        Update the given subset fields of an existing user by external id, if
+        not present create a new one
+      operationId: saveUsingPATCH
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/UserId'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      security:
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: '#/definitions/SaveUserDto'
+      consumes:
+        - application/json
+      produces:
+        - application/json
+  /users/search:
+    post:
+      x-amazon-apigateway-integration:
+        type: HTTP
+        httpMethod: POST
+        uri: ${uri}/users/search
+        connectionType: VPC_LINK
+        connectionId: ${connection_id}
+        passthroughBehavior: WHEN_NO_TEMPLATES
+        requestParameters:
+          integration.request.querystring.fl: method.request.multivaluequerystring.fl
+        requestTemplates:
+          application/json: ${write_request_template}
+        responses:
+          default:
+            statusCode: '200'
+      tags:
+        - user
+      summary: Search user
+      description: Search a user given its fiscal code
+      operationId: searchUsingPOST
+      parameters:
+        - name: fl
+          in: query
+          description: >-
+            Field list. Subset of fields to be retrieved for the requested
+            resource
+          required: true
+          type: array
+          items:
+            $ref: "#/definitions/FieldListItem"
+          collectionFormat: multi
+        - name: body
+          in: body
+          schema:
+            $ref: '#/definitions/UserSearchDto'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/UserResource'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - api_key: []
+      consumes:
+        - application/json
+      produces:
+        - application/json
+  /users/{id}:
+    get:
+      x-amazon-apigateway-integration:
+        type: HTTP_PROXY
+        httpMethod: GET
+        uri: ${uri}/users/{id}
+        connectionType: VPC_LINK
+        connectionId: ${connection_id}
+        requestParameters:
+          integration.request.path.id: method.request.path.id
+        responses:
+          default:
+            statusCode: '200'
+      tags:
+        - user
+      summary: Find user
+      description: Retrieve the user by its internal id
+      operationId: findByIdUsingGET
+      parameters:
+        - name: id
+          in: path
+          description: User internal id
+          required: true
+          format: uuid
+          type: string
+        - name: fl
+          in: query
+          description: >-
+            Field list. Subset of fields to be retrieved for the requested
+            resource
+          required: true
+          type: array
+          schema: 
+            $ref: "#/definitions/FieldListItem"
+          collectionFormat: multi
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/UserResource'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - api_key: []
+      produces:
+        - application/json
+    delete:
+      x-amazon-apigateway-integration:
+        type: HTTP_PROXY
+        httpMethod: DELETE
+        uri: ${uri}/users/{id}
+        connectionType: VPC_LINK
+        connectionId: ${connection_id}
+        requestParameters:
+          integration.request.path.id: method.request.path.id
+        responses:
+          default:
+            statusCode: '200'
+      tags:
+        - user
+      summary: Delete user
+      description: Delete the user by its internal id
+      operationId: deleteByIdUsingDELETE
+      parameters:
+        - name: id
+          in: path
+          description: User internal id
+          required: true
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      security:
+        - api_key: []
+    patch:
+      x-amazon-apigateway-integration:
+        type: HTTP_PROXY
+        httpMethod: PATCH
+        uri: ${uri}/users/{id}
+        connectionType: VPC_LINK
+        connectionId: ${connection_id}
+        requestParameters:
+          integration.request.path.id: method.request.path.id
+        responses:
+          default:
+            statusCode: '200'
+      tags:
+        - user
+      summary: Update user
+      description: >-
+        Update the given subset fields of an existing user by its internal id,
+        if not present an error is returned
+      operationId: updateUsingPATCH
+      parameters:
+        - name: id
+          in: path
+          description: User internal id
+          required: true
+          format: uuid
+          type: string
+        - name: body
+          in: body
+          schema:
+            $ref: '#/definitions/MutableUserFieldsDto'
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      security:
+        - api_key: []
+      consumes:
+        - application/json
+swagger: '2.0'
+basePath: /$%7Buri%7D/%7BbasePath%7D
+definitions:
+  FieldListItem:
+    type: string
+    enum:
+      - birthDate
+      - email
+      - familyName
+      - fiscalCode
+      - name
+      - workContacts
+  CertifiableFieldResourceOfLocalDate:
+    title: CertifiableFieldResourceOfLocalDate
+    required:
+      - certification
+      - value
+    type: object
+    properties:
+      certification:
+        type: string
+        description: Certified source of information
+        enum:
+          - NONE
+          - SPID
+      value:
+        type: string
+        description: Field value
+        format: date
+  CertifiableFieldResourceOfstring:
+    title: CertifiableFieldResourceOfstring
+    required:
+      - certification
+      - value
+    type: object
+    properties:
+      certification:
+        type: string
+        description: Certified source of information
+        enum:
+          - NONE
+          - SPID
+      value:
+        type: string
+        description: Field value
+  MutableUserFieldsDto:
+    title: MutableUserFieldsDto
+    type: object
+    properties:
+      birthDate:
+        description: User date of birth
+        $ref: '#/definitions/CertifiableFieldResourceOfLocalDate'
+      email:
+        description: User email
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      familyName:
+        description: User family name
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      name:
+        description: User name
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      workContacts:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/WorkContactResource'
+        description: User work contacts
+  SaveUserDto:
+    title: SaveUserDto
+    required:
+      - fiscalCode
+    type: object
+    properties:
+      birthDate:
+        description: User date of birth
+        $ref: '#/definitions/CertifiableFieldResourceOfLocalDate'
+      email:
+        description: User email
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      familyName:
+        description: User family name
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      fiscalCode:
+        type: string
+        description: User fiscal code
+      name:
+        description: User name
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      workContacts:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/WorkContactResource'
+        description: User work contacts
+  UserId:
+    title: UserId
+    required:
+      - id
+    type: object
+    properties:
+      id:
+        type: string
+        description: User internal id
+        format: uuid
+  UserResource:
+    title: UserResource
+    required:
+      - id
+    type: object
+    properties:
+      birthDate:
+        description: User date of birth
+        $ref: '#/definitions/CertifiableFieldResourceOfLocalDate'
+      email:
+        description: User email
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      familyName:
+        description: User family name
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      fiscalCode:
+        type: string
+        description: User fiscal code
+      id:
+        type: string
+        description: User internal id
+        format: uuid
+      name:
+        description: User name
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+      workContacts:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/WorkContactResource'
+        description: User work contacts
+  UserSearchDto:
+    title: UserSearchDto
+    required:
+      - fiscalCode
+    type: object
+    properties:
+      fiscalCode:
+        type: string
+        description: User fiscal code
+  WorkContactResource:
+    title: WorkContactResource
+    type: object
+    properties:
+      email:
+        description: User work email
+        $ref: '#/definitions/CertifiableFieldResourceOfstring'
+securityDefinitions:
+  api_key:
+    type: apiKey
+    name: Ocp-Apim-Subscription-Key
+    in: header
+x-components: {}

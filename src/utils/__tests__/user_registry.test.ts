@@ -1,9 +1,9 @@
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { UserRegistryAPIClient } from "../../clients/userregistry_client";
 import { blurUser } from "../user_registry";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import { SaveUserDto } from "../../../generated/pdv-userregistry-api/SaveUserDto";
+import { PersonalDatavaultAPIClient } from "../../clients/pdv_client";
 
 const aUserId = "1000" as NonEmptyString;
 const apiKey = "afakeapikey" as NonEmptyString;
@@ -34,16 +34,16 @@ const saveUsingPATCHMock = jest.fn().mockImplementation(async () =>
     value: aMockValidId,
   })
 );
-const userRegistryApiClientMock = ({
+const personalDatavaultAPIClientMock = ({
   createUser: createUserMock,
   getUserByExternalId: getUserByExternalIdMock,
   saveUsingPATCH: saveUsingPATCHMock,
-} as unknown) as ReturnType<UserRegistryAPIClient>;
+} as unknown) as ReturnType<PersonalDatavaultAPIClient>;
 
 describe("UserRegistry#blurUser", () => {
   it("should return an User UID from getUserId - Right path", async () => {
     const response = await blurUser(
-      userRegistryApiClientMock,
+      personalDatavaultAPIClientMock,
       aMockUser,
       apiKey
     )();
@@ -58,7 +58,7 @@ describe("UserRegistry#blurUser", () => {
       E.right({ status: 404, title: "Not Found" })
     );
     const response = await blurUser(
-      userRegistryApiClientMock,
+      personalDatavaultAPIClientMock,
       aMockUser,
       apiKey
     )();
@@ -79,7 +79,7 @@ describe("UserRegistry#blurUser", () => {
       })
     );
     const response = await blurUser(
-      userRegistryApiClientMock,
+      personalDatavaultAPIClientMock,
       aMockUser,
       apiKey
     )();

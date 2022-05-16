@@ -378,6 +378,6 @@ definitions:
 securityDefinitions:
   api_key:
     type: apiKey
-    name: Ocp-Apim-Subscription-Key
+    name: x-api-key
     in: header
 x-components: {}

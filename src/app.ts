@@ -44,7 +44,6 @@ import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 import { createBlobService } from "azure-storage";
 import * as cors from "cors";
 import { AdeAPIClient } from "./clients/ade";
-import { UserRegistryAPIClient } from "./clients/userregistry_client";
 import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
@@ -54,6 +53,7 @@ import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
 import { CertificationEnum } from "../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
+import { PersonalDatavaultAPIClient } from "./clients/pdv_client";
 
 const config = getConfigOrThrow();
 
@@ -187,7 +187,7 @@ const acs: AssertionConsumerServiceT = async (user) =>
       return config.ENABLE_USER_REGISTRY
         ? pipe(
             blurUser(
-              UserRegistryAPIClient(config.USER_REGISTRY_URL),
+              PersonalDatavaultAPIClient(config.USER_REGISTRY_URL),
               withoutUndefinedValues({
                 fiscalCode: _.fiscal_number,
                 ...(_.email && {

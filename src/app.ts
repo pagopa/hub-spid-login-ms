@@ -109,8 +109,7 @@ const serviceProviderConfig: IServiceProviderConfig = {
     ),
     name: config.REQUIRED_ATTRIBUTES_SERVICE_NAME,
   },
-  spidCieUrl:
-    "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata",
+  spidCieUrl: config.CIE_PREPROD,
   spidTestEnvUrl: config.SPID_TESTENV_URL,
   spidValidatorUrl: config.SPID_VALIDATOR_URL,
   strictResponseValidation:

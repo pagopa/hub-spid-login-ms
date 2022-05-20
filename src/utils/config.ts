@@ -143,6 +143,16 @@ export const JWTParams = t.union([
 ]);
 export type JWTParams = t.TypeOf<typeof JWTParams>;
 
+export const CIEParams = t.interface({
+  CIE_PREPROD: NonEmptyString,
+  CIE_PROD: NonEmptyString,
+});
+
+export type CIEParams = t.TypeOf<typeof CIEParams>;
+
+export const CIE_SPID_Params = t.intersection([CIEParams, SpidParams]);
+export type CIE_SPID_Params = t.TypeOf<typeof CIE_SPID_Params>;
+
 const AttributeAuthorityParams = t.union([
   t.interface({
     ADE_AA_API_ENDPOINT: NonEmptyString,
@@ -169,7 +179,7 @@ export const IConfig = t.intersection([
     isProduction: t.boolean,
   }),
   RedisParams,
-  SpidParams,
+  CIE_SPID_Params,
   JWTParams,
   AttributeAuthorityParams,
 ]);

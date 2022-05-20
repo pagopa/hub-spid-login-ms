@@ -1,383 +1,270 @@
+---
+swagger: "2.0"
 info:
-  title: pdv-ms-user-registry
-  description: User Registry API documentation
-  version: 1.0-SNAPSHOT
-tags:
-  - name: user
-    description: User operations
+  description: "User Registry API documentation"
+  version: "1.0-SNAPSHOT"
+  title: "pdv-u-user-registry-api"
+host: "api.uat.pdv.pagopa.it"
+basePath: "/user-registry/v1"
+schemes:
+- "https"
 paths:
   /users:
     patch:
-      x-amazon-apigateway-integration:
-        type: HTTP
-        httpMethod: PATCH
-        uri: ${uri}/users
-        connectionType: VPC_LINK
-        connectionId: ${connection_id}
-        requestParameters: {}
-        passthroughBehavior: WHEN_NO_TEMPLATES
-        requestTemplates:
-          application/json: ${write_request_template}
-        responses:
-          default:
-            statusCode: "200"
-      tags:
-        - user
-      summary: Upsert user
-      description: >-
-        Update the given subset fields of an existing user by external id, if
-        not present create a new one
-      operationId: saveUsingPATCH
+      operationId: "saveUsingPATCH"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "SaveUserDto"
+        required: true
+        schema:
+          $ref: "#/definitions/SaveUserDto"
       responses:
         "200":
-          description: OK
+          description: "200 response"
           schema:
             $ref: "#/definitions/UserId"
         "401":
-          description: Unauthorized
+          description: "401 response"
         "403":
-          description: Forbidden
+          description: "403 response"
+        "429":
+          description: "too many request"
       security:
-        - api_key: []
-      parameters:
-        - name: body
-          in: body
-          schema:
-            $ref: "#/definitions/SaveUserDto"
-      consumes:
-        - application/json
-      produces:
-        - application/json
+      - api_key: []
   /users/search:
     post:
-      x-amazon-apigateway-integration:
-        type: HTTP
-        httpMethod: POST
-        uri: ${uri}/users/search
-        connectionType: VPC_LINK
-        connectionId: ${connection_id}
-        passthroughBehavior: WHEN_NO_TEMPLATES
-        requestParameters:
-          integration.request.querystring.fl: method.request.multivaluequerystring.fl
-        requestTemplates:
-          application/json: ${write_request_template}
-        responses:
-          default:
-            statusCode: "200"
-      tags:
-        - user
-      summary: Search user
-      description: Search a user given its fiscal code
-      operationId: searchUsingPOST
+      operationId: "searchUsingPOST"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
       parameters:
-        - name: fl
-          in: query
-          description: >-
-            Field list. Subset of fields to be retrieved for the requested
-            resource
-          required: true
-          schema:
-            $ref: "#/definitions/FieldList"
-          collectionFormat: multi
-        - name: body
-          in: body
-          schema:
-            $ref: "#/definitions/UserSearchDto"
+      - name: "fl"
+        in: "query"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "UserSearchDto"
+        required: true
+        schema:
+          $ref: "#/definitions/UserSearchDto"
       responses:
         "200":
-          description: OK
+          description: "200 response"
           schema:
             $ref: "#/definitions/UserResource"
         "401":
-          description: Unauthorized
+          description: "401 response"
         "403":
-          description: Forbidden
+          description: "403 response"
         "404":
-          description: Not Found
+          description: "404 response"
+        "429":
+          description: "too many request"
       security:
-        - api_key: []
-      consumes:
-        - application/json
-      produces:
-        - application/json
+      - api_key: []
   /users/{id}:
     get:
-      x-amazon-apigateway-integration:
-        type: HTTP_PROXY
-        httpMethod: GET
-        uri: ${uri}/users/{id}
-        connectionType: VPC_LINK
-        connectionId: ${connection_id}
-        requestParameters:
-          integration.request.path.id: method.request.path.id
-        responses:
-          default:
-            statusCode: "200"
-      tags:
-        - user
-      summary: Find user
-      description: Retrieve the user by its internal id
-      operationId: findByIdUsingGET
+      operationId: "findByIdUsingGET"
+      produces:
+      - "application/json"
       parameters:
-        - name: id
-          in: path
-          description: User internal id
-          required: true
-          format: uuid
-          type: string
-        - name: fl
-          in: query
-          description: >-
-            Field list. Subset of fields to be retrieved for the requested
-            resource
-          required: true
-          schema:
-            $ref: "#/definitions/FieldList"
-          collectionFormat: multi
+      - name: "fl"
+        in: "query"
+        required: true
+        type: "string"
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
       responses:
         "200":
-          description: OK
+          description: "200 response"
           schema:
             $ref: "#/definitions/UserResource"
         "401":
-          description: Unauthorized
+          description: "401 response"
         "403":
-          description: Forbidden
+          description: "403 response"
         "404":
-          description: Not Found
+          description: "404 response"
+        "429":
+          description: "too many request"
       security:
-        - api_key: []
-      produces:
-        - application/json
+      - api_key: []
     delete:
-      x-amazon-apigateway-integration:
-        type: HTTP_PROXY
-        httpMethod: DELETE
-        uri: ${uri}/users/{id}
-        connectionType: VPC_LINK
-        connectionId: ${connection_id}
-        requestParameters:
-          integration.request.path.id: method.request.path.id
-        responses:
-          default:
-            statusCode: "200"
-      tags:
-        - user
-      summary: Delete user
-      description: Delete the user by its internal id
-      operationId: deleteByIdUsingDELETE
+      operationId: "deleteByIdUsingDELETE"
       parameters:
-        - name: id
-          in: path
-          description: User internal id
-          required: true
-          format: uuid
-          type: string
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
       responses:
-        "204":
-          description: No Content
         "401":
-          description: Unauthorized
+          description: "401 response"
+        "204":
+          description: "204 response"
         "403":
-          description: Forbidden
+          description: "403 response"
+        "429":
+          description: "too many request"
       security:
-        - api_key: []
+      - api_key: []
     patch:
-      x-amazon-apigateway-integration:
-        type: HTTP_PROXY
-        httpMethod: PATCH
-        uri: ${uri}/users/{id}
-        connectionType: VPC_LINK
-        connectionId: ${connection_id}
-        requestParameters:
-          integration.request.path.id: method.request.path.id
-        responses:
-          default:
-            statusCode: "200"
-      tags:
-        - user
-      summary: Update user
-      description: >-
-        Update the given subset fields of an existing user by its internal id,
-        if not present an error is returned
-      operationId: updateUsingPATCH
-      parameters:
-        - name: id
-          in: path
-          description: User internal id
-          required: true
-          format: uuid
-          type: string
-        - name: body
-          in: body
-          schema:
-            $ref: "#/definitions/MutableUserFieldsDto"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          description: Unauthorized
-        "403":
-          description: Forbidden
-      security:
-        - api_key: []
+      operationId: "updateUsingPATCH"
       consumes:
-        - application/json
-swagger: "2.0"
-basePath: /$%7Buri%7D/%7BbasePath%7D
-definitions:
-  FieldList:
-    type: array
-    items:
-      $ref: "#/definitions/FieldListItem"
-  FieldListItem:
-    type: string
-    enum:
-      - birthDate
-      - email
-      - familyName
-      - fiscalCode
-      - name
-      - workContacts
-  CertifiableFieldResourceOfLocalDate:
-    title: CertifiableFieldResourceOfLocalDate
-    required:
-      - certification
-      - value
-    type: object
-    properties:
-      certification:
-        type: string
-        description: Certified source of information
-        enum:
-          - NONE
-          - SPID
-      value:
-        type: string
-        description: Field value
-        format: date
-  CertifiableFieldResourceOfstring:
-    title: CertifiableFieldResourceOfstring
-    required:
-      - certification
-      - value
-    type: object
-    properties:
-      certification:
-        type: string
-        description: Certified source of information
-        enum:
-          - NONE
-          - SPID
-      value:
-        type: string
-        description: Field value
-  MutableUserFieldsDto:
-    title: MutableUserFieldsDto
-    type: object
-    properties:
-      birthDate:
-        description: User date of birth
-        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
-      email:
-        description: User email
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      familyName:
-        description: User family name
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      name:
-        description: User name
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      workContacts:
-        type: object
-        additionalProperties:
-          $ref: "#/definitions/WorkContactResource"
-        description: User work contacts
-  SaveUserDto:
-    title: SaveUserDto
-    required:
-      - fiscalCode
-    type: object
-    properties:
-      birthDate:
-        description: User date of birth
-        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
-      email:
-        description: User email
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      familyName:
-        description: User family name
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      fiscalCode:
-        type: string
-        description: User fiscal code
-      name:
-        description: User name
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      workContacts:
-        type: object
-        additionalProperties:
-          $ref: "#/definitions/WorkContactResource"
-        description: User work contacts
-  UserId:
-    title: UserId
-    required:
-      - id
-    type: object
-    properties:
-      id:
-        type: string
-        description: User internal id
-        format: uuid
-  UserResource:
-    title: UserResource
-    required:
-      - id
-    type: object
-    properties:
-      birthDate:
-        description: User date of birth
-        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
-      email:
-        description: User email
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      familyName:
-        description: User family name
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      fiscalCode:
-        type: string
-        description: User fiscal code
-      id:
-        type: string
-        description: User internal id
-        format: uuid
-      name:
-        description: User name
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
-      workContacts:
-        type: object
-        additionalProperties:
-          $ref: "#/definitions/WorkContactResource"
-        description: User work contacts
-  UserSearchDto:
-    title: UserSearchDto
-    required:
-      - fiscalCode
-    type: object
-    properties:
-      fiscalCode:
-        type: string
-        description: User fiscal code
-  WorkContactResource:
-    title: WorkContactResource
-    type: object
-    properties:
-      email:
-        description: User work email
-        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "MutableUserFieldsDto"
+        required: true
+        schema:
+          $ref: "#/definitions/MutableUserFieldsDto"
+      responses:
+        "401":
+          description: "401 response"
+        "204":
+          description: "204 response"
+        "403":
+          description: "403 response"
+        "429":
+          description: "too many request"
+      security:
+      - api_key: []
 securityDefinitions:
   api_key:
-    type: apiKey
-    name: x-api-key
-    in: header
-x-components: {}
+    type: "apiKey"
+    name: "x-api-key"
+    in: "header"
+definitions:
+  UserSearchDto:
+    type: "object"
+    required:
+    - "fiscalCode"
+    properties:
+      fiscalCode:
+        type: "string"
+        description: "User fiscal code"
+    title: "UserSearchDto"
+  WorkContactResource:
+    type: "object"
+    properties:
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+    title: "WorkContactResource"
+  CertifiableFieldResourceOfstring:
+    type: "object"
+    required:
+    - "certification"
+    - "value"
+    properties:
+      certification:
+        type: "string"
+        description: "Certified source of information"
+        enum:
+        - "NONE"
+        - "SPID"
+      value:
+        type: "string"
+        description: "Field value"
+    title: "CertifiableFieldResourceOfstring"
+  UserId:
+    type: "object"
+    required:
+    - "id"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "User internal id"
+    title: "UserId"
+  MutableUserFieldsDto:
+    type: "object"
+    properties:
+      birthDate:
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      familyName:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      name:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      workContacts:
+        type: "object"
+        description: "User work contacts"
+        additionalProperties:
+          $ref: "#/definitions/WorkContactResource"
+    title: "MutableUserFieldsDto"
+  CertifiableFieldResourceOfLocalDate:
+    type: "object"
+    required:
+    - "certification"
+    - "value"
+    properties:
+      certification:
+        type: "string"
+        description: "Certified source of information"
+        enum:
+        - "NONE"
+        - "SPID"
+      value:
+        type: "string"
+        format: "date"
+        description: "Field value"
+    title: "CertifiableFieldResourceOfLocalDate"
+  UserResource:
+    type: "object"
+    required:
+    - "id"
+    properties:
+      birthDate:
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      familyName:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      fiscalCode:
+        type: "string"
+        description: "User fiscal code"
+      id:
+        type: "string"
+        format: "uuid"
+        description: "User internal id"
+      name:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      workContacts:
+        type: "object"
+        description: "User work contacts"
+        additionalProperties:
+          $ref: "#/definitions/WorkContactResource"
+    title: "UserResource"
+  SaveUserDto:
+    type: "object"
+    required:
+    - "fiscalCode"
+    properties:
+      birthDate:
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      familyName:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      fiscalCode:
+        type: "string"
+        description: "User fiscal code"
+      name:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      workContacts:
+        type: "object"
+        description: "User work contacts"
+        additionalProperties:
+          $ref: "#/definitions/WorkContactResource"
+    title: "SaveUserDto"

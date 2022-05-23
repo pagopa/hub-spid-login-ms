@@ -109,7 +109,7 @@ const serviceProviderConfig: IServiceProviderConfig = {
     ),
     name: config.REQUIRED_ATTRIBUTES_SERVICE_NAME,
   },
-  spidCieUrl: config.CIE_PREPROD,
+  spidCieUrl: config.CIE_URL,
   spidTestEnvUrl: config.SPID_TESTENV_URL,
   spidValidatorUrl: config.SPID_VALIDATOR_URL,
   strictResponseValidation:

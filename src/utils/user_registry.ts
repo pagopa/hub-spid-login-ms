@@ -47,13 +47,19 @@ export const blurUser = (
       switch (res.status) {
         case 200:
           return TE.of(some({ id: res.value.id }));
-        case 401:
-          return TE.left<ErrorResponses>(ResponseErrorForbiddenNotAuthorized);
+        case 400:
+          return TE.left<ErrorResponses>(
+            ResponseErrorValidation("Bad Input or Response", "Error internal")
+          );
         case 403:
           return TE.left<ErrorResponses>(ResponseErrorForbiddenNotAuthorized);
-        case 429:
+        case 409:
           return TE.left<ErrorResponses>(
             ResponseErrorInternal("Error internal")
+          );
+        case 429:
+          return TE.left<ErrorResponses>(
+            ResponseErrorInternal("Error calling PDV subsystem")
           );
       }
     })

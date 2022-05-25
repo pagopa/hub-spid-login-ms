@@ -27,10 +27,12 @@ paths:
           description: "200 response"
           schema:
             $ref: "#/definitions/UserId"
-        "401":
-          description: "401 response"
+        "400":
+          description: "400 response"
         "403":
           description: "403 response"
+        "409":
+          description: "409 response"
         "429":
           description: "too many request"
       security:
@@ -57,8 +59,8 @@ paths:
           description: "200 response"
           schema:
             $ref: "#/definitions/UserResource"
-        "401":
-          description: "401 response"
+        "400":
+          description: "400 response"
         "403":
           description: "403 response"
         "404":
@@ -86,8 +88,8 @@ paths:
           description: "200 response"
           schema:
             $ref: "#/definitions/UserResource"
-        "401":
-          description: "401 response"
+        "400":
+          description: "400 response"
         "403":
           description: "403 response"
         "404":
@@ -104,10 +106,10 @@ paths:
         required: true
         type: "string"
       responses:
-        "401":
-          description: "401 response"
         "204":
           description: "204 response"
+        "400":
+          description: "400 response"
         "403":
           description: "403 response"
         "429":
@@ -129,12 +131,14 @@ paths:
         schema:
           $ref: "#/definitions/MutableUserFieldsDto"
       responses:
-        "401":
-          description: "401 response"
         "204":
           description: "204 response"
+        "400":
+          description: "400 response"
         "403":
           description: "403 response"
+        "409":
+          description: "409 response"
         "429":
           description: "too many request"
       security:

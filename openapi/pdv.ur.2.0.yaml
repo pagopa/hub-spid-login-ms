@@ -2,9 +2,9 @@
 swagger: "2.0"
 info:
   description: "User Registry API documentation"
-  version: "1.0-SNAPSHOT"
+  version: "1.0"
   title: "pdv-u-user-registry-api"
-host: "api.uat.pdv.pagopa.it"
+host: "api.pdv.pagopa.it"
 basePath: "/user-registry/v1"
 schemes:
 - "https"

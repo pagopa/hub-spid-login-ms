@@ -37,8 +37,8 @@ export const getUserCompanies = (
 
     TE.chain((arr) => {
       return arr.length > 0
-        ? TE.left(ResponseErrorForbiddenNotAuthorized)
-        : TE.of(arr);
+        ? TE.of(arr)
+        : TE.left(ResponseErrorForbiddenNotAuthorized);
     }),
 
     TE.map((d) =>

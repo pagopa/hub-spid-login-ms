@@ -44,7 +44,8 @@ export const blurUser = (
       )
     ),
     TE.chainW((res) => {
-      switch (res.status) {
+      const status = res.status;
+      switch (status) {
         case 200:
           return TE.of(some({ id: res.value.id }));
         case 400:
@@ -61,10 +62,14 @@ export const blurUser = (
           return TE.left<ErrorResponses>(
             ResponseErrorInternal("Error calling PDV subsystem")
           );
-        default: 
+        default: {
+          const _: never = status;
           return TE.left<ErrorResponses>(
-            ResponseErrorInternal("Unespected Response from PDV subsystem")
+            ResponseErrorInternal(
+              `Unespected Response from PDV subsystem: '${status}'`
+            )
           );
+        }
       }
     })
   );

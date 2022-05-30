@@ -61,6 +61,10 @@ export const blurUser = (
           return TE.left<ErrorResponses>(
             ResponseErrorInternal("Error calling PDV subsystem")
           );
+        default: 
+          return TE.left<ErrorResponses>(
+            ResponseErrorInternal("Unespected Response from PDV subsystem")
+          );
       }
     })
   );

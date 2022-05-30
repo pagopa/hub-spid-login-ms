@@ -1,13 +1,12 @@
 import { ResponseErrorForbiddenNotAuthorized } from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
-import { flow, pipe } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 
 import { AdeAPIClient } from "../clients/ade";
 import { UserCompanies, UserCompany } from "../types/user";
 import { errorsToError, toResponseErrorInternal } from "./conversions";
-import { fromPredicate } from "fp-ts/lib/FromEither";
 
 export const getUserCompanies = (
   apiClient: ReturnType<AdeAPIClient>,

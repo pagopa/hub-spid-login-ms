@@ -1,6 +1,6 @@
 {
   "name": "@italia/spid-express",
-  "version": "2.0.3",
+  "version": "2.0.5",
   "description": "SPID (Italian Public Digital Identity System) middleware for Express",
   "repository": {
     "type": "git",
@@ -51,7 +51,7 @@
     "@types/yargs": "^15.0.4",
     "auto-changelog": "^2.2.1",
     "danger": "^7.0.0",
-    "danger-plugin-digitalcitizenship": "*",
+    "danger-plugin-digitalcitizenship": "^1.0.0",
     "italia-tslint-rules": "*",
     "jest": "^24.8.0",
     "mock-redis-client": "^0.91.13",

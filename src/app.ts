@@ -95,8 +95,7 @@ const getContactPersons = () =>
 const serviceProviderConfig: IServiceProviderConfig = {
   contacts: getContactPersons(),
 
-  IDPMetadataUrl:
-    "https://registry.spid.gov.it/metadata/idp/spid-entities-idps.xml",
+  IDPMetadataUrl: config.IDP_METADATA_URL,
   organization: {
     URL: config.ORG_URL,
     displayName: config.ORG_DISPLAY_NAME,

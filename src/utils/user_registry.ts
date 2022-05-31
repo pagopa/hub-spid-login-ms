@@ -15,6 +15,7 @@ import { pipe } from "fp-ts/lib/function";
 
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
 import { PersonalDatavaultAPIClient } from "../clients/pdv_client";
 import { toResponseErrorInternal } from "./conversions";
 
@@ -45,9 +46,15 @@ export const blurUser = (
     ),
     TE.chainW((res) => {
       const status = res.status;
+      const value = res.value;
       switch (status) {
         case 200:
-          return TE.of(some({ id: res.value.id }));
+          return pipe(
+            value,
+            O.fromNullable,
+            O.map(responeValue => some({ id: responeValue.id })),
+            O.fold(()=>TE.left<ErrorResponses>(ResponseErrorInternal("Error reading response data")), (data) => TE.of(data))
+          );
         case 400:
           return TE.left<ErrorResponses>(
             ResponseErrorValidation("Bad Input or Response", "Error internal")
@@ -63,6 +70,7 @@ export const blurUser = (
             ResponseErrorInternal("Error calling PDV subsystem")
           );
         default: {
+          // tslint:disable-next-line: no-dead-store
           const _: never = status;
           return TE.left<ErrorResponses>(
             ResponseErrorInternal(

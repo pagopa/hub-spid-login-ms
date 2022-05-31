@@ -73,6 +73,7 @@ export const CommonSpidParams = t.intersection([
     ENDPOINT_LOGOUT: NonEmptyString,
     ENDPOINT_METADATA: NonEmptyString,
     ENDPOINT_SUCCESS: NonEmptyString,
+    IDP_METADATA_URL: NonEmptyString,
     INCLUDE_SPID_USER_ON_INTROSPECTION: t.boolean,
     METADATA_PRIVATE_CERT: NonEmptyString,
     METADATA_PUBLIC_CERT: NonEmptyString,
@@ -213,6 +214,10 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     O.fromNullable(process.env.ENABLE_USER_REGISTRY),
     O.map((_) => _.toLowerCase() === "true"),
     O.getOrElse(() => false)
+  ),
+  IDP_METADATA_URL: pipe(
+    O.fromNullable(process.env.IDP_METADATA_URL),
+    O.getOrElse(() => "https://registry.spid.gov.it/metadata/idp/spid-entities-idps.xml")
   ),
   INCLUDE_SPID_USER_ON_INTROSPECTION: pipe(
     O.fromNullable(process.env.INCLUDE_SPID_USER_ON_INTROSPECTION),

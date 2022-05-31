@@ -11,3 +11,4 @@ idp.crt
 idp.key
 sp_metadata.xml
 temp
+yarn-error.log

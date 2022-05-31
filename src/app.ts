@@ -1,29 +1,42 @@
+import { debug } from "console";
 import {
   AssertionConsumerServiceT,
   IApplicationConfig,
   IServiceProviderConfig,
   LogoutT,
-  withSpid,
+  withSpid
 } from "@pagopa/io-spid-commons";
 import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import * as bodyParser from "body-parser";
-import { debug } from "console";
 import * as express from "express";
-import { generateToken } from "./handlers/token";
-
 import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
 import {
+  AggregatorType,
+  ContactType,
+  EntityType
+} from "@pagopa/io-spid-commons/dist/utils/middleware";
+import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
+import { createBlobService } from "azure-storage";
+import * as cors from "cors";
+import { pipe } from "fp-ts/lib/function";
+import * as T from "fp-ts/lib/Task";
+import * as TE from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
+import { CertificationEnum } from "../generated/userregistry-api/Certification";
+import { generateToken } from "./handlers/token";
+
+import {
   accessLogHandler,
   errorHandler,
   metadataRefreshHandler,
-  successHandler,
+  successHandler
 } from "./handlers/spid";
 import {
   introspectHandler,
   invalidateHandler,
-  upgradeTokenHandler,
+  upgradeTokenHandler
 } from "./handlers/token";
 import { SpidUser, TokenUser, TokenUserL2 } from "./types/user";
 import { getUserCompanies } from "./utils/attribute_authority";
@@ -32,28 +45,15 @@ import {
   errorsToError,
   toCommonTokenUser,
   toResponseErrorInternal,
-  toTokenUserL2,
+  toTokenUserL2
 } from "./utils/conversions";
 
-import {
-  AggregatorType,
-  ContactType,
-  EntityType,
-} from "@pagopa/io-spid-commons/dist/utils/middleware";
-import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
-import { createBlobService } from "azure-storage";
-import * as cors from "cors";
-import { CertificationEnum } from "../generated/userregistry-api/Certification";
 import { AdeAPIClient } from "./clients/ade";
 import { UserRegistryAPIClient } from "./clients/userregistry_client";
 import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 import { blurUser } from "./utils/user_registry";
-import { pipe } from "fp-ts/lib/function";
-import * as T from "fp-ts/lib/Task";
-import * as TE from "fp-ts/lib/TaskEither";
-import * as O from "fp-ts/lib/Option";
 
 const config = getConfigOrThrow();
 
@@ -69,10 +69,12 @@ export const appConfig: IApplicationConfig = {
   loginPath: config.ENDPOINT_LOGIN,
   metadataPath: config.ENDPOINT_METADATA,
   sloPath: config.ENDPOINT_LOGOUT,
-  spidLevelsWhitelist: ["SpidL1", "SpidL2", "SpidL3"],
+  spidLevelsWhitelist: ["SpidL1", "SpidL2", "SpidL3"]
+  // eslint-disable-next-line extra-rules/no-commented-out-code
   // startupIdpsMetadata: STARTUP_IDPS_METADATA
 };
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const getContactPersons = () =>
   config.ENABLE_FULL_OPERATOR_METADATA
     ? [
@@ -85,28 +87,28 @@ const getContactPersons = () =>
             FiscalCode: config.COMPANY_FISCAL_CODE,
             IPACode: config.COMPANY_IPA_CODE,
             VATNumber: config.COMPANY_VAT_NUMBER,
-            aggregatorType: AggregatorType.PublicServicesFullOperator,
+            aggregatorType: AggregatorType.PublicServicesFullOperator
           },
-          phone: config.COMPANY_PHONE_NUMBER,
-        },
+          phone: config.COMPANY_PHONE_NUMBER
+        }
       ]
     : undefined;
 
 const serviceProviderConfig: IServiceProviderConfig = {
+  IDPMetadataUrl: config.IDP_METADATA_URL,
   contacts: getContactPersons(),
 
-  IDPMetadataUrl: config.IDP_METADATA_URL,
   organization: {
     URL: config.ORG_URL,
     displayName: config.ORG_DISPLAY_NAME,
-    name: config.ORG_NAME,
+    name: config.ORG_NAME
   },
   publicCert: config.METADATA_PUBLIC_CERT,
   requiredAttributes: {
     attributes: config.SPID_ATTRIBUTES.split(",").map(
-      (item) => item as SamlAttributeT
+      item => item as SamlAttributeT
     ),
-    name: config.REQUIRED_ATTRIBUTES_SERVICE_NAME,
+    name: config.REQUIRED_ATTRIBUTES_SERVICE_NAME
   },
   spidCieUrl:
     "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata",
@@ -117,9 +119,9 @@ const serviceProviderConfig: IServiceProviderConfig = {
     config.SPID_VALIDATOR_URL !== undefined
       ? {
           [config.SPID_VALIDATOR_URL]: true,
-          [config.SPID_TESTENV_URL]: true,
+          [config.SPID_TESTENV_URL]: true
         }
-      : undefined,
+      : undefined
 };
 
 const redisClient = REDIS_CLIENT;
@@ -138,16 +140,16 @@ const samlConfig: SamlConfig = {
   issuer: config.ORG_ISSUER,
   logoutCallbackUrl: `${config.ACS_BASE_URL}/slo`,
   privateCert: config.METADATA_PRIVATE_CERT,
-  validateInResponseTo: true,
+  validateInResponseTo: true
 };
 
-const acs: AssertionConsumerServiceT = async (user) =>
+const acs: AssertionConsumerServiceT = async user =>
   pipe(
     user,
     SpidUser.decode,
     TE.fromEither,
-    TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs))),
-    TE.chain((_) => {
+    TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs))),
+    TE.chain(_ => {
       logger.info("ACS | Trying to map user to Common User");
       return pipe(
         _,
@@ -156,8 +158,8 @@ const acs: AssertionConsumerServiceT = async (user) =>
         TE.mapLeft(toResponseErrorInternal)
       );
     }),
-    (a) => a,
-    TE.chain((_) => {
+    a => a,
+    TE.chain(_ => {
       logger.info(
         "ACS | Trying to retreive UserCompanies or map over a default user"
       );
@@ -167,19 +169,19 @@ const acs: AssertionConsumerServiceT = async (user) =>
               AdeAPIClient(config.ADE_AA_API_ENDPOINT),
               _.fiscal_number
             ),
-            TE.map((companies) => ({
+            TE.map(companies => ({
               ..._,
               companies,
-              from_aa: config.ENABLE_ADE_AA as boolean,
+              from_aa: config.ENABLE_ADE_AA as boolean
             }))
           )
         : TE.of({
             ..._,
-            from_aa: config.ENABLE_ADE_AA as boolean,
+            from_aa: config.ENABLE_ADE_AA as boolean
           });
     }),
-    (b) => b,
-    TE.chainW((_) => {
+    b => b,
+    TE.chainW(_ => {
       logger.info(
         `USER REGISTRY | Check for User Registry | ${config.ENABLE_USER_REGISTRY}`
       );
@@ -191,36 +193,36 @@ const acs: AssertionConsumerServiceT = async (user) =>
                 certification: CertificationEnum.SPID,
                 externalId: _.fiscal_number,
                 extras: {
-                  email: _.email,
+                  email: _.email
                 },
                 name: _.name,
-                surname: _.family_name,
+                surname: _.family_name
               }),
               _.fiscal_number,
               config.USER_REGISTRY_API_KEY
             ),
-            TE.map((maybeUid) => ({
+            TE.map(maybeUid => ({
               ..._,
               uid: pipe(
                 maybeUid,
-                O.map((uid) => uid.id),
+                O.map(uid => uid.id),
                 O.toUndefined
-              ),
+              )
             }))
           )
         : TE.of({ ..._ });
     }),
-    TE.chainW((_) => {
+    TE.chainW(_ => {
       logger.info("ACS | Trying to decode TokenUser");
       return pipe(
         _,
         TokenUser.decode,
         TE.fromEither,
-        TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs)))
+        TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
       );
     }),
     // If User is related to one company we can directly release an L2 token
-    TE.chainW((a) => {
+    TE.chainW(a => {
       logger.info("ACS | Companies length decision making");
       return a.from_aa
         ? a.companies.length === 1
@@ -233,10 +235,10 @@ const acs: AssertionConsumerServiceT = async (user) =>
         : pipe(
             TokenUserL2.decode({ ...a, level: "L2" }),
             TE.fromEither,
-            TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs)))
+            TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
           );
     }),
-    TE.chainW((tokenUser) => {
+    TE.chainW(tokenUser => {
       logger.info("ACS | Generating token");
       return pipe(
         tokenUser,
@@ -244,7 +246,7 @@ const acs: AssertionConsumerServiceT = async (user) =>
         TE.mapLeft(toResponseErrorInternal)
       );
     }),
-    TE.mapLeft((_) => {
+    TE.mapLeft(_ => {
       logger.info(
         `ACS | Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
           _.detail
@@ -259,10 +261,10 @@ const acs: AssertionConsumerServiceT = async (user) =>
       logger.info("ACS | Redirect to success endpoint");
       return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
         ? ResponsePermanentRedirect({
-            href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`,
+            href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
           })
         : ResponsePermanentRedirect({
-            href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`,
+            href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
           });
     }),
     TE.toUnion
@@ -270,7 +272,7 @@ const acs: AssertionConsumerServiceT = async (user) =>
 
 const logout: LogoutT = async () =>
   ResponsePermanentRedirect({
-    href: `${process.env.ENDPOINT_SUCCESS}?logout`,
+    href: `${process.env.ENDPOINT_SUCCESS}?logout`
   });
 
 const app = express();
@@ -289,7 +291,7 @@ const doneCb = config.ENABLE_SPID_ACCESS_LOGS
       config.SPID_LOGS_STORAGE_CONTAINER_NAME,
       config.SPID_LOGS_PUBLIC_KEY
     )
-  : (ip: string | null, request: string, response: string) => {
+  : (ip: string | null, request: string, response: string): void => {
       debug("*************** done", ip);
       debug(request);
       debug(response);
@@ -309,7 +311,7 @@ export const createAppTask = pipe(
     logout,
     redisClient, // redisClient for authN request
     samlConfig,
-    serviceProviderConfig,
+    serviceProviderConfig
   }),
   T.map(({ app: withSpidApp, idpMetadataRefresher }) => {
     withSpidApp.get(config.ENDPOINT_SUCCESS, successHandler);
@@ -326,7 +328,7 @@ export const createAppTask = pipe(
     // Add info endpoint
     withSpidApp.get("/info", async (_, res) => {
       res.json({
-        ping: "pong",
+        ping: "pong"
       });
     });
 
@@ -344,18 +346,18 @@ export const createAppTask = pipe(
         ___: express.NextFunction
       ) =>
         res.status(505).send({
-          error: error.message,
+          error: error.message
         })
     );
 
-    // tslint:disable-next-line: no-let prefer-const
+    // eslint-disable-next-line functional/no-let, prefer-const
     let countInterval = 0;
     const startIdpMetadataRefreshTimer = setInterval(() => {
       countInterval += 1;
       if (countInterval > 10) {
         clearInterval(startIdpMetadataRefreshTimer);
       }
-      idpMetadataRefresher()().catch((e) => {
+      idpMetadataRefresher()().catch(e => {
         logger.error("idpMetadataRefresher|error:%s", e);
       });
     }, 5000);

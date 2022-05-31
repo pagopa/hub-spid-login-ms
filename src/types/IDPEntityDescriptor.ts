@@ -1,5 +1,5 @@
 import * as t from "io-ts";
-// tslint:disable-next-line: no-submodule-imports
+// eslint-disable-next-line import/no-internal-modules
 import { createNonEmptyArrayFromArray } from "io-ts-types/lib/fp-ts/createNonEmptyArrayFromArray";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
@@ -10,7 +10,7 @@ export const IDPEntityDescriptor = t.interface({
 
   entryPoint: t.string,
 
-  logoutUrl: t.string,
+  logoutUrl: t.string
 });
 
 export type IDPEntityDescriptor = t.TypeOf<typeof IDPEntityDescriptor>;

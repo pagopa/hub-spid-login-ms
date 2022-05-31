@@ -1,24 +1,10 @@
-import * as express from "express";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import * as crypto from "crypto";
-import { SESSION_INVALIDATE_TOKEN_PREFIX, SESSION_TOKEN_PREFIX } from "../app";
-import { UpgradeTokenBody } from "../types/request";
-import { TokenUser, TokenUserL2 } from "../types/user";
-import { getConfigOrThrow } from "../utils/config";
-import { toBadRequest, toTokenUserL2 } from "../utils/conversions";
+import * as express from "express";
 import {
-  extractJwtRemainingValidTime,
-  extractRawDataFromJwt,
-  getUserJwt,
-} from "../utils/jwt";
-import { REDIS_CLIENT } from "../utils/redis";
-import {
-  deleteTask,
-  existsKeyTask,
-  getTask,
-  setWithExpirationTask,
-} from "../utils/redis_storage";
+  INonNegativeIntegerTag,
+  NonNegativeInteger
+} from "@pagopa/ts-commons/lib/numbers";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { flow, pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
@@ -28,6 +14,23 @@ import * as J from "fp-ts/Json";
 import * as b from "fp-ts/boolean";
 import * as t from "io-ts";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
+import {
+  deleteTask,
+  existsKeyTask,
+  getTask,
+  setWithExpirationTask
+} from "../utils/redis_storage";
+import { REDIS_CLIENT } from "../utils/redis";
+import {
+  extractJwtRemainingValidTime,
+  extractRawDataFromJwt,
+  getUserJwt
+} from "../utils/jwt";
+import { toBadRequest, toTokenUserL2 } from "../utils/conversions";
+import { getConfigOrThrow } from "../utils/config";
+import { TokenUser, TokenUserL2 } from "../types/user";
+import { UpgradeTokenBody } from "../types/request";
+import { SESSION_INVALIDATE_TOKEN_PREFIX, SESSION_TOKEN_PREFIX } from "../app";
 
 const config = getConfigOrThrow();
 
@@ -38,21 +41,21 @@ const getRawTokenUserFromRedis = (
 ): TE.TaskEither<express.Response, J.Json> =>
   pipe(
     getTask(redisClient, `${SESSION_TOKEN_PREFIX}${token}`),
-    (a) => a,
+    a => a,
     TE.mapLeft(() => res.status(500).json("Error while retrieving token")),
-    TE.chain((maybeToken) =>
+    TE.chain(maybeToken =>
       pipe(
         maybeToken,
         O.fold(
           () => TE.left(res.status(404).json("Token not found")),
-          (value) =>
+          value =>
             pipe(
               value,
               J.parse,
-              E.mapLeft((e) =>
+              E.mapLeft(e =>
                 res.status(500).json({
                   detail: String(e),
-                  error: "Error parsing token",
+                  error: "Error parsing token"
                 })
               ),
               TE.fromEither
@@ -62,17 +65,24 @@ const getRawTokenUserFromRedis = (
     )
   );
 
-export const getTokenExpiration = (tokenUser: TokenUser | TokenUserL2) =>
+export const getTokenExpiration = (
+  tokenUser: TokenUser | TokenUserL2
+): number & INonNegativeIntegerTag =>
   config.ENABLE_ADE_AA === true
     ? TokenUser.is(tokenUser)
       ? config.L1_TOKEN_EXPIRATION
       : config.L2_TOKEN_EXPIRATION
     : config.TOKEN_EXPIRATION;
 
-export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
+export const generateToken = (
+  tokenUser: TokenUser | TokenUserL2
+): TE.TaskEither<
+  Error,
+  { readonly tokenStr: string; readonly tokenUser: TokenUser | TokenUserL2 }
+> =>
   pipe(
     TE.of<Error, NonNegativeInteger>(getTokenExpiration(tokenUser)),
-    TE.chain((tokenExpiration) =>
+    TE.chain(tokenExpiration =>
       config.ENABLE_JWT
         ? pipe(
             getUserJwt(
@@ -84,11 +94,11 @@ export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
               config.JWT_TOKEN_AUDIENCE
             ),
             TE.mapLeft(() => new Error("Error generating JWT Token")),
-            TE.map((_) => ({ tokenUser, tokenStr: _ }))
+            TE.map(_ => ({ tokenStr: _, tokenUser }))
           )
         : pipe(
             TE.of<Error, string>(crypto.randomBytes(32).toString("hex")),
-            TE.chain((_) =>
+            TE.chain(_ =>
               pipe(
                 setWithExpirationTask(
                   redisClient,
@@ -99,7 +109,7 @@ export const generateToken = (tokenUser: TokenUser | TokenUserL2) =>
                 TE.mapLeft(() => new Error("Error storing Opaque Token")),
                 TE.map(() => ({
                   tokenStr: _,
-                  tokenUser,
+                  tokenUser
                 }))
               )
             )
@@ -120,10 +130,10 @@ export const introspectHandler = async (
     TE.mapLeft(() => res.status(500).json("Cannot introspect token")),
     TE.chain(
       TE.fromPredicate(
-        (_) => _ === false,
+        _ => _ === false,
         () =>
           res.status(403).json({
-            active: false,
+            active: false
           })
       )
     ),
@@ -138,46 +148,46 @@ export const introspectHandler = async (
     TE.chain(
       flow(
         t.union([TokenUser, TokenUserL2]).decode,
-        E.mapLeft((e) =>
+        E.mapLeft(e =>
           res.status(500).json({
             detail: readableReport(e),
-            error: "Error decoding token",
+            error: "Error decoding token"
           })
         ),
         TE.fromEither
       )
     ),
-    TE.chain((token) =>
+    TE.chain(token =>
       pipe(
         token,
         TE.fromPredicate(
           () => config.INCLUDE_SPID_USER_ON_INTROSPECTION,
-          (_) => res.status(200).json({ active: true, level: token.level })
+          _ => res.status(200).json({ active: true, level: token.level })
         )
       )
     ),
-    TE.map((tokenUser) => ({
+    TE.map(tokenUser => ({
       active: true,
       level: tokenUser.level,
-      user: tokenUser,
+      user: tokenUser
     })),
     TE.fold(
-      (_) => T.of(_),
-      (_) => T.of(res.status(200).json(_))
+      _ => T.of(_),
+      _ => T.of(res.status(200).json(_))
     )
   )();
 
 export const invalidateHandler = async (
   req: express.Request,
   res: express.Response // first check if token is blacklisted
-) =>
+): Promise<E.Either<never, express.Response>> =>
   pipe(
     TE.of(config.ENABLE_JWT),
-    TE.chain((jwtEnabled) =>
+    TE.chain(jwtEnabled =>
       jwtEnabled
         ? pipe(
             extractJwtRemainingValidTime(req.body.token),
-            TE.chain((remainingExpTime) =>
+            TE.chain(remainingExpTime =>
               setWithExpirationTask(
                 redisClient,
                 `${SESSION_INVALIDATE_TOKEN_PREFIX}${req.body.token}`,
@@ -190,32 +200,32 @@ export const invalidateHandler = async (
     ),
     TE.fold(
       () => TE.of(res.status(500).json("Error while invalidating Token")),
-      (_) => TE.of(res.status(200).json(_))
+      _ => TE.of(res.status(200).json(_))
     )
   )();
 
 export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
   req: express.Request,
   res: express.Response
-) => {
+): Promise<express.Response> => {
   const fromErrToBadRequest = toBadRequest(res);
   return pipe(
     req.body,
     UpgradeTokenBody.decode,
     E.mapLeft(fromErrToBadRequest),
     TE.fromEither,
-    TE.chain((body) =>
+    TE.chain(body =>
       pipe(
         req.headers[tokenHeaderName],
         NonEmptyString.decode,
         TE.fromEither,
-        TE.mapLeft((e) =>
+        TE.mapLeft(e =>
           fromErrToBadRequest(e, `Missing required header ${tokenHeaderName}`)
         ),
-        TE.map((header) => ({
+        TE.map(header => ({
           jwtEnabled: config.ENABLE_JWT,
           organizationFiscalCode: body.organization_fiscal_code,
-          rawToken: header,
+          rawToken: header
         }))
       )
     ),
@@ -226,9 +236,9 @@ export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
           () =>
             pipe(
               getRawTokenUserFromRedis(req.body.token, res),
-              TE.map((_) => ({
+              TE.map(_ => ({
                 organizationFiscalCode,
-                rawTokenUser: _,
+                rawTokenUser: _
               }))
             ),
           () =>
@@ -236,10 +246,10 @@ export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
               rawToken,
               extractRawDataFromJwt,
               TE.fromEither,
-              TE.mapLeft((err) => fromErrToBadRequest(err, "Token not valid")),
-              TE.map((_) => ({
+              TE.mapLeft(err => fromErrToBadRequest(err, "Token not valid")),
+              TE.map(_ => ({
                 organizationFiscalCode,
-                rawTokenUser: _,
+                rawTokenUser: _
               }))
             )
         )
@@ -255,16 +265,16 @@ export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
             new Error("Cannot upgrade Token because it is not an L1 Token")
           )
         ),
-        TE.chain((tokenUser) =>
+        TE.chain(tokenUser =>
           tokenUser.from_aa
             ? pipe(
                 tokenUser.companies.find(
-                  (e) => e.organization_fiscal_code === organizationFiscalCode
+                  e => e.organization_fiscal_code === organizationFiscalCode
                 ),
                 O.fromNullable,
                 O.fold(
                   () => TE.left(res.status(404).json("Organization Not Found")),
-                  (_) =>
+                  _ =>
                     pipe(
                       toTokenUserL2(tokenUser, _),
                       TE.fromEither,
@@ -284,17 +294,17 @@ export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
         )
       )
     ),
-    TE.chain((tokenUserL2) =>
+    TE.chain(tokenUserL2 =>
       pipe(
         generateToken(tokenUserL2),
-        TE.mapLeft((err) =>
+        TE.mapLeft(err =>
           res
             .status(500)
             .json({ detail: err.message, error: "Error generating L2 Token" })
         )
       )
     ),
-    TE.map((_) => res.status(200).json({ token: _.tokenStr })),
+    TE.map(_ => res.status(200).json({ token: _.tokenStr })),
     TE.toUnion
   )();
 };

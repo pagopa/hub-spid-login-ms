@@ -3,7 +3,7 @@ import {
   IResponseErrorInternal,
   IResponseErrorValidation,
   ResponseErrorForbiddenNotAuthorized,
-  ResponseErrorValidation,
+  ResponseErrorValidation
 } from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
@@ -25,7 +25,7 @@ export const getUserId = (
   subscriptionKey: NonEmptyString
 ): TE.TaskEither<
   IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized,
-  Option<{ id: string }>
+  Option<{ readonly id: string }>
 > =>
   pipe(
     TE.tryCatch(
@@ -33,24 +33,24 @@ export const getUserId = (
         apiClient.getUserByExternalId({
           SubscriptionKey: subscriptionKey,
           body: {
-            externalId,
-          },
+            externalId
+          }
         }),
       toError
     ),
-    TE.mapLeft((err) => {
+    TE.mapLeft(err => {
       logger.error(`USER REGISTRY getUserByExternalId: ${err.message}`);
       return toResponseErrorInternal(err);
     }),
     // Validation (Either) -> taskEither
-    TE.chain((_) =>
+    TE.chain(_ =>
       pipe(
         _,
-        E.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs))),
+        E.mapLeft(errs => toResponseErrorInternal(errorsToError(errs))),
         TE.fromEither
       )
     ),
-    TE.chainW((res) => {
+    TE.chainW(res => {
       switch (res.status) {
         case 200:
           return TE.of(some({ id: res.value.id }));
@@ -68,28 +68,30 @@ export const postUser = (
   subscriptionKey: NonEmptyString
 ): TE.TaskEither<IResponseErrorInternal | IResponseErrorValidation, User> =>
   pipe(
-    TE.tryCatch(() => {
-      return apiClient.createUser({
-        SubscriptionKey: subscriptionKey,
-        body: {
-          ...user,
-        },
-      });
-    }, toError),
-    TE.mapLeft((err) => {
+    TE.tryCatch(
+      () =>
+        apiClient.createUser({
+          SubscriptionKey: subscriptionKey,
+          body: {
+            ...user
+          }
+        }),
+      toError
+    ),
+    TE.mapLeft(err => {
       logger.error(`USER REGISTRY postUser: ${err.message}`);
       return toResponseErrorInternal(err);
     }),
-    TE.chainW((_) =>
+    TE.chainW(_ =>
       pipe(
         _,
-        E.mapLeft((errs) =>
+        E.mapLeft(errs =>
           ResponseErrorValidation("Validation Error", errs.join("/"))
         ),
         TE.fromEither
       )
     ),
-    TE.chain((res) =>
+    TE.chain(res =>
       res.status === 201
         ? TE.of(res.value)
         : TE.left(
@@ -105,22 +107,21 @@ export const blurUser = (
 ): TE.TaskEither<
   IResponseErrorInternal | IResponseErrorValidation,
   Option<Pick<User, "id">>
-> => {
-  return pipe(
+> =>
+  pipe(
     getUserId(apiClient, fiscalCode, subscriptionKey),
-    TE.mapLeft((error) => toResponseErrorInternal(toError(error))),
-    TE.chain((maybeUserID) =>
+    TE.mapLeft(error => toResponseErrorInternal(toError(error))),
+    TE.chain(maybeUserID =>
       pipe(
         maybeUserID,
         O.fold(
           () =>
             pipe(
               postUser(apiClient, user, subscriptionKey),
-              TE.map((u) => some({ id: u.id }))
+              TE.map(u => some({ id: u.id }))
             ),
-          (r) => TE.of(some(r))
+          r => TE.of(some(r))
         )
       )
     )
   );
-};

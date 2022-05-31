@@ -6,9 +6,9 @@ export const logger = createLogger({
     label({ label: "hub-spid-login-ms" }),
     timestamp(),
     format.splat(),
-    printf(info => {
-      return `${info.timestamp} [${info.label}] ${info.level}: ${info.message}`;
-    })
+    printf(
+      info => `${info.timestamp} [${info.label}] ${info.level}: ${info.message}`
+    )
   ),
   level: process.env.NODE_ENV !== "prod" ? "debug" : "info",
   transports: [new transports.Console()]

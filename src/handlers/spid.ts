@@ -13,28 +13,34 @@ import { SpidLogMsg } from "../types/access_log";
 import {
   getFiscalNumberFromPayload,
   getRequestIDFromResponse,
-  storeSpidLogs,
+  storeSpidLogs
 } from "../utils/access_log";
 import { logger } from "../utils/logger";
-export const successHandler = (req: express.Request, res: express.Response) =>
+export const successHandler = (
+  req: express.Request,
+  res: express.Response
+): express.Response =>
   res.json({
     success: "success",
-    token: req.query.token,
+    token: req.query.token
   });
 
-export const errorHandler = (_: express.Request, res: express.Response) =>
+export const errorHandler = (
+  _: express.Request,
+  res: express.Response
+): express.Response =>
   res
     .json({
-      error: "error",
+      error: "error"
     })
     .status(400);
 
 export const metadataRefreshHandler = (
   idpMetadataRefresher: () => Task<void>
-) => async (_: express.Request, res: express.Response) => {
+) => async (_: express.Request, res: express.Response): Promise<void> => {
   await idpMetadataRefresher()();
   res.json({
-    metadataUpdate: "completed",
+    metadataUpdate: "completed"
   });
 };
 
@@ -82,7 +88,7 @@ export const accessLogHandler = (
         ip: sourceIp as IPString,
         requestPayload,
         responsePayload,
-        spidRequestId: requestId,
+        spidRequestId: requestId
       } as SpidLogMsg);
 
       if (E.isLeft(errorOrSpidMsg)) {
@@ -97,13 +103,13 @@ export const accessLogHandler = (
       // We store Spid logs in a fire&forget pattern
       await pipe(
         storeSpidLogs(blobService, containerName, spidLogsPublicKey, spidMsg),
-        TE.mapLeft((err) => {
+        TE.mapLeft(err => {
           logger.error(`${logPrefix}|ERROR=Cannot store SPID log`);
           logger.debug(`${logPrefix}|ERROR_DETAILS=${err}`);
         })
       )();
     },
-    (err) => {
+    err => {
       logger.error(`${logPrefix}|ERROR=${err}`);
     }
   );

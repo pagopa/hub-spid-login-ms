@@ -12,3 +12,6 @@ idp.key
 sp_metadata.xml
 temp
 yarn-error.log
+# eslint section
+!.eslintrc.js
+.eslintcache

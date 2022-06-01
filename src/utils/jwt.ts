@@ -95,9 +95,9 @@ export const verifyToken = (
   publicCert: NonEmptyString,
   token: string,
   issuer: NonEmptyString
-): TE.TaskEither<Error, string | object> =>
+): TE.TaskEither<Error, jwt.JwtPayload | string> =>
   pipe(
-    TE.taskify<Error, object | string>(cb =>
+    TE.taskify<Error, jwt.JwtPayload | string>(cb =>
       jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
     )(),
     TE.mapLeft(E.toError)

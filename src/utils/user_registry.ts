@@ -19,10 +19,60 @@ import * as O from "fp-ts/lib/Option";
 import { PersonalDatavaultAPIClient } from "../clients/pdv_client";
 import { toResponseErrorInternal } from "./conversions";
 
+// Extract the result type from the operation
+type ApiResult = ReturnType<
+  PersonalDatavaultAPIClient
+// tslint:disable-next-line: no-any
+>["saveUsingPATCH"] extends (a: any) => Promise<E.Either<any, infer R>>
+  ? R
+  : never;
+
 type ErrorResponses =
   | IResponseErrorForbiddenNotAuthorized
   | IResponseErrorInternal
   | IResponseErrorValidation;
+
+/**
+ * Map results from PDV service into our specification
+ *
+ * @param res
+ * @returns
+ */
+const handleApiResult = (
+  res: ApiResult
+): TE.TaskEither<ErrorResponses, Option<Pick<UserId, "id">>> => {
+  const status = res.status;
+  switch (status) {
+    case 200:
+      return pipe(
+        res.value,
+        O.fromNullable,
+        O.map((responseValue) => some({ id: responseValue.id })),
+        TE.fromOption(() =>
+          ResponseErrorInternal("Error reading response data")
+        )
+      );
+    case 400:
+      return TE.left(
+        ResponseErrorValidation("Bad Input or Response", "Error internal")
+      );
+    case 403:
+      return TE.left(ResponseErrorForbiddenNotAuthorized);
+    case 409:
+      return TE.left(ResponseErrorInternal("Error internal"));
+    case 429:
+      return TE.left(ResponseErrorInternal("Error calling PDV subsystem"));
+    default: {
+      // tslint:disable-next-line: no-dead-store
+      const _: never = status;
+      return TE.left(
+        ResponseErrorInternal(
+          `Unespected Response from PDV subsystem: '${status}'`
+        )
+      );
+    }
+  }
+};
 
 export const blurUser = (
   pdvClient: ReturnType<PersonalDatavaultAPIClient>,
@@ -36,48 +86,16 @@ export const blurUser = (
           api_key: subscriptionKey,
           saveUserDto: user,
         }),
-      toError
+      // an unknown and unexpected error while making the request to PDV
+      (error) => toResponseErrorInternal(toError(error))
     ),
-    TE.mapLeft((error) => toResponseErrorInternal(toError(error))),
+    // response failed to be decoded
+    // perhaps because the given specification isn't aligned with what's actually provided from PDV service
     TE.chainEitherKW(
       E.mapLeft(() =>
         ResponseErrorValidation("Bad Input", "Error creating the user")
       )
     ),
-    TE.chainW((res) => {
-      const status = res.status;
-      const value = res.value;
-      switch (status) {
-        case 200:
-          return pipe(
-            value,
-            O.fromNullable,
-            O.map(responeValue => some({ id: responeValue.id })),
-            O.fold(()=>TE.left<ErrorResponses>(ResponseErrorInternal("Error reading response data")), (data) => TE.of(data))
-          );
-        case 400:
-          return TE.left<ErrorResponses>(
-            ResponseErrorValidation("Bad Input or Response", "Error internal")
-          );
-        case 403:
-          return TE.left<ErrorResponses>(ResponseErrorForbiddenNotAuthorized);
-        case 409:
-          return TE.left<ErrorResponses>(
-            ResponseErrorInternal("Error internal")
-          );
-        case 429:
-          return TE.left<ErrorResponses>(
-            ResponseErrorInternal("Error calling PDV subsystem")
-          );
-        default: {
-          // tslint:disable-next-line: no-dead-store
-          const _: never = status;
-          return TE.left<ErrorResponses>(
-            ResponseErrorInternal(
-              `Unespected Response from PDV subsystem: '${status}'`
-            )
-          );
-        }
-      }
-    })
+    // map result
+    TE.chain(handleApiResult)
   );

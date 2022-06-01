@@ -74,8 +74,7 @@ export const appConfig: IApplicationConfig = {
   // startupIdpsMetadata: STARTUP_IDPS_METADATA
 };
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-const getContactPersons = () =>
+const getContactPersons = (): IServiceProviderConfig["contacts"] =>
   config.ENABLE_FULL_OPERATOR_METADATA
     ? [
         {

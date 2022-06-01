@@ -59,15 +59,8 @@ export const getUserJwt = (
 
 export const extractRawDataFromJwt = (
   jwtToken: NonEmptyString
-): E.Either<
-  Error,
-  | string
-  | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      readonly [key: string]: any;
-    }
-  | null
-> => E.tryCatch(() => jwt.decode(jwtToken, { json: true }), E.toError);
+): E.Either<Error, jwt.JwtPayload | null> =>
+  E.tryCatch(() => jwt.decode(jwtToken, { json: true }), E.toError);
 
 export const extractTypeFromJwt = <S, A>(
   jwtToken: NonEmptyString,

@@ -181,7 +181,7 @@ const acs: AssertionConsumerServiceT = async (user) =>
     (b) => b,
     TE.chainW((_) => {
       logger.info(
-        `USER REGISTRY | Check for User Registry | ${config.ENABLE_USER_REGISTRY}`
+        `ACS | Personal Data Vault - Check for User: ${config.ENABLE_USER_REGISTRY}`
       );
       return config.ENABLE_USER_REGISTRY
         ? pipe(
@@ -210,13 +210,9 @@ const acs: AssertionConsumerServiceT = async (user) =>
               }),
               config.USER_REGISTRY_API_KEY
             ),
-            TE.map((maybeUid) => ({
+            TE.map((uuid) => ({
               ..._,
-              uid: pipe(
-                maybeUid,
-                O.map((uid) => uid.id),
-                O.toUndefined
-              ),
+              uid: uuid
             }))
           )
         : TE.of({ ..._ });

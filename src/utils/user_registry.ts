@@ -38,16 +38,16 @@ type ErrorResponses =
  * @param res
  * @returns
  */
-const handleApiResult = (
+export const handleApiResult = (
   res: ApiResult
-): TE.TaskEither<ErrorResponses, Option<Pick<UserId, "id">>> => {
+): TE.TaskEither<ErrorResponses, Pick<UserId, "id">> => {
   const status = res.status;
   switch (status) {
     case 200:
       return pipe(
         res.value,
         O.fromNullable,
-        O.map((responseValue) => some({ id: responseValue.id })),
+        O.map((responseValue) => ({ id: responseValue.id })),
         TE.fromOption(() =>
           ResponseErrorInternal("Error reading response data")
         )
@@ -78,7 +78,7 @@ export const blurUser = (
   pdvClient: ReturnType<PersonalDatavaultAPIClient>,
   user: SaveUserDto,
   subscriptionKey: NonEmptyString
-): TE.TaskEither<ErrorResponses, Option<Pick<UserId, "id">>> =>
+): TE.TaskEither<ErrorResponses, Pick<UserId, "id">> =>
   pipe(
     TE.tryCatch(
       () =>

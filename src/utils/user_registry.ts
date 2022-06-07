@@ -8,7 +8,6 @@ import {
 } from "@pagopa/ts-commons/lib/responses";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
-import { Option, some } from "fp-ts/lib/Option";
 import { SaveUserDto } from "../../generated/pdv-userregistry-api/SaveUserDto";
 import { UserId } from "../../generated/pdv-userregistry-api/UserId";
 import { pipe } from "fp-ts/lib/function";

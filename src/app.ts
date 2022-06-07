@@ -51,7 +51,6 @@ import { blurUser } from "./utils/user_registry";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as O from "fp-ts/lib/Option";
 import { CertificationEnum } from "../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
 import { PersonalDatavaultAPIClient } from "./clients/pdv_client";
 

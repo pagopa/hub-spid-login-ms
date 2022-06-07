@@ -48,9 +48,9 @@ describe("UserRegistry#blurUser", () => {
       apiKey
     )();
     expect(E.isRight(response)).toBe(true);
-    if (E.isRight(response) && O.isSome(response.right)) {
-      expect(O.isSome(response.right)).toBeTruthy();
-      expect(response.right.value).toEqual(aMockValidId);
+    if (E.isRight(response)) {
+      expect(response.right).toBeTruthy();
+      expect(response.right).toEqual(aMockValidId);
     }
   });
   it("should create a User for a not found CF - Right path", async () => {
@@ -63,9 +63,9 @@ describe("UserRegistry#blurUser", () => {
       apiKey
     )();
 
-    if (E.isRight(response) && O.isSome(response.right)) {
-      expect(O.isSome(response.right)).toBeTruthy();
-      expect(response.right.value).toEqual(aMockValidId);
+    if (E.isRight(response)) {
+      expect(response.right).toBeTruthy();
+      expect(response.right).toEqual(aMockValidId);
     }
   });
   it("should not create a user for bad input - Left path", async () => {

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "rootDir": "runner",
+    "outDir": "dist/runner",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "noImplicitAny": true,
+    "declaration": true,
+    "sourceMap": true,
+    "lib": ["es2020", "dom"],
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
+  },
+  "include": ["runner/**/*", "generated/**/*"],
+  "exclude": ["node_modules", "runner/**/__tests__/*"]
+}

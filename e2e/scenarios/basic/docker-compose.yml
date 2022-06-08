@@ -1,0 +1,56 @@
+version: "2.2"
+
+services:
+  hub-spid-login:
+    container_name: hub-spid-login-ms
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    env_file:
+      - env.scenario
+    depends_on:
+      - redis
+    expose:
+      - ${SERVER_PORT}
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+      - "5859:5859"
+    command: ["yarn", "start"]
+    volumes:
+      - "./res/certs:/usr/src/app/certs:ro"
+    networks:
+      - spid-net
+
+  spid-testenv2:
+    container_name: spid-testenv2
+    image: italia/spid-testenv2
+    restart: unless-stopped
+    ports:
+      - ${SPID_TESTENV_PORT}:${SPID_TESTENV_PORT}
+    volumes:
+      - "./res/conf-testenv:/app/conf"
+      - "./res/certs:/app/certs:ro"
+    depends_on:
+      - hub-spid-login
+    networks:
+      - spid-net
+
+  redis:
+    container_name: redis
+    image: wodby/redis:3.2-2.1.5
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_TIMEOUT: 300
+      REDIS_TCP_KEEPALIVE: 60
+      REDIS_MAXMEMORY: 182m
+    networks:
+      - spid-net
+
+networks:
+  spid-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450

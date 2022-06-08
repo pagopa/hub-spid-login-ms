@@ -1,4 +1,3 @@
-// eslint-disable @typescript-eslint/no-explicit-any
 import { pipe, flow } from "fp-ts/lib/function";
 
 import {

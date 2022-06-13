@@ -1,7 +1,7 @@
 import nodeFetch from "node-fetch";
-import { Client, createClient } from "../../generated/userregistry-api/client";
+import { Client, createClient } from "../../generated/pdv-userregistry-api/client";
 
-export function UserRegistryAPIClient(
+export function PersonalDatavaultAPIClient(
   baseUrl: string,
   // tslint:disable-next-line: no-any
   fetchApi: typeof fetch = (nodeFetch as any) as typeof fetch
@@ -13,4 +13,4 @@ export function UserRegistryAPIClient(
   });
 }
 
-export type UserRegistryAPIClient = typeof UserRegistryAPIClient;
+export type PersonalDatavaultAPIClient = typeof PersonalDatavaultAPIClient;

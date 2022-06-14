@@ -1,7 +1,7 @@
 {
 	"enabled": true,
 	"basepath": "/",
-	"entityID": "https://spid-saml-check.ecs.dev.pn.pagopa.it",
+	"entityID": "http://spid-saml-check:8088",
 	"signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
 	"credentials": [{
 		"signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",

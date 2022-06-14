@@ -1,4 +1,3 @@
-This XML file does not appear to have any style information associated with it. The document tree is shown below.
 <EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:spid="https://spid.gov.it/saml-extensions" entityID="https://spid.agid.gov.it/cd" ID="https___spid_agid_gov_it_cd">
 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
 <SignedInfo>

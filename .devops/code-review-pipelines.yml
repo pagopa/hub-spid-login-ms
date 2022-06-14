@@ -79,3 +79,21 @@ stages:
         - script: |
             yarn test:coverage
           displayName: 'Unit tests exec'
+
+  - stage: E2E_Test
+    dependsOn: []
+    jobs:
+      - job: make_build  
+        steps:
+        - template: templates/node-job-setup/template.yaml@pagopaCommons
+        - script: |
+            yarn build
+          displayName: 'Build'
+
+        - script: |
+            set -e
+            cd e2e
+            yarn install --frozen-lockfile
+            yarn build
+            yarn start
+          displayName: 'Run e2e tests'

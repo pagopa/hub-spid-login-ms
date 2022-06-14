@@ -103,7 +103,11 @@
       "ts"
     ],
     "preset": "ts-jest",
-    "testMatch": null
+    "testMatch": null,
+    "testPathIgnorePatterns": [
+      "node_modules",
+      "e2e"
+    ]
   },
   "bugs": {
     "url": "https://github.com/italia/spid-express/issues"

@@ -35,3 +35,14 @@ This microservices is intended for a usage through an API Gateway (API Managemen
 * `/introspect`: Introspect token by giving information (optional) about logged Spid User
 * `/success`: Trigger Final redirect to success endpoint after a successful SPID login
 * `/error`: Trigger Redirect to an error page
+
+# Tests
+
+## Unit tests
+Just
+```sh
+yarn test
+```
+
+## End-to-end tests
+Tests executed using browser automation to simulate actual user interactions. See [e2e/README.md](e2e/README.md) for more.

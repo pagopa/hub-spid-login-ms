@@ -12,6 +12,7 @@ services:
       - env.scenario
     depends_on:
       - redis
+      - spid-saml-check
     expose:
       - ${SERVER_PORT}
     ports:
@@ -20,22 +21,37 @@ services:
     command: ["yarn", "start"]
     volumes:
       - "./res/certs:/usr/src/app/certs:ro"
+      # - "../../../:/usr/src/app/"
     networks:
       - spid-net
 
-  spid-testenv2:
-    container_name: spid-testenv2
-    image: italia/spid-testenv2
+  spid-saml-check:
+    container_name: spid-saml-check
+    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot
     restart: unless-stopped
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
     ports:
-      - ${SPID_TESTENV_PORT}:${SPID_TESTENV_PORT}
+      - ${SPID_DEMO_IDP_PORT}:${SPID_DEMO_IDP_PORT}
     volumes:
-      - "./res/conf-testenv:/app/conf"
-      - "./res/certs:/app/certs:ro"
-    depends_on:
-      - hub-spid-login
+      - "./res/spidsamlcheck-conf:/spid-saml-check/spid-validator/config"
+      - "./res/hsl-conf:/data/bootstrap"
     networks:
       - spid-net
+
+  #  spid-testenv2:
+  #    container_name: spid-testenv2
+  #    image: italia/spid-testenv2
+  #    restart: unless-stopped
+  #    ports:
+  #      - ${SPID_TESTENV_PORT}:${SPID_TESTENV_PORT}
+  #    volumes:
+  #      - "./res/conf-testenv:/app/conf"
+  #      - "./res/certs:/app/certs:ro"
+  #    depends_on:
+  #      - hub-spid-login
+  #    networks:
+  #      - spid-net
 
   redis:
     container_name: redis

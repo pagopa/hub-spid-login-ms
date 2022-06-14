@@ -6,11 +6,11 @@ const puppeteer = require("puppeteer");
 jest.setTimeout(1e6);
 
 beforeAll(async () => {
-  /* somehow we need to wait idp metadata are loaded */ await delay(bigTime);
+  // somehow we need to wait idp metadata are loaded
+  await delay(bigTime * 4);
 });
 describe("Basic", () => {
   it("should login with an existing user", async () => {
-    
     const { url } = await withBrowser(async (browser) => {
       const page = await browser.newPage();
 
@@ -28,16 +28,18 @@ describe("Basic", () => {
           // @ts-ignore
           document.getElementById("password").value = password;
         }, testCredentials);
-        await page.click("[type='submit'][name='confirm']");
+
+        await clickAnyway(page)("form[name='formLogin'] [type='submit']");
         await delay(littleTime);
       }
 
       /* confirm data access (SPID mandatory step) */ {
-        await page.click("[type='submit'][name='confirm']");
+        await clickAnyway(page)("form[name='formConfirm'] [type='submit']");
         await delay(littleTime);
       }
 
       /* read landing url and return data to the test */ {
+        await delay(littleTime);
         const url = await page.url();
         return { url };
       }
@@ -66,3 +68,22 @@ const withBrowser = async <T>(
     throw error;
   }
 };
+
+// page.click() does not work if the element isn't shown on page (maybe isn't above the fold)
+// this solves the problem by using DOM's native click() method
+const clickAnyway = (page: any /* fixme: use proper type */) => (
+  selector: string
+): Promise<void> =>
+  page.evaluate((selector: string) => {
+    console.log("eee", selector, document.querySelector(selector));
+    debugger;
+    // @ts-ignore because TS doesn't know it's a button
+    const el = document.querySelector(selector) as any;
+    if ("click" in el && typeof el.click === "function") {
+      return el.click();
+    } else {
+      throw new Error(
+        `click() is not defined for the selected element. Selector: ${selector}`
+      );
+    }
+  }, selector);

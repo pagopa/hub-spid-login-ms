@@ -80,7 +80,7 @@
     "io-ts": "2",
     "io-ts-types": "^0.4.7",
     "jsonwebtoken": "^8.5.1",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "node-forge": "^0.10.0",
     "passport": "^0.4.1",
     "passport-saml": "1.2.0",

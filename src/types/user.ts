@@ -13,8 +13,8 @@ export const SpidUser = t.intersection([
   t.interface({
     // the following values may be set
     // by the calling application:
-    // authnContextClassRef: SpidLevel,
-    // issuer: Issuer
+    // authnContextClassRef -> SpidLevel,
+    // issuer -> Issuer
     fiscalNumber: NonEmptyString,
     getAssertionXml: t.Function
   }),

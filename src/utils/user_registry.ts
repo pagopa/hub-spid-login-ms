@@ -4,24 +4,24 @@ import {
   IResponseErrorValidation,
   ResponseErrorForbiddenNotAuthorized,
   ResponseErrorInternal,
-  ResponseErrorValidation,
+  ResponseErrorValidation
 } from "@pagopa/ts-commons/lib/responses";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
-import { SaveUserDto } from "../../generated/pdv-userregistry-api/SaveUserDto";
-import { UserId } from "../../generated/pdv-userregistry-api/UserId";
 import { pipe } from "fp-ts/lib/function";
 
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
+import { UserId } from "../../generated/pdv-userregistry-api/UserId";
+import { SaveUserDto } from "../../generated/pdv-userregistry-api/SaveUserDto";
 import { PersonalDatavaultAPIClient } from "../clients/pdv_client";
 import { toResponseErrorInternal } from "./conversions";
 
 // Extract the result type from the operation
 type ApiResult = ReturnType<
   PersonalDatavaultAPIClient
-// tslint:disable-next-line: no-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 >["saveUsingPATCH"] extends (a: any) => Promise<E.Either<any, infer R>>
   ? R
   : never;
@@ -46,7 +46,7 @@ export const handleApiResult = (
       return pipe(
         res.value,
         O.fromNullable,
-        O.map((responseValue) => ({ id: responseValue.id })),
+        O.map(responseValue => ({ id: responseValue.id })),
         TE.fromOption(() =>
           ResponseErrorInternal("Error reading response data")
         )
@@ -62,7 +62,7 @@ export const handleApiResult = (
     case 429:
       return TE.left(ResponseErrorInternal("Error calling PDV subsystem"));
     default: {
-      // tslint:disable-next-line: no-dead-store
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const _: never = status;
       return TE.left(
         ResponseErrorInternal(
@@ -83,10 +83,10 @@ export const blurUser = (
       () =>
         pdvClient.saveUsingPATCH({
           api_key: subscriptionKey,
-          saveUserDto: user,
+          saveUserDto: user
         }),
       // an unknown and unexpected error while making the request to PDV
-      (error) => toResponseErrorInternal(toError(error))
+      error => toResponseErrorInternal(toError(error))
     ),
     // response failed to be decoded
     // perhaps because the given specification isn't aligned with what's actually provided from PDV service

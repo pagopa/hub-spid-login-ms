@@ -14,9 +14,11 @@ import { errorsToError } from "./conversions";
 
 const ExpireJWT = t.exact(
   t.interface({
-    exp: t.number,
+    exp: t.number
   })
 );
+
+type ExpireJWT = t.TypeOf<typeof ExpireJWT>;
 
 /**
  * Generates a new token containing the logged spid User.
@@ -33,9 +35,10 @@ export const getUserJwt = (
   issuer: NonEmptyString,
   keyid?: NonEmptyString,
   audience?: NonEmptyString
+  // eslint-disable-next-line max-params
 ): TE.TaskEither<Error, string> =>
   pipe(
-    TE.taskify<Error, string>((cb) =>
+    TE.taskify<Error, string>(cb =>
       jwt.sign(
         tokenUser,
         privateKey,
@@ -46,7 +49,7 @@ export const getUserJwt = (
           issuer,
           jwtid: ulid(),
           keyid,
-          subject: tokenUser.id,
+          subject: tokenUser.id
         }),
         cb
       )
@@ -54,13 +57,15 @@ export const getUserJwt = (
     TE.mapLeft(E.toError)
   );
 
-export const extractRawDataFromJwt = (jwtToken: NonEmptyString) =>
+export const extractRawDataFromJwt = (
+  jwtToken: NonEmptyString
+): E.Either<Error, jwt.JwtPayload | null> =>
   E.tryCatch(() => jwt.decode(jwtToken, { json: true }), E.toError);
 
 export const extractTypeFromJwt = <S, A>(
   jwtToken: NonEmptyString,
   typeToExtract: t.Type<A, S>
-) =>
+): TE.TaskEither<Error, A> =>
   pipe(
     jwtToken,
     extractRawDataFromJwt,
@@ -68,12 +73,14 @@ export const extractTypeFromJwt = <S, A>(
     TE.fromEither
   );
 
-export const extractJwtRemainingValidTime = (jwtToken: string) =>
+export const extractJwtRemainingValidTime = (
+  jwtToken: string
+): TE.TaskEither<Error, ExpireJWT> =>
   pipe(
     jwtToken,
     jwt.decode,
     ExpireJWT.decode,
-    E.mapLeft((err) => new Error(errorsToReadableMessages(err).join("|"))),
+    E.mapLeft(err => new Error(errorsToReadableMessages(err).join("|"))),
     TE.fromEither
   );
 
@@ -81,9 +88,9 @@ export const verifyToken = (
   publicCert: NonEmptyString,
   token: string,
   issuer: NonEmptyString
-) =>
+): TE.TaskEither<Error, jwt.JwtPayload | string> =>
   pipe(
-    TE.taskify<Error, object | string>((cb) =>
+    TE.taskify<Error, jwt.JwtPayload | string>(cb =>
       jwt.verify(token, publicCert, { algorithms: ["RS256"], issuer }, cb)
     )(),
     TE.mapLeft(E.toError)

@@ -13,7 +13,7 @@ jest.setTimeout(1e6);
 
 beforeAll(async () => {
   // somehow we need to wait idp metadata are loaded
-  await delay(bigTime * 4);
+  await delay(bigTime * 5);
 });
 describe("Basic", () => {
   it("should login with an existing user", () =>

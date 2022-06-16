@@ -11,13 +11,13 @@ import * as t from "io-ts";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 
-const curry = <I, II extends readonly unknown[], R>(fn: (a: I, ...aa: II) => R) => (
-  a: I
-) => (...aa: II): R => fn(a, ...aa);
+const curry = <I, II extends ReadonlyArray<unknown>, R>(
+  fn: (a: I, ...aa: II) => R
+) => (a: I) => (...aa: II): R => fn(a, ...aa);
 
 export const SAML_NAMESPACE = {
   ASSERTION: "urn:oasis:names:tc:SAML:2.0:assertion",
-  PROTOCOL: "urn:oasis:names:tc:SAML:2.0:protocol",
+  PROTOCOL: "urn:oasis:names:tc:SAML:2.0:protocol"
 };
 
 export const getFiscalNumberFromPayload = (
@@ -27,13 +27,13 @@ export const getFiscalNumberFromPayload = (
     O.fromNullable(
       doc.getElementsByTagNameNS(SAML_NAMESPACE.ASSERTION, "Attribute")
     ),
-    O.mapNullable((collection) =>
+    O.mapNullable(collection =>
       Array.from(collection).find(
-        (elem) => elem.getAttribute("Name") === "fiscalNumber"
+        elem => elem.getAttribute("Name") === "fiscalNumber"
       )
     ),
-    O.mapNullable((_) => _.textContent?.trim().replace("TINIT-", "")),
-    O.chain((_) => O.fromEither(FiscalCode.decode(_)))
+    O.mapNullable(_ => _.textContent?.trim().replace("TINIT-", "")),
+    O.chain(_ => O.fromEither(FiscalCode.decode(_)))
   );
 
 export const getRequestIDFromPayload = (tagName: string, attrName: string) => (
@@ -43,7 +43,7 @@ export const getRequestIDFromPayload = (tagName: string, attrName: string) => (
     O.fromNullable(
       doc.getElementsByTagNameNS(SAML_NAMESPACE.PROTOCOL, tagName).item(0)
     ),
-    O.chain((element) =>
+    O.chain(element =>
       O.fromEither(NonEmptyString.decode(element.getAttribute(attrName)))
     )
   );
@@ -63,19 +63,19 @@ export const storeSpidLogs = (
   containerName: NonEmptyString,
   spidLogsPublicKey: NonEmptyString,
   spidLogMsg: SpidLogMsg
-) => {
+): TE.TaskEither<Error, O.Option<BlobService.BlobResult>> => {
   const encrypt = curry(toEncryptedPayload)(spidLogsPublicKey);
   return pipe(
     sequenceS(E.Applicative)({
       encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
-      encryptedResponsePayload: encrypt(spidLogMsg.responsePayload),
+      encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
     }),
-    E.map((item) => ({
+    E.map(item => ({
       ...spidLogMsg,
-      ...item,
+      ...item
     })),
     E.fold(
-      (err) =>
+      err =>
         TE.left(new Error(`StoreSpidLogs|ERROR=Cannot encrypt payload|${err}`)),
       (encryptedBlobItem: SpidBlobItem) =>
         pipe(
@@ -83,14 +83,14 @@ export const storeSpidLogs = (
           t.exact(SpidBlobItem).decode,
           TE.fromEither,
           TE.mapLeft(
-            (errs) =>
+            errs =>
               new Error(
                 `StoreSpidLogs|ERROR=Cannot decode payload|ERROR_DETAILS=${readableReport(
                   errs
                 )}`
               )
           ),
-          TE.chain((spidBlobItem) =>
+          TE.chain(spidBlobItem =>
             upsertBlobFromObject(
               blobService,
               containerName,

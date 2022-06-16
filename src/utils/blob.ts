@@ -73,7 +73,7 @@ export const upsertBlobFromObject = <T>(
 ): TE.TaskEither<Error, O.Option<azureStorage.BlobService.BlobResult>> =>
   pipe(
     TE.fromEither(E.tryCatch(() => JSON.stringify(content), E.toError)),
-    TE.chain((rawJson) =>
+    TE.chain(rawJson =>
       upsertBlobFromText(blobService, containerName, blobName, rawJson, options)
     )
   );

@@ -1,4 +1,3 @@
-// tslint:disable: no-any
 import { pipe, flow } from "fp-ts/lib/function";
 
 import {

@@ -94,7 +94,7 @@ export const setWithExpirationTask = (
   pipe(
     TE.tryCatch(
       () =>
-        new Promise<E.Either<Error, true>>((resolve) =>
+        new Promise<E.Either<Error, true>>(resolve =>
           redisClient.set(
             key,
             value,
@@ -127,7 +127,8 @@ export const setTask = (
   pipe(
     TE.tryCatch(
       () =>
-        new Promise<E.Either<Error, true>>((resolve) =>
+        new Promise<E.Either<Error, true>>(resolve =>
+          // eslint-disable-next-line sonarjs/no-identical-functions
           redisClient.set(key, value, (err, response) =>
             resolve(
               falsyResponseToError(
@@ -144,11 +145,14 @@ export const setTask = (
     TE.chain(TE.fromEither)
   );
 
-export const deleteTask = (redisClient: RedisClient, key: string) =>
+export const deleteTask = (
+  redisClient: RedisClient,
+  key: string
+): TE.TaskEither<Error, boolean> =>
   pipe(
     TE.tryCatch(
       () =>
-        new Promise<E.Either<Error, boolean>>((resolve) =>
+        new Promise<E.Either<Error, boolean>>(resolve =>
           redisClient.del(key, (err, response) =>
             resolve(
               falsyResponseToError(
@@ -170,7 +174,7 @@ export const getTask = (
   pipe(
     TE.tryCatch(
       () =>
-        new Promise<E.Either<Error, Option<string>>>((resolve) =>
+        new Promise<E.Either<Error, Option<string>>>(resolve =>
           redisClient.get(key, (err, response) =>
             resolve(singleValueReply(err, response))
           )
@@ -187,7 +191,7 @@ export const existsKeyTask = (
   pipe(
     TE.tryCatch(
       () =>
-        new Promise<E.Either<Error, boolean>>((resolve) =>
+        new Promise<E.Either<Error, boolean>>(resolve =>
           redisClient.exists(key, (err, response) =>
             resolve(integerReply(err, response, 1))
           )
@@ -203,7 +207,7 @@ export const pingTask = (
   pipe(
     TE.tryCatch(
       () =>
-        new Promise<E.Either<Error, true>>((resolve) =>
+        new Promise<E.Either<Error, true>>(resolve =>
           redisClient.ping("ping message", (err, response) =>
             resolve(
               falsyResponseToError(

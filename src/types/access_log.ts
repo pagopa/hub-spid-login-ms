@@ -15,14 +15,13 @@ export const SpidBlobItem = t.interface({
   // Timestamp of Request/Response creation
   createdAt: UTCISODateFromString,
 
-  // IP of the client that made a SPID login action
-  ip: IPString,
-
   // XML payload of the SPID Request
   encryptedRequestPayload: EncryptedPayload,
 
   // XML payload of the SPID Response
   encryptedResponsePayload: EncryptedPayload,
+  // IP of the client that made a SPID login action
+  ip: IPString,
 
   // SPID request ID
   spidRequestId: t.string

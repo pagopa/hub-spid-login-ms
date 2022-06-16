@@ -12,10 +12,10 @@ import * as appInsights from "applicationinsights";
  * - Outcoming API Calls (dependencies)
  * - Realtime API metrics
  */
-export function initAppInsights(
+export const initAppInsights = (
   instrumentationKey: string,
   config: ApplicationInsightsConfig = {}
-): appInsights.TelemetryClient {
+): appInsights.TelemetryClient => {
   startAppInsights(instrumentationKey, config);
   return appInsights.defaultClient;
-}
+};

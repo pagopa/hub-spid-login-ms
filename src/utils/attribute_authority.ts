@@ -1,4 +1,8 @@
-import { ResponseErrorForbiddenNotAuthorized } from "@pagopa/ts-commons/lib/responses";
+import {
+  IResponseErrorForbiddenNotAuthorized,
+  IResponseErrorInternal,
+  ResponseErrorForbiddenNotAuthorized
+} from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/lib/Either";
@@ -11,25 +15,28 @@ import { errorsToError, toResponseErrorInternal } from "./conversions";
 export const getUserCompanies = (
   apiClient: ReturnType<AdeAPIClient>,
   userFiscalCode: FiscalCode
-) =>
+): TE.TaskEither<
+  IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized,
+  UserCompanies
+> =>
   pipe(
     TE.tryCatch(
       () =>
         apiClient.getUserCompanies({
-          body: { fiscalCode: userFiscalCode },
+          body: { fiscalCode: userFiscalCode }
         }),
       E.toError
     ),
-    TE.mapLeft((err) => toResponseErrorInternal(err)),
+    TE.mapLeft(err => toResponseErrorInternal(err)),
 
-    TE.chain((_) =>
+    TE.chain(_ =>
       pipe(
         TE.fromEither(_),
-        TE.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs)))
+        TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
       )
     ),
 
-    TE.chainW((res) =>
+    TE.chainW(res =>
       res.status !== 200
         ? TE.left(ResponseErrorForbiddenNotAuthorized)
         : TE.of(res.value)
@@ -37,20 +44,20 @@ export const getUserCompanies = (
 
     TE.chainW(
       TE.fromPredicate(
-        (arr) => arr.length > 0,
+        arr => arr.length > 0,
         () => ResponseErrorForbiddenNotAuthorized
       )
     ),
 
-    TE.map((d) =>
+    TE.map(d =>
       pipe(
         UserCompanies.encode(
-          d.map((company) =>
+          d.map(company =>
             pipe(
               UserCompany.encode({
                 email: company.pec,
                 organization_fiscal_code: company.fiscalCode,
-                organization_name: company.organizationName,
+                organization_name: company.organizationName
               })
             )
           )

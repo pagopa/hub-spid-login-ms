@@ -144,6 +144,12 @@ export const JWTParams = t.union([
 ]);
 export type JWTParams = t.TypeOf<typeof JWTParams>;
 
+export const CIEParams = t.interface({
+  CIE_URL: NonEmptyString,
+});
+
+export type CIEParams = t.TypeOf<typeof CIEParams>;
+
 const AttributeAuthorityParams = t.union([
   t.interface({
     ADE_AA_API_ENDPOINT: NonEmptyString,
@@ -160,9 +166,17 @@ const AttributeAuthorityParams = t.union([
 ]);
 type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
 
-// global app configuration
-export type IConfig = t.TypeOf<typeof IConfig>;
-export const IConfig = t.intersection([
+// Authentication app configuration
+export type IConfigAuth = t.TypeOf<typeof IConfigAuth>;
+export const IConfigAuth = t.intersection([
+  AttributeAuthorityParams,
+  CIEParams,
+  JWTParams,
+  SpidParams,
+]);
+
+export type IConfigUtility = t.TypeOf<typeof IConfigUtility>;
+export const IConfigUtility = t.intersection([
   t.interface({
     APPINSIGHTS_DISABLED: t.boolean,
     APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
@@ -170,10 +184,11 @@ export const IConfig = t.intersection([
     isProduction: t.boolean,
   }),
   RedisParams,
-  SpidParams,
-  JWTParams,
-  AttributeAuthorityParams,
 ]);
+
+// global app configuration
+export type IConfig = t.TypeOf<typeof IConfig>;
+export const IConfig = t.intersection([IConfigAuth, IConfigUtility]);
 
 const DEFAULT_SERVER_PORT = 8080;
 

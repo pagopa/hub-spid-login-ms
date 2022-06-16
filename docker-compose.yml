@@ -12,7 +12,6 @@ services:
       - .env
     depends_on:
       - redis
-      - spid-saml-check
     expose:
       - ${SERVER_PORT}
     ports:
@@ -60,20 +59,6 @@ services:
       - "10002:10002"
     networks:
       - spid-net
-
-  ade-aa-ms-mock:
-    container_name: ade-aa-ms-mock
-    image: ade-aa-ms-mock
-    build:
-      context: ./docker/ade-aa-mock
-      dockerfile: ./Dockerfile
-    env_file:
-      - docker/ade-aa-mock/ade-aa-mock.env
-    ports:
-      - "3000:3000"
-    depends_on:
-      - storage
-    networks:
 
 networks:
   spid-net:

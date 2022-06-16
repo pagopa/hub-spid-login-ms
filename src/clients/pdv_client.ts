@@ -1,7 +1,10 @@
 import nodeFetch from "node-fetch";
-import { Client, createClient } from "../../generated/userregistry-api/client";
+import {
+  Client,
+  createClient
+} from "../../generated/pdv-userregistry-api/client";
 
-export const UserRegistryAPIClient = (
+export const PersonalDatavaultAPIClient = (
   baseUrl: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fetchApi: typeof fetch = (nodeFetch as any) as typeof fetch
@@ -12,4 +15,4 @@ export const UserRegistryAPIClient = (
     fetchApi
   });
 
-export type UserRegistryAPIClient = typeof UserRegistryAPIClient;
+export type PersonalDatavaultAPIClient = typeof PersonalDatavaultAPIClient;

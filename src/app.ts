@@ -23,7 +23,6 @@ import * as cors from "cors";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as O from "fp-ts/lib/Option";
 import { CertificationEnum } from "../generated/userregistry-api/Certification";
 import { generateToken } from "./handlers/token";
 
@@ -47,13 +46,12 @@ import {
   toResponseErrorInternal,
   toTokenUserL2
 } from "./utils/conversions";
-
 import { AdeAPIClient } from "./clients/ade";
-import { UserRegistryAPIClient } from "./clients/userregistry_client";
 import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 import { blurUser } from "./utils/user_registry";
+import { PersonalDatavaultAPIClient } from "./clients/pdv_client";
 
 const config = getConfigOrThrow();
 
@@ -109,8 +107,7 @@ const serviceProviderConfig: IServiceProviderConfig = {
     ),
     name: config.REQUIRED_ATTRIBUTES_SERVICE_NAME
   },
-  spidCieUrl:
-    "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata",
+  spidCieUrl: config.CIE_URL,
   spidTestEnvUrl: config.SPID_TESTENV_URL,
   spidValidatorUrl: config.SPID_VALIDATOR_URL,
   strictResponseValidation:
@@ -182,31 +179,38 @@ const acs: AssertionConsumerServiceT = async user =>
     b => b,
     TE.chainW(_ => {
       logger.info(
-        `USER REGISTRY | Check for User Registry | ${config.ENABLE_USER_REGISTRY}`
+        `ACS | Personal Data Vault - Check for User: ${config.ENABLE_USER_REGISTRY}`
       );
       return config.ENABLE_USER_REGISTRY
         ? pipe(
             blurUser(
-              UserRegistryAPIClient(config.USER_REGISTRY_URL),
+              PersonalDatavaultAPIClient(config.USER_REGISTRY_URL),
               withoutUndefinedValues({
-                certification: CertificationEnum.SPID,
-                externalId: _.fiscal_number,
-                extras: {
-                  email: _.email
-                },
-                name: _.name,
-                surname: _.family_name
+                fiscalCode: _.fiscal_number,
+                ...(_.email && {
+                  email: {
+                    certification: CertificationEnum.SPID,
+                    value: _.email
+                  }
+                }),
+                ...(_.family_name && {
+                  familyName: {
+                    certification: CertificationEnum.SPID,
+                    value: _.family_name
+                  }
+                }),
+                ...(_.name && {
+                  name: {
+                    certification: CertificationEnum.SPID,
+                    value: _.name
+                  }
+                })
               }),
-              _.fiscal_number,
               config.USER_REGISTRY_API_KEY
             ),
-            TE.map(maybeUid => ({
+            TE.map(uuid => ({
               ..._,
-              uid: pipe(
-                maybeUid,
-                O.map(uid => uid.id),
-                O.toUndefined
-              )
+              uid: uuid
             }))
           )
         : TE.of({ ..._ });

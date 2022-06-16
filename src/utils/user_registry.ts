@@ -3,124 +3,98 @@ import {
   IResponseErrorInternal,
   IResponseErrorValidation,
   ResponseErrorForbiddenNotAuthorized,
+  ResponseErrorInternal,
   ResponseErrorValidation,
 } from "@pagopa/ts-commons/lib/responses";
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { toError } from "fp-ts/lib/Either";
+import { SaveUserDto } from "../../generated/pdv-userregistry-api/SaveUserDto";
+import { UserId } from "../../generated/pdv-userregistry-api/UserId";
 import { pipe } from "fp-ts/lib/function";
+
 import * as E from "fp-ts/lib/Either";
-import * as O from "fp-ts/lib/Option";
-
 import * as TE from "fp-ts/lib/TaskEither";
-import { none, Option, some } from "fp-ts/lib/Option";
-import { User } from "../../generated/userregistry-api/User";
-import { UserSeed } from "../../generated/userregistry-api/UserSeed";
+import * as O from "fp-ts/lib/Option";
+import { PersonalDatavaultAPIClient } from "../clients/pdv_client";
+import { toResponseErrorInternal } from "./conversions";
 
-import { UserRegistryAPIClient } from "../clients/userregistry_client";
-import { errorsToError, toResponseErrorInternal } from "./conversions";
-import { logger } from "./logger";
-export const getUserId = (
-  apiClient: ReturnType<UserRegistryAPIClient>,
-  externalId: FiscalCode,
+// Extract the result type from the operation
+type ApiResult = ReturnType<
+  PersonalDatavaultAPIClient
+// tslint:disable-next-line: no-any
+>["saveUsingPATCH"] extends (a: any) => Promise<E.Either<any, infer R>>
+  ? R
+  : never;
+
+type ErrorResponses =
+  | IResponseErrorForbiddenNotAuthorized
+  | IResponseErrorInternal
+  | IResponseErrorValidation;
+
+/**
+ * Map results from PDV service into our specification
+ *
+ * @param res
+ * @returns
+ */
+export const handleApiResult = (
+  res: ApiResult
+): TE.TaskEither<ErrorResponses, Pick<UserId, "id">> => {
+  const status = res.status;
+  switch (status) {
+    case 200:
+      return pipe(
+        res.value,
+        O.fromNullable,
+        O.map((responseValue) => ({ id: responseValue.id })),
+        TE.fromOption(() =>
+          ResponseErrorInternal("Error reading response data")
+        )
+      );
+    case 400:
+      return TE.left(
+        ResponseErrorValidation("Bad Input or Response", "Error internal")
+      );
+    case 403:
+      return TE.left(ResponseErrorForbiddenNotAuthorized);
+    case 409:
+      return TE.left(ResponseErrorInternal("Error internal"));
+    case 429:
+      return TE.left(ResponseErrorInternal("Error calling PDV subsystem"));
+    default: {
+      // tslint:disable-next-line: no-dead-store
+      const _: never = status;
+      return TE.left(
+        ResponseErrorInternal(
+          `Unespected Response from PDV subsystem: '${status}'`
+        )
+      );
+    }
+  }
+};
+
+export const blurUser = (
+  pdvClient: ReturnType<PersonalDatavaultAPIClient>,
+  user: SaveUserDto,
   subscriptionKey: NonEmptyString
-): TE.TaskEither<
-  IResponseErrorInternal | IResponseErrorForbiddenNotAuthorized,
-  Option<{ id: string }>
-> =>
+): TE.TaskEither<ErrorResponses, Pick<UserId, "id">> =>
   pipe(
     TE.tryCatch(
       () =>
-        apiClient.getUserByExternalId({
-          SubscriptionKey: subscriptionKey,
-          body: {
-            externalId,
-          },
+        pdvClient.saveUsingPATCH({
+          api_key: subscriptionKey,
+          saveUserDto: user,
         }),
-      toError
+      // an unknown and unexpected error while making the request to PDV
+      (error) => toResponseErrorInternal(toError(error))
     ),
-    TE.mapLeft((err) => {
-      logger.error(`USER REGISTRY getUserByExternalId: ${err.message}`);
-      return toResponseErrorInternal(err);
-    }),
-    // Validation (Either) -> taskEither
-    TE.chain((_) =>
-      pipe(
-        _,
-        E.mapLeft((errs) => toResponseErrorInternal(errorsToError(errs))),
-        TE.fromEither
+    // response failed to be decoded
+    // perhaps because the given specification isn't aligned with what's actually provided from PDV service
+    TE.chainEitherKW(
+      E.mapLeft(() =>
+        ResponseErrorValidation("Bad Input", "Error creating the user")
       )
     ),
-    TE.chainW((res) => {
-      switch (res.status) {
-        case 200:
-          return TE.of(some({ id: res.value.id }));
-        case 404:
-          return TE.of(none);
-        default:
-          return TE.left(ResponseErrorForbiddenNotAuthorized);
-      }
-    })
+    // map result
+    TE.chain(handleApiResult)
   );
-
-export const postUser = (
-  apiClient: ReturnType<UserRegistryAPIClient>,
-  user: UserSeed,
-  subscriptionKey: NonEmptyString
-): TE.TaskEither<IResponseErrorInternal | IResponseErrorValidation, User> =>
-  pipe(
-    TE.tryCatch(() => {
-      return apiClient.createUser({
-        SubscriptionKey: subscriptionKey,
-        body: {
-          ...user,
-        },
-      });
-    }, toError),
-    TE.mapLeft((err) => {
-      logger.error(`USER REGISTRY postUser: ${err.message}`);
-      return toResponseErrorInternal(err);
-    }),
-    TE.chainW((_) =>
-      pipe(
-        _,
-        E.mapLeft((errs) =>
-          ResponseErrorValidation("Validation Error", errs.join("/"))
-        ),
-        TE.fromEither
-      )
-    ),
-    TE.chain((res) =>
-      res.status === 201
-        ? TE.of(res.value)
-        : TE.left(
-            ResponseErrorValidation("Bad Input", "Error creating the user")
-          )
-    )
-  );
-export const blurUser = (
-  apiClient: ReturnType<UserRegistryAPIClient>,
-  user: UserSeed,
-  fiscalCode: FiscalCode,
-  subscriptionKey: NonEmptyString
-): TE.TaskEither<
-  IResponseErrorInternal | IResponseErrorValidation,
-  Option<Pick<User, "id">>
-> => {
-  return pipe(
-    getUserId(apiClient, fiscalCode, subscriptionKey),
-    TE.mapLeft((error) => toResponseErrorInternal(toError(error))),
-    TE.chain((maybeUserID) =>
-      pipe(
-        maybeUserID,
-        O.fold(
-          () =>
-            pipe(
-              postUser(apiClient, user, subscriptionKey),
-              TE.map((u) => some({ id: u.id }))
-            ),
-          (r) => TE.of(some(r))
-        )
-      )
-    )
-  );
-};

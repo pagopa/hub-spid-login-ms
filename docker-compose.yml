@@ -1,97 +1,67 @@
 version: "2.2"
 
 services:
-    backend:
-        container_name: hub-spid-login-ms
-        build:
-            context: ./
-            dockerfile: Dockerfile
-        environment: 
-            - NODE_TLS_REJECT_UNAUTHORIZED=0
-        env_file: 
-            - .env
-        depends_on:
-          - redis
-          - spid-saml-check
-        expose:
-            - ${SERVER_PORT}
-        ports:
-            - ${SERVER_PORT}:${SERVER_PORT}
-            - "5859:5859"
-        image: node:10.14.2-alpine
-        command: ["yarn", "start"]
-        volumes:
-          - "./certs:/usr/src/app/certs:ro"
-        networks:
-            - spid-net
+  backend:
+    container_name: hub-spid-login-ms
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    expose:
+      - ${SERVER_PORT}
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+      - "5859:5859"
+    image: node:10.14.2-alpine
+    command: ["yarn", "start"]
+    volumes:
+      - "./certs:/usr/src/app/certs:ro"
+    networks:
+      - spid-net
 
-    spid-testenv2:
-        container_name: spid-testenv2
-        image: italia/spid-testenv2:latest
-        restart: unless-stopped
-        ports:
-            - "8088:8088"
-        volumes:
-            - "./conf-testenv:/app/conf"
-            - "./certs:/app/certs:ro"
-        depends_on: 
-            - backend
-        networks:
-            - spid-net
-     
-    spid-saml-check:       
-        container_name: spid-saml-check
-        image: spid-saml-check
-        restart: unless-stopped
-        build:
-            context: ./docker/spid-saml-check
-            dockerfile: ./Dockerfile
-        environment: 
-            - NODE_TLS_REJECT_UNAUTHORIZED=0
-        ports:
-            - "9191:8080"
-        networks:
-            - spid-net
+  spid-testenv2:
+    container_name: spid-testenv2
+    image: italia/spid-testenv2
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes:
+      - "./conf-testenv:/app/conf"
+      - "./certs:/app/certs:ro"
+    depends_on:
+      - backend
+    networks:
+      - spid-net
 
-    redis:
-        container_name: redis
-        image: wodby/redis:3.2-2.1.5
-        ports:
-            - "6379:6379"
-        environment:
-            REDIS_TIMEOUT: 300
-            REDIS_TCP_KEEPALIVE: 60
-            REDIS_MAXMEMORY: 182m
-        networks:
-            - spid-net
+  redis:
+    container_name: redis
+    image: wodby/redis:3.2-2.1.5
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_TIMEOUT: 300
+      REDIS_TCP_KEEPALIVE: 60
+      REDIS_MAXMEMORY: 182m
+    networks:
+      - spid-net
 
-    storage:
-        container_name: storage
-        image: mcr.microsoft.com/azure-storage/azurite
-        ports:
-            - "10000:10000"
-            - "10001:10001"
-            - "10002:10002"
-        networks:
-            - spid-net
-    
-    ade-aa-ms-mock:
-        container_name: ade-aa-ms-mock
-        image: ade-aa-ms-mock
-        build:
-            context: ./docker/ade-aa-mock
-            dockerfile: ./Dockerfile
-        env_file:
-            - docker/ade-aa-mock/ade-aa-mock.env
-        ports:
-            - "3000:3000"
-        depends_on: 
-            - storage
-        networks:
-            - spid-net
+  storage:
+    container_name: storage
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    networks:
+      - spid-net
 
 networks:
-    spid-net:
-        driver: bridge
-        driver_opts:
-            com.docker.network.driver.mtu: 1450
+  spid-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450

@@ -37,13 +37,23 @@ This microservices is intended for a usage through an API Gateway (API Managemen
 - Additional header extraction throughout the backend services' authorization layer
 
 ## Routes
+* `/metadata`: Expose SP metadata
+* `/login`: Trigger a SPID login by creating an `authNRequest`
+* `/logout`: Trigger logout from SPID (Not used)
+* `/acs`: Assertion Consumer service endpoint
+* `/refresh`: Trigger IDP metadata refresh
+* `/invalidate`: Invalidates a previous released token
+* `/introspect`: Introspect token by giving information (optional) about logged Spid User
+* `/success`: Trigger Final redirect to success endpoint after a successful SPID login
+* `/error`: Trigger Redirect to an error page
 
-- `/metadata`: Expose SP metadata
-- `/login`: Trigger a SPID login by creating an `authNRequest`
-- `/logout`: Trigger logout from SPID (Not used)
-- `/acs`: Assertion Consumer service endpoint
-- `/refresh`: Trigger IDP metadata refresh
-- `/invalidate`: Invalidates a previous released token
-- `/introspect`: Introspect token by giving information (optional) about logged Spid User
-- `/success`: Trigger Final redirect to success endpoint after a successful SPID login
-- `/error`: Trigger Redirect to an error page
+# Tests
+
+## Unit tests
+Just
+```sh
+yarn test
+```
+
+## End-to-end tests
+Tests executed using browser automation to simulate actual user interactions. See [e2e/README.md](e2e/README.md) for more.

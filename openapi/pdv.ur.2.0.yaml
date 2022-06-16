@@ -1,0 +1,274 @@
+---
+swagger: "2.0"
+info:
+  description: "User Registry API documentation"
+  version: "1.0"
+  title: "pdv-u-user-registry-api"
+host: "api.pdv.pagopa.it"
+basePath: "/user-registry/v1"
+schemes:
+- "https"
+paths:
+  /users:
+    patch:
+      operationId: "saveUsingPATCH"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "SaveUserDto"
+        required: true
+        schema:
+          $ref: "#/definitions/SaveUserDto"
+      responses:
+        "200":
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/UserId"
+        "400":
+          description: "400 response"
+        "403":
+          description: "403 response"
+        "409":
+          description: "409 response"
+        "429":
+          description: "too many request"
+      security:
+      - api_key: []
+  /users/search:
+    post:
+      operationId: "searchUsingPOST"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "fl"
+        in: "query"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "UserSearchDto"
+        required: true
+        schema:
+          $ref: "#/definitions/UserSearchDto"
+      responses:
+        "200":
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/UserResource"
+        "400":
+          description: "400 response"
+        "403":
+          description: "403 response"
+        "404":
+          description: "404 response"
+        "429":
+          description: "too many request"
+      security:
+      - api_key: []
+  /users/{id}:
+    get:
+      operationId: "findByIdUsingGET"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "fl"
+        in: "query"
+        required: true
+        type: "string"
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/UserResource"
+        "400":
+          description: "400 response"
+        "403":
+          description: "403 response"
+        "404":
+          description: "404 response"
+        "429":
+          description: "too many request"
+      security:
+      - api_key: []
+    delete:
+      operationId: "deleteByIdUsingDELETE"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        "204":
+          description: "204 response"
+        "400":
+          description: "400 response"
+        "403":
+          description: "403 response"
+        "429":
+          description: "too many request"
+      security:
+      - api_key: []
+    patch:
+      operationId: "updateUsingPATCH"
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "MutableUserFieldsDto"
+        required: true
+        schema:
+          $ref: "#/definitions/MutableUserFieldsDto"
+      responses:
+        "204":
+          description: "204 response"
+        "400":
+          description: "400 response"
+        "403":
+          description: "403 response"
+        "409":
+          description: "409 response"
+        "429":
+          description: "too many request"
+      security:
+      - api_key: []
+securityDefinitions:
+  api_key:
+    type: "apiKey"
+    name: "x-api-key"
+    in: "header"
+definitions:
+  UserSearchDto:
+    type: "object"
+    required:
+    - "fiscalCode"
+    properties:
+      fiscalCode:
+        type: "string"
+        description: "User fiscal code"
+    title: "UserSearchDto"
+  WorkContactResource:
+    type: "object"
+    properties:
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+    title: "WorkContactResource"
+  CertifiableFieldResourceOfstring:
+    type: "object"
+    required:
+    - "certification"
+    - "value"
+    properties:
+      certification:
+        type: "string"
+        description: "Certified source of information"
+        enum:
+        - "NONE"
+        - "SPID"
+      value:
+        type: "string"
+        description: "Field value"
+    title: "CertifiableFieldResourceOfstring"
+  UserId:
+    type: "object"
+    required:
+    - "id"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "User internal id"
+    title: "UserId"
+  MutableUserFieldsDto:
+    type: "object"
+    properties:
+      birthDate:
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      familyName:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      name:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      workContacts:
+        type: "object"
+        description: "User work contacts"
+        additionalProperties:
+          $ref: "#/definitions/WorkContactResource"
+    title: "MutableUserFieldsDto"
+  CertifiableFieldResourceOfLocalDate:
+    type: "object"
+    required:
+    - "certification"
+    - "value"
+    properties:
+      certification:
+        type: "string"
+        description: "Certified source of information"
+        enum:
+        - "NONE"
+        - "SPID"
+      value:
+        type: "string"
+        format: "date"
+        description: "Field value"
+    title: "CertifiableFieldResourceOfLocalDate"
+  UserResource:
+    type: "object"
+    required:
+    - "id"
+    properties:
+      birthDate:
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      familyName:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      fiscalCode:
+        type: "string"
+        description: "User fiscal code"
+      id:
+        type: "string"
+        format: "uuid"
+        description: "User internal id"
+      name:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      workContacts:
+        type: "object"
+        description: "User work contacts"
+        additionalProperties:
+          $ref: "#/definitions/WorkContactResource"
+    title: "UserResource"
+  SaveUserDto:
+    type: "object"
+    required:
+    - "fiscalCode"
+    properties:
+      birthDate:
+        $ref: "#/definitions/CertifiableFieldResourceOfLocalDate"
+      email:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      familyName:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      fiscalCode:
+        type: "string"
+        description: "User fiscal code"
+      name:
+        $ref: "#/definitions/CertifiableFieldResourceOfstring"
+      workContacts:
+        type: "object"
+        description: "User work contacts"
+        additionalProperties:
+          $ref: "#/definitions/WorkContactResource"
+    title: "SaveUserDto"

@@ -1,12 +1,15 @@
 import { promises as fs } from "fs";
 import { resolve as resolvePath } from "path";
 import { ChildProcess, spawn } from "child_process";
+export const envFlag = (e: unknown): boolean => e === "1" || e === "true";
 
 type ProcessResult = "ok" | "ko";
 
 const JEST_BIN_PATH = resolvePath(`${process.cwd()}/node_modules/.bin/jest`);
 const JEST_CONFIG_PATH = resolvePath(`${process.cwd()}/runner/jest.config.js`);
 const SCENARIOS_ROOT_PATH = resolvePath(`${process.cwd()}/scenarios`);
+const DEBUG = envFlag(process.env.DEBUG);
+const DRY_RUN = envFlag(process.env.DRY_RUN);
 
 const dockerCmd = (name: string): string =>
   `docker compose --file ${SCENARIOS_ROOT_PATH}/${name}/docker-compose.yml --env-file ${SCENARIOS_ROOT_PATH}/${name}/env.scenario`;
@@ -15,14 +18,13 @@ const testCmdForScenario = (name: string): string =>
   `node ${JEST_BIN_PATH} --config ${JEST_CONFIG_PATH} --roots ${SCENARIOS_ROOT_PATH}/${name} --forceExit`;
 
 const setupCmdForScenario = (name: string): string =>
-  `${dockerCmd(name)} up -d`;
+  `${dockerCmd(name)} up ${DEBUG ? "" : "-d"}`;
 
 const teardownCmdForScenario = (name: string): string =>
   `${dockerCmd(name)} down`;
 
 const runProcess = (sh: string): ChildProcess => {
-  if (process.env.DRY_RUN)
-    return spawn("echo", [`DryRun for ${sh}`], { stdio: "inherit" });
+  if (DRY_RUN) return spawn("echo", [`DryRun for ${sh}`], { stdio: "inherit" });
   const [command, ...argv] = sh.split(" ");
   return spawn(command, argv, { stdio: "inherit" });
 };
@@ -51,6 +53,8 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   try {
     await promisifyProcess(runProcess(setupCmdForScenario(name)));
 
+    await new Promise((ok) => setTimeout(ok, 5000));
+
     const result = await promisifyProcess(runProcess(testCmdForScenario(name)));
 
     await promisifyProcess(runProcess(teardownCmdForScenario(name)));
@@ -65,12 +69,19 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   }
 };
 
-(async (_argv: string[]) => {
+(async (argv: string[]) => {
+  const inputScenarios = argv;
+
   // scenarios are defined by top-level directories in scenarios root path
   const scenarios = await fs.readdir(SCENARIOS_ROOT_PATH);
 
+  // scenario may be filtered if are provided in input
+  const selectedScenarios = inputScenarios.length
+    ? scenarios.filter((e) => inputScenarios.includes(e))
+    : scenarios;
+
   // create child process for each scenario
-  const runs = scenarios.map(composeScenarioTest);
+  const runs = selectedScenarios.map(composeScenarioTest);
 
   // collect results from each run
   const results = await Promise.allSettled(runs);

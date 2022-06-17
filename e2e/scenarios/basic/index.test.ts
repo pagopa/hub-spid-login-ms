@@ -4,6 +4,7 @@ import {
   littleTime,
   withBrowser,
   clickAnyway,
+  startupTime,
 } from "../../utils/misc";
 import { host, showBrowser, testEntityID, testCredentials } from "./config";
 
@@ -13,7 +14,7 @@ jest.setTimeout(1e6);
 
 beforeAll(async () => {
   // somehow we need to wait idp metadata are loaded
-  await delay(bigTime * 5);
+  await delay(startupTime);
 });
 describe("Basic", () => {
   it("should login with an existing user", () =>

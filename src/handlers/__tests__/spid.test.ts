@@ -15,6 +15,7 @@ import {
   aSAMLResponseWithoutFiscalCode,
 } from "../../__mocks__/spid";
 import * as T from "fp-ts/lib/Task";
+import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
 
@@ -22,13 +23,25 @@ import * as O from "fp-ts/lib/Option";
 const aMockedRequest = mockReq();
 const aMockedResponse = mockRes();
 
-// Mock access_log module to spy on storeSpidLogs function
-import * as accessLogUtility from "../../utils/access_log";
-const spiedStoreSpidLogs = jest.spyOn(accessLogUtility, "storeSpidLogs");
+import { AccessLogEncrypter, AccessLogWriter } from "../../utils/access_log";
 
 // Mock logger to spy error
 import { logger } from "../../utils/logger";
+import { SpidBlobItem } from "../../types/access_log";
 const spiedLoggerError = jest.spyOn(logger, "error");
+
+const mockAccessLogWriter = jest.fn<
+  ReturnType<AccessLogWriter>,
+  Parameters<AccessLogWriter>
+>((_, __) =>
+  TE.of<Error, O.Option<BlobService.BlobResult>>(
+    O.some({} as BlobService.BlobResult)
+  )
+);
+const mockAccessLogEncrypter = jest.fn<
+  ReturnType<AccessLogEncrypter>,
+  Parameters<AccessLogEncrypter>
+>(() => E.right({} as SpidBlobItem));
 
 // Utility functions that allows us to wait for fire&forget task to be awaited
 const flushPromises = () => new Promise(setImmediate);
@@ -82,36 +95,35 @@ describe("metadataRefreshHandler", () => {
 
 describe("accessLogHandler", () => {
   it("should succeed calling storeSpidLogs function if it returns right", async () => {
-    spiedStoreSpidLogs.mockReturnValue(
-      TE.right(O.some({} as BlobService.BlobResult))
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+      "0.0.0.0",
+      aSAMLRequest,
+      aSAMLResponse
     );
-
-    accessLogHandler(
-      ({} as unknown) as BlobService,
-      "a_container" as NonEmptyString,
-      "aPublicKey" as NonEmptyString
-    )("0.0.0.0", aSAMLRequest, aSAMLResponse);
 
     // await fire&forget storeSpidLogs
     await flushPromises();
 
-    expect(spiedStoreSpidLogs).toHaveBeenCalledTimes(1);
+    expect(mockAccessLogWriter).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).not.toHaveBeenCalled();
   });
 
   it("should fail calling storeSpidLogs function if returns left", async () => {
-    spiedStoreSpidLogs.mockReturnValue(TE.left(new Error("any error")));
+    mockAccessLogWriter.mockImplementationOnce(() =>
+      TE.left(new Error("any error"))
+    );
 
-    accessLogHandler(
-      ({} as unknown) as BlobService,
-      "a_container" as NonEmptyString,
-      "aPublicKey" as NonEmptyString
+    const result = accessLogHandler(
+      mockAccessLogWriter,
+      mockAccessLogEncrypter
     )("0.0.0.0", aSAMLRequest, aSAMLResponse);
 
     // await fire&forget storeSpidLogs
     await flushPromises();
 
-    expect(spiedStoreSpidLogs).toHaveBeenCalledTimes(1);
+    console.log("-->", result);
+
+    expect(mockAccessLogWriter).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
   });
 
@@ -120,44 +132,44 @@ describe("accessLogHandler", () => {
     // we have to cast to avoid type check at compile time
     const anEmptyResponsePayload = (undefined as unknown) as string;
 
-    accessLogHandler(
-      ({} as unknown) as BlobService,
-      "a_container" as NonEmptyString,
-      "aPublicKey" as NonEmptyString
-    )("0.0.0.0", aSAMLRequest, anEmptyResponsePayload);
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+      "0.0.0.0",
+      aSAMLRequest,
+      anEmptyResponsePayload
+    );
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(
       "SpidLogCallback|ERROR=Cannot parse SPID XML"
     );
-    expect(spiedStoreSpidLogs).not.toHaveBeenCalled();
+    expect(mockAccessLogWriter).not.toHaveBeenCalled();
   });
 
   it("should fail if not able to get original request id from response", async () => {
-    accessLogHandler(
-      ({} as unknown) as BlobService,
-      "a_container" as NonEmptyString,
-      "aPublicKey" as NonEmptyString
-    )("0.0.0.0", aSAMLRequest, aSAMLResponseWithoutRequestId);
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+      "0.0.0.0",
+      aSAMLRequest,
+      aSAMLResponseWithoutRequestId
+    );
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(
       "SpidLogCallback|ERROR=Cannot get Request ID from SPID XML"
     );
-    expect(spiedStoreSpidLogs).not.toHaveBeenCalled();
+    expect(mockAccessLogWriter).not.toHaveBeenCalled();
   });
 
   it("should fail if not able to get user fiscal code from response", async () => {
-    accessLogHandler(
-      ({} as unknown) as BlobService,
-      "a_container" as NonEmptyString,
-      "aPublicKey" as NonEmptyString
-    )("0.0.0.0", aSAMLRequest, aSAMLResponseWithoutFiscalCode);
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+      "0.0.0.0",
+      aSAMLRequest,
+      aSAMLResponseWithoutFiscalCode
+    );
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(
       "SpidLogCallback|ERROR=Cannot get user's fiscal Code from SPID XML"
     );
-    expect(spiedStoreSpidLogs).not.toHaveBeenCalled();
+    expect(mockAccessLogWriter).not.toHaveBeenCalled();
   });
 });

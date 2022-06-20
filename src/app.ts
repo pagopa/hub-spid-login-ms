@@ -210,7 +210,7 @@ const acs: AssertionConsumerServiceT = async user =>
             ),
             TE.map(uuid => ({
               ..._,
-              uid: uuid
+              uid: uuid.id
             }))
           )
         : TE.of({ ..._ });

@@ -29,6 +29,19 @@ In order to run SPID Login microservice in a local environment you must:
   Prod: https://produzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata
   PreProd: https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata
 
+## Asserion logging
+It is possible to log SAML requests and responses for each successful login. Assertions are encrypted and stored in an external storage. This can be enabled by using the following environment configuration:
+|name|description|values|required|
+|-|-|-|-|
+|`ENABLE_SPID_ACCESS_LOGS`|Whether log or not SAML assertions|`true` or `false`| yes|
+|`SPID_LOGS_PUBLIC_KEY`|Key used to encypt SAML assertions payload| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
+|`SPID_LOGS_STORAGE_KIND`|The kind of storage to be used. Default: `azurestorage` for backward compatibility| See `config.ts` for all supported storages  | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
+|`SPID_LOGS_STORAGE_CONNECTION_STRING`|Connection string for the external storage| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
+|`SPID_LOGS_STORAGE_CONTAINER_NAME`|Name of the container to store files into | string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
+
+
+
+
 # Architecture
 
 This microservices is intended for a usage through an API Gateway (API Management on Azure environment). It's necessary to enable:

@@ -8,6 +8,7 @@ import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
+import { SpidLogsStorageKind } from "./config";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
   fn: (a: I, ...aa: II) => R
@@ -69,7 +70,7 @@ export const makeSpidLogBlobName = (spidLogMsg: SpidLogMsg): string =>
 export type AccessLogWriter = (
   encryptedBlobItem: SpidBlobItem,
   blobName: string
-) => TE.TaskEither<Error, O.Option<BlobService.BlobResult>>;
+) => TE.TaskEither<Error, void>;
 
 // Define a function that encrypts a spid log message
 export type AccessLogEncrypter = (
@@ -77,7 +78,7 @@ export type AccessLogEncrypter = (
 ) => E.Either<Error, SpidBlobItem>;
 
 // Supported storage for spid access log
-export type AccessLogStorageKind = "azurestorage";
+export type AccessLogStorageKind = SpidLogsStorageKind;
 
 // Create an encrypted from a given public key
 export const createAccessLogEncrypter = (
@@ -106,7 +107,15 @@ export const createAzureStorageAccessLogWriter = (
   encryptedBlobItem: SpidBlobItem,
   blobName: string
 ): ReturnType<AccessLogWriter> =>
-  upsertBlobFromObject(blobService, containerName, blobName, encryptedBlobItem);
+  pipe(
+    upsertBlobFromObject(
+      blobService,
+      containerName,
+      blobName,
+      encryptedBlobItem
+    ),
+    TE.map(_ => void 0)
+  );
 
 // Create a writer for a given kind
 export const createAccessLogWriter = (

@@ -19,6 +19,7 @@ import { pipe, flow, identity } from "fp-ts/lib/function";
 import * as t from "io-ts";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 export const RedisParams = t.intersection([
   t.interface({
@@ -47,13 +48,20 @@ export const ContactPersonParams = t.intersection([
 ]);
 export type ContactPersonParams = t.TypeOf<typeof ContactPersonParams>;
 
+export type SpidLogsStorageKind = t.TypeOf<typeof SpidLogsStorageKind>;
+const SpidLogsStorageKind = t.literal("azurestorage");
+
 const SpidLogsParams = t.union([
   t.interface({
     ENABLE_SPID_ACCESS_LOGS: t.literal(true),
 
     SPID_LOGS_PUBLIC_KEY: NonEmptyString,
     SPID_LOGS_STORAGE_CONNECTION_STRING: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString
+    SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
+    SPID_LOGS_STORAGE_KIND: withDefault(
+      SpidLogsStorageKind,
+      "azurestorage" /* backward compatibility */
+    )
   }),
   t.interface({
     ENABLE_SPID_ACCESS_LOGS: t.literal(false)

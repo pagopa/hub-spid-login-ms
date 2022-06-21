@@ -18,7 +18,6 @@ import {
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
 import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
-import { createBlobService } from "azure-storage";
 import * as cors from "cors";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
@@ -52,6 +51,10 @@ import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 import { blurUser } from "./utils/user_registry";
 import { PersonalDatavaultAPIClient } from "./clients/pdv_client";
+import {
+  createAccessLogEncrypter,
+  createAccessLogWriter
+} from "./utils/access_log";
 
 const config = getConfigOrThrow();
 
@@ -290,9 +293,12 @@ if (config.ALLOW_CORS) {
 
 const doneCb = config.ENABLE_SPID_ACCESS_LOGS
   ? accessLogHandler(
-      createBlobService(config.SPID_LOGS_STORAGE_CONNECTION_STRING),
-      config.SPID_LOGS_STORAGE_CONTAINER_NAME,
-      config.SPID_LOGS_PUBLIC_KEY
+      createAccessLogWriter(
+        config.SPID_LOGS_STORAGE_KIND,
+        config.SPID_LOGS_STORAGE_CONNECTION_STRING,
+        config.SPID_LOGS_STORAGE_CONTAINER_NAME
+      ),
+      createAccessLogEncrypter(config.SPID_LOGS_PUBLIC_KEY)
     )
   : (ip: string | null, request: string, response: string): void => {
       debug("*************** done", ip);

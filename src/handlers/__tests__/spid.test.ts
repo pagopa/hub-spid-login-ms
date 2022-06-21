@@ -33,11 +33,8 @@ const spiedLoggerError = jest.spyOn(logger, "error");
 const mockAccessLogWriter = jest.fn<
   ReturnType<AccessLogWriter>,
   Parameters<AccessLogWriter>
->((_, __) =>
-  TE.of<Error, O.Option<BlobService.BlobResult>>(
-    O.some({} as BlobService.BlobResult)
-  )
-);
+>((_, __) => TE.right(void 0));
+
 const mockAccessLogEncrypter = jest.fn<
   ReturnType<AccessLogEncrypter>,
   Parameters<AccessLogEncrypter>

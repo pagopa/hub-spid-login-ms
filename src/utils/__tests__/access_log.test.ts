@@ -73,7 +73,6 @@ const responseWithoutRequestIdXMLDocument = new DOMParser().parseFromString(
 );
 
 jest.spyOn(azs, "createBlobService").mockImplementation(() => {
-  console.log("foo");
   return ({} as unknown) as BlobService;
 });
 

@@ -49,7 +49,10 @@ export const ContactPersonParams = t.intersection([
 export type ContactPersonParams = t.TypeOf<typeof ContactPersonParams>;
 
 export type SpidLogsStorageKind = t.TypeOf<typeof SpidLogsStorageKind>;
-const SpidLogsStorageKind = t.literal("azurestorage");
+const SpidLogsStorageKind = t.union([
+  t.literal("azurestorage"),
+  t.literal("awss3")
+]);
 
 const SpidLogsParams = t.union([
   t.interface({

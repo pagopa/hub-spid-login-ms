@@ -6,6 +6,7 @@ import * as E from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as aws from "aws-sdk";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 import { SpidLogsStorageKind } from "./config";
@@ -117,6 +118,31 @@ export const createAzureStorageAccessLogWriter = (
     TE.map(_ => void 0)
   );
 
+// Create a writer for AWS S3
+export const createAwsS3AccessLogWriter = (
+  s3Service: aws.S3,
+  bucketName: string
+): AccessLogWriter => (
+  encryptedBlobItem: SpidBlobItem,
+  blobName: string
+): ReturnType<AccessLogWriter> =>
+  pipe(
+    TE.tryCatch(
+      () =>
+        new Promise((resolve, reject) =>
+          s3Service.upload(
+            {
+              Body: JSON.stringify(encryptedBlobItem),
+              Bucket: bucketName,
+              Key: blobName
+            },
+            (err, res) => (err ? reject(err) : resolve(res))
+          )
+        ),
+      E.toError
+    ),
+    TE.map(_ => void 0)
+  );
 // Create a writer for a given kind
 export const createAccessLogWriter = (
   storageKind: AccessLogStorageKind,
@@ -126,6 +152,22 @@ export const createAccessLogWriter = (
   if (storageKind === "azurestorage") {
     return createAzureStorageAccessLogWriter(
       createBlobService(connectionString),
+      containerName
+    );
+  } else if (storageKind === "awss3") {
+    // In order to keep configurations consistent across different storages,
+    //  we compact parameters into a semicolon-delimited string
+    const [accessKeyId, secretAccessKey, endpoint] = connectionString.split(
+      ";"
+    );
+    return createAwsS3AccessLogWriter(
+      new aws.S3({
+        accessKeyId,
+        endpoint,
+        s3ForcePathStyle: true,
+        secretAccessKey,
+        signatureVersion: "v4"
+      }),
       containerName
     );
   } else {

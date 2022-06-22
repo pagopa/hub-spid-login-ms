@@ -39,7 +39,19 @@ It is possible to log SAML requests and responses for each successful login. Ass
 |`SPID_LOGS_STORAGE_CONNECTION_STRING`|Connection string for the external storage| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_CONTAINER_NAME`|Name of the container to store files into | string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 
+<details>
+  <summary>About AWS S3 connection strings</summary>
+  AWS S3 doesn't fit well to be used with a single connection string as other storages. To keep config consistent across different storage kinds, we decide to compose credential values into a semicolon-delimited string in the following form:
+  
+  ```
+  # with a custom endpoint
+  SPID_LOGS_STORAGE_CONNECTION_STRING=access-key;secret-key;http://custom-endpoint
 
+  # without a custom endpoint
+  SPID_LOGS_STORAGE_CONNECTION_STRING=access-key;secret-key
+
+  ```
+</details>
 
 
 # Architecture

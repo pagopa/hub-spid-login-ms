@@ -1,0 +1,62 @@
+version: "2.2"
+
+services:
+  hub-spid-login:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    env_file:
+      - env.scenario
+    depends_on:
+      - redis
+      - spid-saml-check
+      - storage
+    expose:
+      - ${SERVER_PORT}
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    command: ["yarn", "start"]
+    volumes:
+      - "./res/certs:/usr/src/app/certs:ro"
+      - "../../../:/usr/src/app/"
+    networks:
+      - spid-net
+
+  spid-saml-check:
+    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot
+    restart: unless-stopped
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    ports:
+      - ${SPID_DEMO_IDP_PORT}:${SPID_DEMO_IDP_PORT}
+    volumes:
+      - "./res/spidsamlcheck-conf:/spid-saml-check/spid-validator/config"
+      - "./res/hsl-conf:/data/bootstrap"
+    networks:
+      - spid-net
+
+  redis:
+    image: wodby/redis:3.2-2.1.5
+    environment:
+      REDIS_TIMEOUT: 300
+      REDIS_TCP_KEEPALIVE: 60
+      REDIS_MAXMEMORY: 182m
+    networks:
+      - spid-net
+
+  storage:
+    image: minio/minio
+    command: server --address 0.0.0.0:10000 --console-address 0.0.0.0:10001  /data
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+    networks:
+      - spid-net
+
+networks:
+  spid-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450

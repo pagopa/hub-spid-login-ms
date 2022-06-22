@@ -20,7 +20,7 @@ services:
     command: ["yarn", "start"]
     volumes:
       - "./res/certs:/usr/src/app/certs:ro"
-      - "../../../:/usr/src/app/"
+      # - "../../../:/usr/src/app/"
     networks:
       - spid-net
 

@@ -216,6 +216,13 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     O.map(_ => _.toLowerCase() === "true"),
     O.getOrElse(() => true)
   ),
+  CIE_URL: pipe(
+    O.fromNullable(process.env.CIE_URL),
+    O.getOrElse(
+      () =>
+        "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata"
+    )
+  ),
   ENABLE_ADE_AA: pipe(
     O.fromNullable(process.env.ENABLE_ADE_AA),
     O.map(_ => _.toLowerCase() === "true"),

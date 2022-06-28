@@ -17,11 +17,7 @@ import {
 
 const puppeteer = require("puppeteer");
 
-const [
-  accessKeyId,
-  secretAccessKey,
-  endpoint,
-] = spidLogStorage.connectionString.split(";");
+const { accessKeyId, secretAccessKey, endpoint } = spidLogStorage;
 
 const storage = new aws.S3({
   accessKeyId,

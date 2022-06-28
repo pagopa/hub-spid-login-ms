@@ -9,7 +9,7 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as aws from "aws-sdk";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
-import { SpidLogsStorageKind } from "./config";
+import { SpidLogsStorageConfiguration } from "./config";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
   fn: (a: I, ...aa: II) => R
@@ -79,7 +79,7 @@ export type AccessLogEncrypter = (
 ) => E.Either<Error, SpidBlobItem>;
 
 // Supported storage for spid access log
-export type AccessLogStorageKind = SpidLogsStorageKind;
+export type AccessLogStorageKind = SpidLogsStorageConfiguration["SPID_LOGS_STORAGE_KIND"];
 
 // Create an encrypted from a given public key
 export const createAccessLogEncrypter = (
@@ -145,34 +145,29 @@ export const createAwsS3AccessLogWriter = (
   );
 // Create a writer for a given kind
 export const createAccessLogWriter = (
-  storageKind: AccessLogStorageKind,
-  connectionString: string,
-  containerName: string
+  storageConfig: SpidLogsStorageConfiguration
 ): AccessLogWriter => {
-  if (storageKind === "azurestorage") {
+  if (storageConfig.SPID_LOGS_STORAGE_KIND === "azurestorage") {
     return createAzureStorageAccessLogWriter(
-      createBlobService(connectionString),
-      containerName
+      createBlobService(storageConfig.SPID_LOGS_STORAGE_CONNECTION_STRING),
+      storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
     );
-  } else if (storageKind === "awss3") {
-    // In order to keep configurations consistent across different storages,
-    //  we compact parameters into a semicolon-delimited string
-    const [accessKeyId, secretAccessKey, endpoint] = connectionString.split(
-      ";"
-    );
+  } else if (storageConfig.SPID_LOGS_STORAGE_KIND === "awss3") {
     return createAwsS3AccessLogWriter(
       new aws.S3({
-        accessKeyId,
-        endpoint,
+        endpoint: storageConfig.SPID_LOGS_STORAGE_ENDPOINT?.href,
         s3ForcePathStyle: true,
-        secretAccessKey,
         signatureVersion: "v4"
       }),
-      containerName
+      storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
     );
   } else {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _: never = storageKind;
-    throw new Error(`Unsupported storage kind: ${storageKind}`);
+    const _: never = storageConfig;
+    throw new Error(
+      `Unsupported storage kind: ${
+        (storageConfig as any).SPID_LOGS_STORAGE_KIND // eslint-disable-line @typescript-eslint/no-explicit-any
+      }`
+    );
   }
 };

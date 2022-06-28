@@ -14,5 +14,7 @@ export const testCredentials = [
 ];
 export const spidLogStorage = {
   containerName: "spidassertions",
-  connectionString: "minioadmin;minioadmin;http://localhost:10000",
+  accessKeyId: "minioadmin",
+  secretAccessKey: "minioadmin",
+  endpoint: "http://localhost:10000",
 };

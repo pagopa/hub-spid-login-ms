@@ -1,3 +1,4 @@
+import { createBlobService } from "azure-storage";
 import {
   delay,
   bigTime,
@@ -6,9 +7,16 @@ import {
   clickAnyway,
   startupTime,
 } from "../../utils/misc";
-import { host, showBrowser, testEntityID, testCredentials } from "./config";
+import {
+  host,
+  showBrowser,
+  testEntityID,
+  testCredentials,
+  spidLogStorage,
+} from "./config";
 
 const puppeteer = require("puppeteer");
+const storage = createBlobService(spidLogStorage.connectionString);
 
 jest.setTimeout(1e6);
 
@@ -16,9 +24,19 @@ beforeAll(async () => {
   // somehow we need to wait idp metadata are loaded
   await delay(startupTime);
 });
-describe("Basic", () => {
-  it("should login with an existing user", () =>
-    withBrowser(
+describe("With Azure Storage", () => {
+  beforeEach(async () => {
+    // the app expects container to exist already
+    await new Promise((resolve, reject) =>
+      storage.createContainerIfNotExists(
+        spidLogStorage.containerName,
+        (err, res) => (err ? reject(err) : resolve(res))
+      )
+    );
+  });
+
+  it("should log spid assertion after login", async () => {
+    await withBrowser(
       puppeteer,
       showBrowser
     )(async (browser) => {
@@ -55,5 +73,28 @@ describe("Basic", () => {
         // if login is ok, we landed into success page
         expect(url).toEqual(expect.stringContaining("/success"));
       }
-    }));
+    });
+
+    /* query storage and expect a blob for the current user */ {
+      const blobs = await new Promise((resolve, reject) =>
+        storage.listBlobsSegmented(
+          spidLogStorage.containerName,
+          // @ts-ignore
+          null,
+          (err, res) => (err ? reject(err) : resolve(res))
+        )
+      );
+      const [, , fiscalNumber] = testCredentials;
+      // shape = { entries: [{name, ...other}], ...other}
+      expect(blobs).toEqual(
+        expect.objectContaining({
+          entries: expect.arrayContaining([
+            expect.objectContaining({
+              name: expect.stringContaining(`${fiscalNumber}.json`),
+            }),
+          ]),
+        })
+      );
+    }
+  });
 });

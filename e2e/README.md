@@ -13,6 +13,9 @@ yarn build
 
 # execute all test suites
 yarn start
+
+# execute test suites for selected scenarios only
+yarn start scenario1 scenario2
 ```
 
 > Build is needed only the first time or if something changes in the runner script, which most likely won't happen in normal test development process.

@@ -6,19 +6,23 @@ import {
 } from "../../__mocks__/spid";
 import { DOMParser } from "xmldom";
 import {
+  createAccessLogWriter,
+  createAzureStorageAccessLogWriter,
   getFiscalNumberFromPayload,
   getRequestIDFromPayload,
   getRequestIDFromRequest,
   getRequestIDFromResponse,
-  storeSpidLogs,
+  createAccessLogEncrypter,
 } from "../access_log";
+
+import * as azs from "azure-storage";
 import { BlobService } from "azure-storage";
 import {
   FiscalCode,
   IPString,
   NonEmptyString,
 } from "@pagopa/ts-commons/lib/strings";
-import { SpidLogMsg } from "../../types/access_log";
+import { SpidBlobItem, SpidLogMsg } from "../../types/access_log";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
@@ -40,6 +44,7 @@ const spiedToEncryptedPayload = jest.spyOn(encrypt, "toEncryptedPayload");
 
 // Mock access_log module to spy on storeSpidLogs function
 import * as blob from "../blob";
+import { pipe } from "fp-ts/lib/function";
 const spiedUpsertBlobFromObject = jest.spyOn(blob, "upsertBlobFromObject");
 spiedUpsertBlobFromObject.mockImplementation((_, __, ___, ____) =>
   TE.of<Error, O.Option<BlobService.BlobResult>>(
@@ -66,6 +71,10 @@ const responseWithoutRequestIdXMLDocument = new DOMParser().parseFromString(
   aSAMLResponseWithoutRequestId,
   "text/xml"
 );
+
+jest.spyOn(azs, "createBlobService").mockImplementation(() => {
+  return ({} as unknown) as BlobService;
+});
 
 describe("getFiscalNumberFromPayload", () => {
   it("Should return an option containing a fiscal number from saml response when present", async () => {
@@ -120,7 +129,92 @@ describe("getRequestIDFromResponse", () => {
   });
 });
 
-describe("storeSpidLogs", () => {
+const aPublicKey = "aPublicKey" as NonEmptyString;
+const aValidSpidLogMessage = {
+  createdAt: new Date(),
+  createdAtDay: "2021-11-01",
+  fiscalCode: "AAAAAA00A00A000A" as FiscalCode,
+  ip: "0.0.0.0" as IPString,
+  requestPayload: `a request payload ${Math.random()}`,
+  responsePayload: `a response payload ${Math.random()}`,
+  spidRequestId: "a spi request id",
+};
+describe("createAccessLogWriter", () => {
+  it("should throw when creating writer for an unsupported storage kind", () => {
+    const unsupportedKind = "unsupported" as Parameters<
+      typeof createAccessLogWriter
+    >[0];
+    const connectionString = "anyconnstring";
+    const containerName = "anycontname";
+
+    // lazy function so we can catch error
+    const lazyCreate = () =>
+      createAccessLogWriter(unsupportedKind, connectionString, containerName);
+
+    expect(lazyCreate).toThrowError();
+  });
+
+  it.each`
+    name               | kind
+    ${"Azure Storage"} | ${"azurestorage"}
+  `("should support $name", ({ kind }) => {
+    const connectionString = "anyconnstring";
+    const containerName = "anycontname";
+
+    // lazy function so we can catch error
+    const lazyCreate = () =>
+      createAccessLogWriter(kind, connectionString, containerName);
+
+    expect(lazyCreate).not.toThrowError();
+  });
+});
+
+describe("toSpidBlobItem", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  it("should build encrypted Blob items from  valid messages", () => {
+    const blobItemOrError = createAccessLogEncrypter(aPublicKey)(
+      aValidSpidLogMessage
+    );
+
+    if (E.isRight(blobItemOrError)) {
+      // both request and response payload must be encypted
+      expect(spiedToEncryptedPayload).toBeCalledTimes(2);
+      expect(spiedToEncryptedPayload).toHaveBeenCalledWith(
+        aPublicKey,
+        aValidSpidLogMessage.requestPayload
+      );
+      expect(spiedToEncryptedPayload).toHaveBeenCalledWith(
+        aPublicKey,
+        aValidSpidLogMessage.responsePayload
+      );
+
+      // SpidBlobItem is correctly formatted
+      expect(SpidBlobItem.is(blobItemOrError.right)).toBe(true);
+    } else {
+      fail(`expected to be right, error: ${blobItemOrError.left.message}`);
+    }
+  });
+
+  it("should fail if at least one encyption fail", () => {
+    spiedToEncryptedPayload.mockImplementationOnce(() =>
+      E.left(new Error("unexpected"))
+    );
+
+    const blobItemOrError = createAccessLogEncrypter(aPublicKey)(
+      aValidSpidLogMessage
+    );
+
+    if (E.isRight(blobItemOrError)) {
+      fail(`expected to be left`);
+    } else {
+      expect(blobItemOrError.left).toEqual(expect.any(Error));
+    }
+  });
+});
+
+describe("createAzureStorageAccessLogWriter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -128,70 +222,24 @@ describe("storeSpidLogs", () => {
   const mockedBlobService = ({} as unknown) as BlobService;
   const mockedContainerName = "aContainer" as NonEmptyString;
   const mockedPublicKey = "aPublicKey" as NonEmptyString;
-  const mockedSpidLogMessage = {
-    createdAt: new Date(),
-    createdAtDay: "2021-11-01",
-    fiscalCode: "AAAAAA00A00A000A" as FiscalCode,
-    ip: "0.0.0.0" as IPString,
-    requestPayload: "a request payload",
-    responsePayload: "a response payload",
-    spidRequestId: "a spi request id",
-  } as SpidLogMsg;
+  const mockedSpidBLogItem = pipe(
+    createAccessLogEncrypter(mockedPublicKey)(aValidSpidLogMessage),
+    E.getOrElseW((err) => {
+      fail(
+        `Cannot build SpidBlobItem, please check either the function or mock data, ${err.message}`
+      );
+    })
+  );
 
   it("Should return right when spid log message is correctly saved", async () => {
-    const result = await storeSpidLogs(
+    const accessLogWriter = createAzureStorageAccessLogWriter(
       mockedBlobService,
-      mockedContainerName,
-      mockedPublicKey,
-      mockedSpidLogMessage
-    )();
+      mockedContainerName
+    );
+    const result = await accessLogWriter(mockedSpidBLogItem, "anyname")();
 
-    expect(spiedToEncryptedPayload).toBeCalledTimes(2);
     expect(spiedUpsertBlobFromObject).toBeCalledTimes(1);
     expect(E.isRight(result)).toBe(true);
-  });
-
-  it("Should return left when encrypt fails", async () => {
-    spiedToEncryptedPayload.mockImplementationOnce((_, __) =>
-      E.left(E.toError("any error"))
-    );
-
-    const result = await storeSpidLogs(
-      mockedBlobService,
-      mockedContainerName,
-      mockedPublicKey,
-      mockedSpidLogMessage
-    )();
-
-    expect(spiedToEncryptedPayload).toBeCalledTimes(2);
-    expect(spiedUpsertBlobFromObject).not.toBeCalled();
-    expect(E.isLeft(result)).toBe(true);
-    if (E.isLeft(result)) {
-      expect(result.left.message).toEqual(
-        "StoreSpidLogs|ERROR=Cannot encrypt payload|Error: any error"
-      );
-    }
-  });
-
-  it("Should return left when SpidBlobItem decoding fails", async () => {
-    spiedToEncryptedPayload.mockImplementationOnce((_, __) =>
-      // this will cause decoding to fail because cypherText is missing
-      E.right(({
-        iv: "iv",
-        encryptedKey: "ek",
-      } as unknown) as encrypt.EncryptedPayload)
-    );
-
-    const result = await storeSpidLogs(
-      mockedBlobService,
-      mockedContainerName,
-      mockedPublicKey,
-      mockedSpidLogMessage
-    )();
-
-    expect(spiedToEncryptedPayload).toBeCalledTimes(2);
-    expect(spiedUpsertBlobFromObject).not.toBeCalled();
-    expect(E.isLeft(result)).toBe(true);
   });
 
   it("Should return left when UpsertBlobFromObject fails", async () => {
@@ -199,14 +247,12 @@ describe("storeSpidLogs", () => {
       TE.left<Error, O.Option<BlobService.BlobResult>>(E.toError("any error"))
     );
 
-    const result = await storeSpidLogs(
+    const accessLogWriter = createAzureStorageAccessLogWriter(
       mockedBlobService,
-      mockedContainerName,
-      mockedPublicKey,
-      mockedSpidLogMessage
-    )();
+      mockedContainerName
+    );
+    const result = await accessLogWriter(mockedSpidBLogItem, "anyname")();
 
-    expect(spiedToEncryptedPayload).toBeCalledTimes(2);
     expect(spiedUpsertBlobFromObject).toBeCalledTimes(1);
     expect(E.isLeft(result)).toBe(true);
     if (E.isLeft(result)) {

@@ -1,6 +1,5 @@
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
-import { IPString, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { BlobService } from "azure-storage";
+import { IPString } from "@pagopa/ts-commons/lib/strings";
 import { format as dateFnsFormat } from "date-fns";
 import * as express from "express";
 import * as E from "fp-ts/lib/Either";
@@ -11,9 +10,11 @@ import { Task } from "fp-ts/lib/Task";
 import { DOMParser } from "xmldom";
 import { SpidLogMsg } from "../types/access_log";
 import {
+  AccessLogWriter,
   getFiscalNumberFromPayload,
   getRequestIDFromResponse,
-  storeSpidLogs
+  makeSpidLogBlobName,
+  AccessLogEncrypter
 } from "../utils/access_log";
 import { logger } from "../utils/logger";
 export const successHandler = (
@@ -45,9 +46,8 @@ export const metadataRefreshHandler = (
 };
 
 export const accessLogHandler = (
-  blobService: BlobService,
-  containerName: NonEmptyString,
-  spidLogsPublicKey: NonEmptyString
+  logWriter: AccessLogWriter,
+  logEncrypter: AccessLogEncrypter
 ) => (
   sourceIp: string | null,
   requestPayload: string,
@@ -102,7 +102,9 @@ export const accessLogHandler = (
 
       // We store Spid logs in a fire&forget pattern
       await pipe(
-        storeSpidLogs(blobService, containerName, spidLogsPublicKey, spidMsg),
+        logEncrypter(spidMsg),
+        TE.fromEither,
+        TE.chain(item => logWriter(item, makeSpidLogBlobName(spidMsg))),
         TE.mapLeft(err => {
           logger.error(`${logPrefix}|ERROR=Cannot store SPID log`);
           logger.debug(`${logPrefix}|ERROR_DETAILS=${err}`);

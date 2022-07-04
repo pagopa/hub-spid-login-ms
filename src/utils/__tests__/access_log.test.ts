@@ -141,29 +141,20 @@ const aValidSpidLogMessage = {
 };
 describe("createAccessLogWriter", () => {
   it("should throw when creating writer for an unsupported storage kind", () => {
-    const unsupportedKind = "unsupported" as Parameters<
-      typeof createAccessLogWriter
-    >[0];
-    const connectionString = "anyconnstring";
-    const containerName = "anycontname";
-
     // lazy function so we can catch error
     const lazyCreate = () =>
-      createAccessLogWriter(unsupportedKind, connectionString, containerName);
+      createAccessLogWriter({ SPID_LOGS_STORAGE_KIND: "unsupported" } as any);
 
     expect(lazyCreate).toThrowError();
   });
 
   it.each`
-    name               | kind
-    ${"Azure Storage"} | ${"azurestorage"}
-  `("should support $name", ({ kind }) => {
-    const connectionString = "anyconnstring";
-    const containerName = "anycontname";
-
+    name               | config
+    ${"Azure Storage"} | ${{ SPID_LOGS_STORAGE_KIND: "azurestorage", SPID_LOGS_STORAGE_CONTAINER_NAME: "any", SPID_LOGS_STORAGE_CONNECTION_STRING: "any" }}
+    ${"Aws S3"}        | ${{ SPID_LOGS_STORAGE_KIND: "awss3", SPID_LOGS_STORAGE_CONTAINER_NAME: "any" }}
+  `("should support $name", ({ config }) => {
     // lazy function so we can catch error
-    const lazyCreate = () =>
-      createAccessLogWriter(kind, connectionString, containerName);
+    const lazyCreate = () => createAccessLogWriter(config);
 
     expect(lazyCreate).not.toThrowError();
   });

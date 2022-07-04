@@ -12,6 +12,7 @@ services:
     depends_on:
       - redis
       - spid-saml-check
+      - storage
     expose:
       - ${SERVER_PORT}
     ports:
@@ -42,6 +43,15 @@ services:
       REDIS_TIMEOUT: 300
       REDIS_TCP_KEEPALIVE: 60
       REDIS_MAXMEMORY: 182m
+    networks:
+      - spid-net
+
+  storage:
+    image: minio/minio
+    command: server --address 0.0.0.0:10000 --console-address 0.0.0.0:10001  /data
+    ports:
+      - "10000:10000"
+      - "10001:10001"
     networks:
       - spid-net
 

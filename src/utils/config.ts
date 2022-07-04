@@ -20,6 +20,7 @@ import * as t from "io-ts";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
+import { UrlFromString } from "@pagopa/ts-commons/lib/url";
 
 export const RedisParams = t.intersection([
   t.interface({
@@ -48,21 +49,44 @@ export const ContactPersonParams = t.intersection([
 ]);
 export type ContactPersonParams = t.TypeOf<typeof ContactPersonParams>;
 
-export type SpidLogsStorageKind = t.TypeOf<typeof SpidLogsStorageKind>;
-const SpidLogsStorageKind = t.literal("azurestorage");
+const SpidLogsStorageAzureStorage = t.interface({
+  SPID_LOGS_STORAGE_CONNECTION_STRING: NonEmptyString,
+  SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
+  SPID_LOGS_STORAGE_KIND: withDefault(
+    t.literal("azurestorage"),
+    // for backward compatibility, we assume no kind means azure storage
+    "azurestorage"
+  )
+});
+
+const SpidLogsStorageAwsS3 = t.intersection([
+  t.interface({
+    AWS_ACCESS_KEY_ID: NonEmptyString,
+    AWS_SECRET_ACCESS_KEY: NonEmptyString,
+
+    SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
+    SPID_LOGS_STORAGE_KIND: t.literal("awss3")
+  }),
+  t.partial({ SPID_LOGS_STORAGE_ENDPOINT: UrlFromString })
+]);
+
+export type SpidLogsStorageConfiguration = t.TypeOf<
+  typeof SpidLogsStorageConfiguration
+>;
+const SpidLogsStorageConfiguration = t.union([
+  SpidLogsStorageAzureStorage,
+  SpidLogsStorageAwsS3
+]);
 
 const SpidLogsParams = t.union([
-  t.interface({
-    ENABLE_SPID_ACCESS_LOGS: t.literal(true),
-
-    SPID_LOGS_PUBLIC_KEY: NonEmptyString,
-    SPID_LOGS_STORAGE_CONNECTION_STRING: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
-    SPID_LOGS_STORAGE_KIND: withDefault(
-      SpidLogsStorageKind,
-      "azurestorage" /* backward compatibility */
-    )
-  }),
+  // When Logs are enabled, storage configuration is mandatory
+  t.intersection([
+    t.interface({
+      ENABLE_SPID_ACCESS_LOGS: t.literal(true),
+      SPID_LOGS_PUBLIC_KEY: NonEmptyString
+    }),
+    SpidLogsStorageConfiguration
+  ]),
   t.interface({
     ENABLE_SPID_ACCESS_LOGS: t.literal(false)
   })

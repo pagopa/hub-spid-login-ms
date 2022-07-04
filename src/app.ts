@@ -293,11 +293,7 @@ if (config.ALLOW_CORS) {
 
 const doneCb = config.ENABLE_SPID_ACCESS_LOGS
   ? accessLogHandler(
-      createAccessLogWriter(
-        config.SPID_LOGS_STORAGE_KIND,
-        config.SPID_LOGS_STORAGE_CONNECTION_STRING,
-        config.SPID_LOGS_STORAGE_CONTAINER_NAME
-      ),
+      createAccessLogWriter(config),
       createAccessLogEncrypter(config.SPID_LOGS_PUBLIC_KEY)
     )
   : (ip: string | null, request: string, response: string): void => {

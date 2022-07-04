@@ -6,9 +6,10 @@ import * as E from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as aws from "aws-sdk";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
-import { SpidLogsStorageKind } from "./config";
+import { SpidLogsStorageConfiguration } from "./config";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
   fn: (a: I, ...aa: II) => R
@@ -78,7 +79,7 @@ export type AccessLogEncrypter = (
 ) => E.Either<Error, SpidBlobItem>;
 
 // Supported storage for spid access log
-export type AccessLogStorageKind = SpidLogsStorageKind;
+export type AccessLogStorageKind = SpidLogsStorageConfiguration["SPID_LOGS_STORAGE_KIND"];
 
 // Create an encrypted from a given public key
 export const createAccessLogEncrypter = (
@@ -117,20 +118,56 @@ export const createAzureStorageAccessLogWriter = (
     TE.map(_ => void 0)
   );
 
+// Create a writer for AWS S3
+export const createAwsS3AccessLogWriter = (
+  s3Service: aws.S3,
+  bucketName: string
+): AccessLogWriter => (
+  encryptedBlobItem: SpidBlobItem,
+  blobName: string
+): ReturnType<AccessLogWriter> =>
+  pipe(
+    TE.tryCatch(
+      () =>
+        new Promise((resolve, reject) =>
+          s3Service.upload(
+            {
+              Body: JSON.stringify(encryptedBlobItem),
+              Bucket: bucketName,
+              Key: blobName
+            },
+            (err, res) => (err ? reject(err) : resolve(res))
+          )
+        ),
+      E.toError
+    ),
+    TE.map(_ => void 0)
+  );
 // Create a writer for a given kind
 export const createAccessLogWriter = (
-  storageKind: AccessLogStorageKind,
-  connectionString: string,
-  containerName: string
+  storageConfig: SpidLogsStorageConfiguration
 ): AccessLogWriter => {
-  if (storageKind === "azurestorage") {
+  if (storageConfig.SPID_LOGS_STORAGE_KIND === "azurestorage") {
     return createAzureStorageAccessLogWriter(
-      createBlobService(connectionString),
-      containerName
+      createBlobService(storageConfig.SPID_LOGS_STORAGE_CONNECTION_STRING),
+      storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
+    );
+  } else if (storageConfig.SPID_LOGS_STORAGE_KIND === "awss3") {
+    return createAwsS3AccessLogWriter(
+      new aws.S3({
+        endpoint: storageConfig.SPID_LOGS_STORAGE_ENDPOINT?.href,
+        s3ForcePathStyle: true,
+        signatureVersion: "v4"
+      }),
+      storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
     );
   } else {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _: never = storageKind;
-    throw new Error(`Unsupported storage kind: ${storageKind}`);
+    const _: never = storageConfig;
+    throw new Error(
+      `Unsupported storage kind: ${
+        (storageConfig as any).SPID_LOGS_STORAGE_KIND // eslint-disable-line @typescript-eslint/no-explicit-any
+      }`
+    );
   }
 };

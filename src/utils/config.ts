@@ -61,8 +61,6 @@ const SpidLogsStorageAzureStorage = t.interface({
 
 const SpidLogsStorageAwsS3 = t.intersection([
   t.interface({
-    AWS_ACCESS_KEY_ID: NonEmptyString,
-    AWS_SECRET_ACCESS_KEY: NonEmptyString,
 
     SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
     SPID_LOGS_STORAGE_KIND: t.literal("awss3")

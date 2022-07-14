@@ -7,7 +7,8 @@
 
 import {
   IntegerFromString,
-  NonNegativeInteger
+  NonNegativeInteger,
+  NumberFromString
 } from "@pagopa/ts-commons/lib/numbers";
 import {
   EmailString,
@@ -63,14 +64,23 @@ const SpidLogsStorageAwsS3 = t.intersection([
   t.interface({
     AWS_ACCESS_KEY_ID: NonEmptyString,
     AWS_SECRET_ACCESS_KEY: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_HOST: NonEmptyString,
     SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_PORT: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_PROTOCOL: NonEmptyString,
     SPID_LOGS_STORAGE_CONTAINER_REGION: NonEmptyString,
     SPID_LOGS_STORAGE_KIND: t.literal("awss3")
   }),
-  t.partial({ SPID_LOGS_STORAGE_ENDPOINT: UrlFromString })
+  t.partial({
+    SPID_LOGS_STORAGE_ENDPOINT: UrlFromString.pipe(
+      /*
+        When you provide an ENDPOINT we need to ensure to be define the current variables:
+      */
+      t.interface({
+        hostname: NonEmptyString,
+        href: NonEmptyString,
+        port: NumberFromString,
+        protocol: NonEmptyString
+      })
+    )
+  })
 ]);
 
 export type SpidLogsStorageConfiguration = t.TypeOf<

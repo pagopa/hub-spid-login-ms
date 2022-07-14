@@ -150,14 +150,20 @@ export const createAccessLogWriter = (
       storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
     );
   } else if (storageConfig.SPID_LOGS_STORAGE_KIND === "awss3") {
+    const endpoint = pipe(
+      storageConfig.SPID_LOGS_STORAGE_ENDPOINT,
+      O.fromNullable,
+      O.map(ep => ({
+        hostname: ep.hostname,
+        path: "/",
+        port: ep.port,
+        protocol: ep.protocol
+      })),
+      O.toUndefined
+    );
     return createAwsS3AccessLogWriter(
       new S3Client({
-        endpoint: {
-          hostname: storageConfig.SPID_LOGS_STORAGE_CONTAINER_HOST,
-          path: "/",
-          port: +storageConfig.SPID_LOGS_STORAGE_CONTAINER_PORT,
-          protocol: storageConfig.SPID_LOGS_STORAGE_CONTAINER_PROTOCOL
-        },
+        endpoint,
         forcePathStyle: true,
         region: storageConfig.SPID_LOGS_STORAGE_CONTAINER_REGION
       }),

@@ -30,44 +30,32 @@ In order to run SPID Login microservice in a local environment you must:
   PreProd: https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata
 
 ## Assertion logging
+
 It is possible to log SAML requests and responses for each successful login. Assertions are encrypted and stored in an external storage. This can be enabled by using the following environment configuration:
 |name|description|values|required|
 |-|-|-|-|
 |`ENABLE_SPID_ACCESS_LOGS`|Whether log or not SAML assertions|`true` or `false`| yes|
 |`SPID_LOGS_PUBLIC_KEY`|Key used to encypt SAML assertions payload| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
-|`SPID_LOGS_STORAGE_KIND`|The kind of storage to be used. Default: `azurestorage` for backward compatibility| See `config.ts` for all supported storages  | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
+|`SPID_LOGS_STORAGE_KIND`|The kind of storage to be used. Default: `azurestorage` for backward compatibility| See `config.ts` for all supported storages | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_CONNECTION_STRING`|Connection string for the external storage| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_CONTAINER_NAME`|Name of the container to store files into | string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 
 ## Storage-specific configurations
-Although configurations have been designed to be generic, each storage keeps its specificity 
+
+Although configurations have been designed to be generic, each storage keeps its specificity
+
 #### Specific configuration for `azurestorage`
-|name|description|values|required|
-|-|-|-|-|
-|`SPID_LOGS_STORAGE_CONNECTION_STRING`|Connection string for the external storage| string | yes |
+
+| name                                  | description                                | values | required |
+| ------------------------------------- | ------------------------------------------ | ------ | -------- |
+| `SPID_LOGS_STORAGE_CONNECTION_STRING` | Connection string for the external storage | string | yes      |
 
 #### Specific configuration for `awss3`
+
 We use `AWS` SDK defaults for connecting to the storage. Please refer to the original docs. In addition, the following environment variables will be used:
-| name                                  | description                                | values | required                              |
+| name | description | values | required |
 | ------------------------------------- | ------------------------------------------ | ------ | ------------------------------------- |
-| `SPID_LOGS_STORAGE_ENDPOINT` | Optional endpoint for target S3 service. Meant to be used in testing environments. If empty, `AWS`'s default will be used | string | yes  |
-
-
-
-<details>
-  <summary>About AWS S3 connection strings</summary>
-  AWS S3 doesn't fit well to be used with a single connection string as other storages. To keep config consistent across different storage kinds, we decide to compose credential values into a semicolon-delimited string in the following form:
-  
-  ```
-  # with a custom endpoint
-  SPID_LOGS_STORAGE_CONNECTION_STRING=access-key;secret-key;http://custom-endpoint
-
-  # without a custom endpoint
-  SPID_LOGS_STORAGE_CONNECTION_STRING=access-key;secret-key
-
-  ```
-</details>
-
+| `SPID_LOGS_STORAGE_ENDPOINT` | Optional endpoint for target S3 service. Meant to be used in testing environments. If empty, `AWS`'s default will be used. We must provid a fully qualified ENDPOINT with URL, PROTOCOL, HOSTNAME | string | yes |
 
 # Architecture
 
@@ -77,23 +65,27 @@ This microservices is intended for a usage through an API Gateway (API Managemen
 - Additional header extraction throughout the backend services' authorization layer
 
 ## Routes
-* `/metadata`: Expose SP metadata
-* `/login`: Trigger a SPID login by creating an `authNRequest`
-* `/logout`: Trigger logout from SPID (Not used)
-* `/acs`: Assertion Consumer service endpoint
-* `/refresh`: Trigger IDP metadata refresh
-* `/invalidate`: Invalidates a previous released token
-* `/introspect`: Introspect token by giving information (optional) about logged Spid User
-* `/success`: Trigger Final redirect to success endpoint after a successful SPID login
-* `/error`: Trigger Redirect to an error page
+
+- `/metadata`: Expose SP metadata
+- `/login`: Trigger a SPID login by creating an `authNRequest`
+- `/logout`: Trigger logout from SPID (Not used)
+- `/acs`: Assertion Consumer service endpoint
+- `/refresh`: Trigger IDP metadata refresh
+- `/invalidate`: Invalidates a previous released token
+- `/introspect`: Introspect token by giving information (optional) about logged Spid User
+- `/success`: Trigger Final redirect to success endpoint after a successful SPID login
+- `/error`: Trigger Redirect to an error page
 
 # Tests
 
 ## Unit tests
+
 Just
+
 ```sh
 yarn test
 ```
 
 ## End-to-end tests
+
 Tests executed using browser automation to simulate actual user interactions. See [e2e/README.md](e2e/README.md) for more.

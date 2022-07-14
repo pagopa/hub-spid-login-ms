@@ -29,7 +29,7 @@ In order to run SPID Login microservice in a local environment you must:
   Prod: https://produzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata
   PreProd: https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata
 
-## Asserion logging
+## Assertion logging
 It is possible to log SAML requests and responses for each successful login. Assertions are encrypted and stored in an external storage. This can be enabled by using the following environment configuration:
 |name|description|values|required|
 |-|-|-|-|
@@ -38,6 +38,21 @@ It is possible to log SAML requests and responses for each successful login. Ass
 |`SPID_LOGS_STORAGE_KIND`|The kind of storage to be used. Default: `azurestorage` for backward compatibility| See `config.ts` for all supported storages  | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_CONNECTION_STRING`|Connection string for the external storage| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_CONTAINER_NAME`|Name of the container to store files into | string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
+
+## Storage-specific configurations
+Although configurations have been designed to be generic, each storage keeps its specificity 
+#### Specific configuration for `azurestorage`
+|name|description|values|required|
+|-|-|-|-|
+|`SPID_LOGS_STORAGE_CONNECTION_STRING`|Connection string for the external storage| string | yes |
+
+#### Specific configuration for `awss3`
+We use `AWS` SDK defaults for connecting to the storage. Please refer to the original docs. In addition, the following environment variables will be used:
+| name                                  | description                                | values | required                              |
+| ------------------------------------- | ------------------------------------------ | ------ | ------------------------------------- |
+| `SPID_LOGS_STORAGE_ENDPOINT` | Optional endpoint for target S3 service. Meant to be used in testing environments. If empty, `AWS`'s default will be used | string | yes  |
+
+
 
 <details>
   <summary>About AWS S3 connection strings</summary>

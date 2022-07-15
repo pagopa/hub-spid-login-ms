@@ -36,7 +36,6 @@ It is possible to log SAML requests and responses for each successful login. Ass
 |`ENABLE_SPID_ACCESS_LOGS`|Whether log or not SAML assertions|`true` or `false`| yes|
 |`SPID_LOGS_PUBLIC_KEY`|Key used to encypt SAML assertions payload| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_KIND`|The kind of storage to be used. Default: `azurestorage` for backward compatibility| See `config.ts` for all supported storages  | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
-|`SPID_LOGS_STORAGE_CONNECTION_STRING`|Connection string for the external storage| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_CONTAINER_NAME`|Name of the container to store files into | string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 
 ## Storage-specific configurations
@@ -50,23 +49,8 @@ Although configurations have been designed to be generic, each storage keeps its
 We use `AWS` SDK defaults for connecting to the storage. Please refer to the original docs. In addition, the following environment variables will be used:
 | name                                  | description                                | values | required                              |
 | ------------------------------------- | ------------------------------------------ | ------ | ------------------------------------- |
-| `SPID_LOGS_STORAGE_ENDPOINT` | Optional endpoint for target S3 service. Meant to be used in testing environments. If empty, `AWS`'s default will be used | string | yes  |
+| `SPID_LOGS_STORAGE_ENDPOINT` | Optional endpoint for target S3 service. Meant to be used in testing environments. If empty, `AWS`'s default will be used | string | no  |
 
-
-
-<details>
-  <summary>About AWS S3 connection strings</summary>
-  AWS S3 doesn't fit well to be used with a single connection string as other storages. To keep config consistent across different storage kinds, we decide to compose credential values into a semicolon-delimited string in the following form:
-  
-  ```
-  # with a custom endpoint
-  SPID_LOGS_STORAGE_CONNECTION_STRING=access-key;secret-key;http://custom-endpoint
-
-  # without a custom endpoint
-  SPID_LOGS_STORAGE_CONNECTION_STRING=access-key;secret-key
-
-  ```
-</details>
 
 
 # Architecture

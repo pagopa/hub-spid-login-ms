@@ -7,7 +7,8 @@
 
 import {
   IntegerFromString,
-  NonNegativeInteger
+  NonNegativeInteger,
+  NumberFromString
 } from "@pagopa/ts-commons/lib/numbers";
 import {
   EmailString,
@@ -59,18 +60,69 @@ const SpidLogsStorageAzureStorage = t.interface({
   )
 });
 
+/**
+ * This is a workaround for UrlFromString which seems to be buggy:
+ *   optional attributes are supposed to be omitted if they are not found in the original URL string
+ *   instead, a null value is passed
+ * This codec is meant to be piped to UrlFromString
+ *
+ * @example UrlFromString.pipe(UrlFromStringWithoutNulls)
+ */
+export const UrlFromStringWithoutNulls = new t.Type<
+  UrlFromString & {
+    readonly port?: string;
+    readonly query?: string | Record<string, string | ReadonlyArray<string>>;
+  },
+  UrlFromString,
+  UrlFromString
+>(
+  "UrlFromStringWithoutNulls",
+  (
+    e
+  ): e is UrlFromString & {
+    readonly port?: string;
+    readonly query?: string | Record<string, string | ReadonlyArray<string>>;
+  } =>
+    typeof e === "object" &&
+    e !== null &&
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    e["query"] !== null &&
+    UrlFromString.is(e),
+  // explicitly remove optional fields during parse if they are null
+  ({ port, query, ...e }) =>
+    t.success({
+      ...e,
+      ...(query === null ? {} : { query }),
+      ...(port === null ? {} : { port })
+    }),
+  identity
+);
+
+// Refine UrlFromString codec to map Endpoint type in @aws-sdk/types/dist-types/http.d.ts
+export const AWSEndpoint = UrlFromString.pipe(UrlFromStringWithoutNulls).pipe(
+  t.intersection([
+    t.interface({
+      hostname: NonEmptyString,
+      href: NonEmptyString,
+      path: NonEmptyString,
+      protocol: NonEmptyString
+    }),
+    t.partial({
+      port: NumberFromString,
+      query: t.record(t.string, t.union([t.string, t.array(t.string)]))
+    })
+  ])
+);
+
 const SpidLogsStorageAwsS3 = t.intersection([
   t.interface({
-    AWS_ACCESS_KEY_ID: NonEmptyString,
-    AWS_SECRET_ACCESS_KEY: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_HOST: NonEmptyString,
     SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_PORT: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_PROTOCOL: NonEmptyString,
-    SPID_LOGS_STORAGE_CONTAINER_REGION: NonEmptyString,
     SPID_LOGS_STORAGE_KIND: t.literal("awss3")
   }),
-  t.partial({ SPID_LOGS_STORAGE_ENDPOINT: UrlFromString })
+  t.partial({
+    SPID_LOGS_STORAGE_CONTAINER_REGION: NonEmptyString,
+    SPID_LOGS_STORAGE_ENDPOINT: AWSEndpoint
+  })
 ]);
 
 export type SpidLogsStorageConfiguration = t.TypeOf<

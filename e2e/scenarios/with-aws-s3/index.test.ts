@@ -1,56 +1,67 @@
-import * as aws from "aws-sdk";
+import {
+  CreateBucketCommand,
+  DeleteBucketCommand,
+  ListBucketsCommand,
+  ListBucketsCommandOutput,
+  ListObjectsCommand,
+  S3Client
+} from "@aws-sdk/client-s3";
 import {
   delay,
   bigTime,
   littleTime,
   withBrowser,
   clickAnyway,
-  startupTime,
+  startupTime
 } from "../../utils/misc";
 import {
   host,
   showBrowser,
   testEntityID,
   testCredentials,
-  spidLogStorage,
+  spidLogStorage
 } from "./config";
 
 const puppeteer = require("puppeteer");
 
-const { accessKeyId, secretAccessKey, endpoint } = spidLogStorage;
+const { accessKeyId, secretAccessKey, endpoint, region } = spidLogStorage;
 
-const storage = new aws.S3({
-  accessKeyId,
-  secretAccessKey,
+const storage = new S3Client({
   endpoint,
-  s3ForcePathStyle: true, // needed with minio?
-  signatureVersion: "v4",
+  region,
+  credentials: {
+    accessKeyId,
+    secretAccessKey
+  },
+  forcePathStyle: true
 });
 
 jest.setTimeout(1e6);
 
 // Ensure a bucket exists and it's empty
-const resetS3Bucket = async (storage: aws.S3, Bucket: string) => {
-  const allBuckets = await new Promise<aws.S3.ListBucketsOutput>(
+const resetS3Bucket = async (storage: S3Client, Bucket: string) => {
+  const allBuckets = await new Promise<ListBucketsCommandOutput>(
     (resolve, reject) =>
-      storage.listBuckets((err, res) => (err ? reject(err) : resolve(res)))
+      storage.send(new ListBucketsCommand({ Bucket }), (err, res) =>
+        err ? reject(err) : resolve(res!)
+      )
   );
 
   if (allBuckets.Buckets?.find(({ Name }) => Name === Bucket)) {
-    const allObjects = await new Promise<aws.S3.ListObjectsOutput>(
+    const allObjects = await new Promise<ListBucketsCommandOutput>(
       (resolve, reject) =>
-        storage.listObjects({ Bucket }, (err, res) =>
-          err ? reject(err) : resolve(res)
+        storage.send(new ListBucketsCommand({}), (err, res) =>
+          err ? reject(err) : resolve(res!)
         )
     );
 
     await Promise.allSettled(
-      allObjects.Contents?.map((c) => c.Key)
+      allObjects.Buckets?.map(c => c.Name)
         .filter((k): k is string => typeof k === "string")
         .map(
-          (Key) =>
+          Key =>
             new Promise((resolve, reject) =>
-              storage.deleteObject({ Bucket, Key }, (err, res) =>
+              storage.send(new DeleteBucketCommand({ Bucket }), (err, res) =>
                 err ? reject(err) : resolve(res)
               )
             )
@@ -58,7 +69,7 @@ const resetS3Bucket = async (storage: aws.S3, Bucket: string) => {
     );
   } else {
     await new Promise((resolve, reject) =>
-      storage.createBucket({ Bucket }, (err, res) =>
+      storage.send(new CreateBucketCommand({ Bucket }), (err, res) =>
         err ? reject(err) : resolve(res)
       )
     );
@@ -79,7 +90,7 @@ describe("With AWS S3", () => {
     await withBrowser(
       puppeteer,
       showBrowser
-    )(async (browser) => {
+    )(async browser => {
       const page = await browser.newPage();
 
       /* open login page */ {
@@ -115,24 +126,25 @@ describe("With AWS S3", () => {
       }
     });
 
-    /* query storage and expect a blob for the current user */ {
-      const blobs = await new Promise((resolve, reject) =>
-        storage.listObjects(
-          { Bucket: spidLogStorage.containerName },
-          (err, res) => (err ? reject(err) : resolve(res))
-        )
-      );
-      const [, , fiscalNumber] = testCredentials;
-      // shape = { entries: [{name, ...other}], ...other}
-      expect(blobs).toEqual(
-        expect.objectContaining({
-          Contents: expect.arrayContaining([
-            expect.objectContaining({
-              Key: expect.stringContaining(`${fiscalNumber}.json`),
-            }),
-          ]),
-        })
-      );
-    }
+    /* query storage and expect a blob for the current user */
+    const blobs = await new Promise((resolve, reject) =>
+      storage.send(
+        new ListObjectsCommand({ Bucket: spidLogStorage.containerName }),
+        (err, res) => (err ? reject(err) : resolve(res))
+      )
+    );
+
+    const [, , fiscalNumber] = testCredentials;
+    // shape = { entries: [{name, ...other}], ...other}
+
+    expect(blobs).toEqual(
+      expect.objectContaining({
+        Contents: expect.arrayContaining([
+          expect.objectContaining({
+            Key: expect.stringContaining(`${fiscalNumber}.json`)
+          })
+        ])
+      })
+    );
   });
 });

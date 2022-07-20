@@ -6,7 +6,7 @@ import * as E from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as aws from "aws-sdk";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 import { SpidLogsStorageConfiguration } from "./config";
@@ -120,7 +120,7 @@ export const createAzureStorageAccessLogWriter = (
 
 // Create a writer for AWS S3
 export const createAwsS3AccessLogWriter = (
-  s3Service: aws.S3,
+  s3Service: S3Client,
   bucketName: string
 ): AccessLogWriter => (
   encryptedBlobItem: SpidBlobItem,
@@ -128,16 +128,13 @@ export const createAwsS3AccessLogWriter = (
 ): ReturnType<AccessLogWriter> =>
   pipe(
     TE.tryCatch(
-      () =>
-        new Promise((resolve, reject) =>
-          s3Service.upload(
-            {
-              Body: JSON.stringify(encryptedBlobItem),
-              Bucket: bucketName,
-              Key: blobName
-            },
-            (err, res) => (err ? reject(err) : resolve(res))
-          )
+      async () =>
+        await s3Service.send(
+          new PutObjectCommand({
+            Body: JSON.stringify(encryptedBlobItem),
+            Bucket: bucketName,
+            Key: blobName
+          })
         ),
       E.toError
     ),
@@ -154,10 +151,10 @@ export const createAccessLogWriter = (
     );
   } else if (storageConfig.SPID_LOGS_STORAGE_KIND === "awss3") {
     return createAwsS3AccessLogWriter(
-      new aws.S3({
-        endpoint: storageConfig.SPID_LOGS_STORAGE_ENDPOINT?.href,
-        s3ForcePathStyle: true,
-        signatureVersion: "v4"
+      new S3Client({
+        endpoint: storageConfig.SPID_LOGS_STORAGE_ENDPOINT,
+        forcePathStyle: true,
+        region: storageConfig.SPID_LOGS_STORAGE_CONTAINER_REGION
       }),
       storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
     );

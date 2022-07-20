@@ -10,11 +10,18 @@ export const showBrowser = envFlag(process.env.DEBUG);
 export const testCredentials = [
   user1.username,
   user1.password,
-  user1.fiscalNumber.split("-")[1],
+  user1.fiscalNumber.split("-")[1]
 ];
 export const spidLogStorage = {
   containerName: "spidassertions",
   accessKeyId: "minioadmin",
   secretAccessKey: "minioadmin",
-  endpoint: "http://localhost:10000",
+  region: "us-east-1",
+  endpoint: {
+    hostname: "localhost",
+    path: "/",
+    port: 10000,
+    protocol: "http"
+  },
+  forcePathStyle: true
 };

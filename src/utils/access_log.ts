@@ -8,6 +8,7 @@ import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
+import { logger } from "../utils/logger";
 import { upsertBlobFromObject } from "./blob";
 import { SpidLogsStorageConfiguration } from "./config";
 
@@ -150,12 +151,14 @@ export const createAccessLogWriter = (
       storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
     );
   } else if (storageConfig.SPID_LOGS_STORAGE_KIND === "awss3") {
+    const client = new S3Client({
+      // endpoint: storageConfig.SPID_LOGS_STORAGE_ENDPOINT,
+      forcePathStyle: true
+      // region: storageConfig.SPID_LOGS_STORAGE_CONTAINER_REGION
+    });
+    logger.info(`S3 CLIENT CONFIG=${JSON.stringify(client.config)}`);
     return createAwsS3AccessLogWriter(
-      new S3Client({
-        endpoint: storageConfig.SPID_LOGS_STORAGE_ENDPOINT,
-        forcePathStyle: true,
-        region: storageConfig.SPID_LOGS_STORAGE_CONTAINER_REGION
-      }),
+      client,
       storageConfig.SPID_LOGS_STORAGE_CONTAINER_NAME
     );
   } else {

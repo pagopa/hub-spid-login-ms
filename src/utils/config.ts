@@ -116,6 +116,7 @@ export const AWSEndpoint = UrlFromString.pipe(UrlFromStringWithoutNulls).pipe(
 
 const SpidLogsStorageAwsS3 = t.intersection([
   t.interface({
+    SPID_LOGS_STORAGE_CONNECTION_TIMEOUT: withDefault(NumberFromString, 60000),
     SPID_LOGS_STORAGE_CONTAINER_NAME: NonEmptyString,
     SPID_LOGS_STORAGE_KIND: t.literal("awss3")
   }),

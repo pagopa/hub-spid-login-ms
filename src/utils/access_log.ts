@@ -7,6 +7,7 @@ import { pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 import { SpidLogsStorageConfiguration } from "./config";
@@ -152,6 +153,10 @@ export const createAccessLogWriter = (
   } else if (storageConfig.SPID_LOGS_STORAGE_KIND === "awss3") {
     return createAwsS3AccessLogWriter(
       new S3Client({
+        credentials: fromNodeProviderChain({
+          maxRetries: 0,
+          timeout: storageConfig.SPID_LOGS_STORAGE_CONNECTION_TIMEOUT
+        }),
         endpoint: storageConfig.SPID_LOGS_STORAGE_ENDPOINT,
         forcePathStyle: true,
         region: storageConfig.SPID_LOGS_STORAGE_CONTAINER_REGION

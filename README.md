@@ -56,6 +56,7 @@ We use `AWS` SDK defaults for connecting to the storage. Please refer to the ori
 | ------------------------------------- | ------------------------------------------ | ------ | ------------------------------------- |
 | `SPID_LOGS_STORAGE_ENDPOINT` | Optional endpoint for target S3 service. Meant to be used in testing environments. If empty, `AWS`'s default will be used. We must provide a fully qualified ENDPOINT with URL, PROTOCOL, HOSTNAME | string | yes |
 | `SPID_LOGS_STORAGE_CONTAINER_REGION` | Optional region for target S3 service. | yes |
+| `SPID_LOGS_STORAGE_CONNECTION_TIMEOUT` | Optional timeout value for connecting to the storage, in milliseconds. Default: 60000  | no |
 
 # Architecture
 

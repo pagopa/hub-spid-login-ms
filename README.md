@@ -29,6 +29,8 @@ To run SPID Login microservice in a local environment you must:
   Prod: https://api.is.eng.pagopa.it/idp-keys/cie/latest
   PreProd: https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata
 
+**NOTE**: In the prod environment an internal component is used to keep historical track of the metadata file, that's why a `*cie.interno.gov.it` is not mentioned there. 
+
 ## Assertion logging
 
 It is possible to log SAML requests and responses for each successful login. Assertions are encrypted and stored in an external storage. This can be enabled by using the following environment configuration:

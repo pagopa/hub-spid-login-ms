@@ -8,6 +8,8 @@ import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
+import { md } from "node-forge";
+
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 import { SpidLogsStorageConfiguration } from "./config";
@@ -128,17 +130,24 @@ export const createAwsS3AccessLogWriter = (
   blobName: string
 ): ReturnType<AccessLogWriter> =>
   pipe(
-    TE.tryCatch(
-      async () =>
-        await s3Service.send(
-          new PutObjectCommand({
-            Body: JSON.stringify(encryptedBlobItem),
-            Bucket: bucketName,
-            Key: blobName
-          })
-        ),
-      E.toError
-    ),
+    TE.tryCatch(async () => {
+      const body = JSON.stringify(encryptedBlobItem);
+      const md5 = md.md5.create();
+      md5.update(body);
+      const md5Digest = md5.digest().toHex();
+      const contentMD5: string = Buffer
+        .from(md5Digest, "hex")
+        .toString("base64");
+
+      return await s3Service.send(
+        new PutObjectCommand({
+          Body: body,
+          Bucket: bucketName,
+          ContentMD5: contentMD5,
+          Key: blobName
+        })
+      );
+    }, E.toError),
     TE.map(_ => void 0)
   );
 // Create a writer for a given kind

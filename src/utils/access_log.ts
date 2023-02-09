@@ -135,9 +135,9 @@ export const createAwsS3AccessLogWriter = (
       const md5 = md.md5.create();
       md5.update(body);
       const md5Digest = md5.digest().toHex();
-      const contentMD5: string = Buffer
-        .from(md5Digest, "hex")
-        .toString("base64");
+      const contentMD5: string = Buffer.from(md5Digest, "hex").toString(
+        "base64"
+      );
 
       return await s3Service.send(
         new PutObjectCommand({

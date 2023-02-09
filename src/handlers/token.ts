@@ -75,7 +75,8 @@ export const getTokenExpiration = (
     : config.TOKEN_EXPIRATION;
 
 export const generateToken = (
-  tokenUser: TokenUser | TokenUserL2
+  tokenUser: TokenUser | TokenUserL2,
+  requestId?: NonEmptyString
 ): TE.TaskEither<
   Error,
   { readonly tokenStr: string; readonly tokenUser: TokenUser | TokenUserL2 }
@@ -91,7 +92,8 @@ export const generateToken = (
               tokenExpiration,
               config.JWT_TOKEN_ISSUER,
               config.JWT_TOKEN_KID,
-              config.JWT_TOKEN_AUDIENCE
+              config.JWT_TOKEN_AUDIENCE,
+              requestId
             ),
             TE.mapLeft(() => new Error("Error generating JWT Token")),
             TE.map(_ => ({ tokenStr: _, tokenUser }))

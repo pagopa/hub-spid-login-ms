@@ -42,6 +42,7 @@ import { getConfigOrThrow } from "./utils/config";
 import {
   errorsToError,
   toCommonTokenUser,
+  toRequestId,
   toResponseErrorInternal,
   toTokenUserL2
 } from "./utils/conversions";
@@ -246,9 +247,11 @@ const acs: AssertionConsumerServiceT = async user =>
     }),
     TE.chainW(tokenUser => {
       logger.info("ACS | Generating token");
+      const requestId = config.JWT_TOKEN_JTI_SPID
+        ? toRequestId(user as Record<string, unknown>)
+        : undefined;
       return pipe(
-        tokenUser,
-        generateToken,
+        generateToken(tokenUser, requestId),
         TE.mapLeft(toResponseErrorInternal)
       );
     }),

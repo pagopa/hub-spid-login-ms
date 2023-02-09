@@ -219,6 +219,7 @@ export const JWTParams = t.union([
     t.interface({
       ENABLE_JWT: t.literal(true),
       JWT_TOKEN_ISSUER: NonEmptyString,
+      JWT_TOKEN_JTI_SPID: t.boolean,
       JWT_TOKEN_PRIVATE_KEY: NonEmptyString
     }),
     t.partial({
@@ -229,7 +230,8 @@ export const JWTParams = t.union([
   ]),
   t.interface({
     ENABLE_JWT: t.literal(false),
-    ENABLE_USER_REGISTRY: t.literal(false)
+    ENABLE_USER_REGISTRY: t.literal(false),
+    JWT_TOKEN_JTI_SPID: t.boolean
   })
 ]);
 export type JWTParams = t.TypeOf<typeof JWTParams>;
@@ -334,6 +336,11 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     )
   ),
   INCLUDE_SPID_USER_ON_INTROSPECTION: pipe(
+    O.fromNullable(process.env.INCLUDE_SPID_USER_ON_INTROSPECTION),
+    O.map(_ => _.toLowerCase() === "true"),
+    O.getOrElse(() => false)
+  ),
+  JWT_TOKEN_JTI_SPID: pipe(
     O.fromNullable(process.env.INCLUDE_SPID_USER_ON_INTROSPECTION),
     O.map(_ => _.toLowerCase() === "true"),
     O.getOrElse(() => false)

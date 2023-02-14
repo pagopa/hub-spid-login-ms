@@ -13,8 +13,8 @@ import {
   AccessLogWriter,
   getFiscalNumberFromPayload,
   getRequestIDFromResponse,
-  makeSpidLogBlobName,
-  AccessLogEncrypter
+  AccessLogEncrypter,
+  MakeSpidLogBlobName
 } from "../utils/access_log";
 import { logger } from "../utils/logger";
 export const successHandler = (
@@ -47,7 +47,8 @@ export const metadataRefreshHandler = (
 
 export const accessLogHandler = (
   logWriter: AccessLogWriter,
-  logEncrypter: AccessLogEncrypter
+  logEncrypter: AccessLogEncrypter,
+  makeSpidLogBlobName: MakeSpidLogBlobName
 ) => (
   sourceIp: string | null,
   requestPayload: string,

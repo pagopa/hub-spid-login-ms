@@ -220,11 +220,11 @@ export const JWTParams = t.union([
     t.interface({
       ENABLE_JWT: t.literal(true),
       JWT_TOKEN_ISSUER: NonEmptyString,
-      JWT_TOKEN_JTI_SPID: t.boolean,
       JWT_TOKEN_PRIVATE_KEY: NonEmptyString
     }),
     t.partial({
       JWT_TOKEN_AUDIENCE: NonEmptyString,
+      JWT_TOKEN_JTI_SPID: t.boolean,
       JWT_TOKEN_KID: NonEmptyString
     }),
     UserRegistryParams
@@ -232,7 +232,6 @@ export const JWTParams = t.union([
   t.interface({
     ENABLE_JWT: t.literal(false),
     ENABLE_USER_REGISTRY: t.literal(false),
-    JWT_TOKEN_JTI_SPID: t.boolean
   })
 ]);
 export type JWTParams = t.TypeOf<typeof JWTParams>;

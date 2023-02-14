@@ -54,7 +54,8 @@ import { blurUser } from "./utils/user_registry";
 import { PersonalDatavaultAPIClient } from "./clients/pdv_client";
 import {
   createAccessLogEncrypter,
-  createAccessLogWriter
+  createAccessLogWriter,
+  createMakeSpidLogBlobName
 } from "./utils/access_log";
 
 const config = getConfigOrThrow();
@@ -247,9 +248,10 @@ const acs: AssertionConsumerServiceT = async user =>
     }),
     TE.chainW(tokenUser => {
       logger.info("ACS | Generating token");
-      const requestId = config.JWT_TOKEN_JTI_SPID
-        ? toRequestId(user as Record<string, unknown>)
-        : undefined;
+      const requestId =
+        config.ENABLE_JWT && config.JWT_TOKEN_JTI_SPID
+          ? toRequestId(user as Record<string, unknown>)
+          : undefined;
       return pipe(
         generateToken(tokenUser, requestId),
         TE.mapLeft(toResponseErrorInternal)
@@ -297,7 +299,8 @@ if (config.ALLOW_CORS) {
 const doneCb = config.ENABLE_SPID_ACCESS_LOGS
   ? accessLogHandler(
       createAccessLogWriter(config),
-      createAccessLogEncrypter(config.SPID_LOGS_PUBLIC_KEY)
+      createAccessLogEncrypter(config.SPID_LOGS_PUBLIC_KEY),
+      createMakeSpidLogBlobName(config)
     )
   : (ip: string | null, request: string, response: string): void => {
       debug("*************** done", ip);

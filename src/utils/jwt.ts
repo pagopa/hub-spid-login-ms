@@ -34,7 +34,8 @@ export const getUserJwt = (
   tokenTtlSeconds: NonNegativeInteger,
   issuer: NonEmptyString,
   keyid?: NonEmptyString,
-  audience?: NonEmptyString
+  audience?: NonEmptyString,
+  requestId?: NonEmptyString
   // eslint-disable-next-line max-params
 ): TE.TaskEither<Error, string> =>
   pipe(
@@ -47,7 +48,7 @@ export const getUserJwt = (
           audience,
           expiresIn: `${tokenTtlSeconds} seconds`,
           issuer,
-          jwtid: ulid(),
+          jwtid: requestId ?? ulid(),
           keyid,
           subject: tokenUser.id
         }),

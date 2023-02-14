@@ -9,6 +9,7 @@ import { Errors } from "io-ts";
 import * as t from "io-ts";
 import { errorsToReadableMessages } from "@pagopa/ts-commons/lib/reporters";
 import { pipe } from "fp-ts/lib/function";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   CommonTokenUser,
   FISCAL_NUMBER_INTERNATIONAL_PREFIX,
@@ -80,3 +81,6 @@ export const mapDecoding = <S, A>(
   toDecode: unknown
 ): TE.TaskEither<Error, A> =>
   pipe(toDecode, type.decode, E.mapLeft(errorsToError), TE.fromEither);
+
+export const toRequestId = (user: Record<string, unknown>): NonEmptyString =>
+  user.inResponseTo as NonEmptyString;

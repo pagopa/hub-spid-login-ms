@@ -124,7 +124,8 @@ const SpidLogsStorageAwsS3 = t.intersection([
   }),
   t.partial({
     SPID_LOGS_STORAGE_CONTAINER_REGION: NonEmptyString,
-    SPID_LOGS_STORAGE_ENDPOINT: AWSEndpoint
+    SPID_LOGS_STORAGE_ENDPOINT: AWSEndpoint,
+    SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE: t.boolean
   })
 ]);
 
@@ -376,6 +377,11 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
       )
     ),
     E.toUnion
+  ),
+  SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE: pipe(
+    O.fromNullable(process.env.SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE),
+    O.map(_ => _.toLowerCase() === "true"),
+    O.getOrElse(() => false)
   ),
   TOKEN_EXPIRATION: pipe(
     // FIXME: if env var is empty string, the result of the pipe would be 0.

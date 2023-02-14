@@ -12,7 +12,9 @@ import { md } from "node-forge";
 
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
-import { SpidLogsStorageConfiguration } from "./config";
+import { getConfigOrThrow, SpidLogsStorageConfiguration } from "./config";
+
+const config = getConfigOrThrow();
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
   fn: (a: I, ...aa: II) => R
@@ -68,7 +70,11 @@ export const getRequestIDFromResponse = getRequestIDFromPayload(
  * @returns
  */
 export const makeSpidLogBlobName = (spidLogMsg: SpidLogMsg): string =>
-  `${spidLogMsg.spidRequestId}-${spidLogMsg.createdAtDay}-${spidLogMsg.fiscalCode}.json`;
+  config.ENABLE_SPID_ACCESS_LOGS &&
+  config.SPID_LOGS_STORAGE_KIND === "awss3" &&
+  config.SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE
+    ? `${spidLogMsg.spidRequestId}-${spidLogMsg.createdAtDay}.json`
+    : `${spidLogMsg.spidRequestId}-${spidLogMsg.createdAtDay}-${spidLogMsg.fiscalCode}.json`;
 
 // Define a function that writes an encriptrd payload to a storage
 export type AccessLogWriter = (

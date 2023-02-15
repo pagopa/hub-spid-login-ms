@@ -12,9 +12,7 @@ import { md } from "node-forge";
 
 import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
-import { getConfigOrThrow, SpidLogsStorageConfiguration } from "./config";
-
-const config = getConfigOrThrow();
+import { SpidLogsStorageConfiguration } from "./config";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
   fn: (a: I, ...aa: II) => R
@@ -63,14 +61,16 @@ export const getRequestIDFromResponse = getRequestIDFromPayload(
   "InResponseTo"
 );
 
+export type MakeSpidLogBlobName = (spidLogMsg: SpidLogMsg) => string;
 /**
  * Format the name of the blob based on the Spid Message
  *
- * @param spidLogMsg
- * @returns
+ * @param config
+ * @returns function
  */
-export const makeSpidLogBlobName = (spidLogMsg: SpidLogMsg): string =>
-  config.ENABLE_SPID_ACCESS_LOGS &&
+export const createMakeSpidLogBlobName = (
+  config: SpidLogsStorageConfiguration
+) => (spidLogMsg: SpidLogMsg): string =>
   config.SPID_LOGS_STORAGE_KIND === "awss3" &&
   config.SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE
     ? `${spidLogMsg.spidRequestId}-${spidLogMsg.createdAtDay}.json`

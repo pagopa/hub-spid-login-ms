@@ -23,7 +23,7 @@ import * as O from "fp-ts/lib/Option";
 const aMockedRequest = mockReq();
 const aMockedResponse = mockRes();
 
-import { AccessLogEncrypter, AccessLogWriter } from "../../utils/access_log";
+import {AccessLogEncrypter, AccessLogWriter, MakeSpidLogBlobName} from "../../utils/access_log";
 
 // Mock logger to spy error
 import { logger } from "../../utils/logger";
@@ -39,6 +39,11 @@ const mockAccessLogEncrypter = jest.fn<
   ReturnType<AccessLogEncrypter>,
   Parameters<AccessLogEncrypter>
 >(() => E.right({} as SpidBlobItem));
+
+const mockMakeSpidLogBlobName = jest.fn<
+  ReturnType<MakeSpidLogBlobName>,
+  Parameters<MakeSpidLogBlobName>
+  >(() => 'blobname.json');
 
 // Utility functions that allows us to wait for fire&forget task to be awaited
 const flushPromises = () => new Promise(setImmediate);
@@ -92,7 +97,7 @@ describe("metadataRefreshHandler", () => {
 
 describe("accessLogHandler", () => {
   it("should succeed calling storeSpidLogs function if it returns right", async () => {
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
       "0.0.0.0",
       aSAMLRequest,
       aSAMLResponse
@@ -112,7 +117,8 @@ describe("accessLogHandler", () => {
 
     const result = accessLogHandler(
       mockAccessLogWriter,
-      mockAccessLogEncrypter
+      mockAccessLogEncrypter,
+      mockMakeSpidLogBlobName
     )("0.0.0.0", aSAMLRequest, aSAMLResponse);
 
     // await fire&forget storeSpidLogs
@@ -129,7 +135,7 @@ describe("accessLogHandler", () => {
     // we have to cast to avoid type check at compile time
     const anEmptyResponsePayload = (undefined as unknown) as string;
 
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
       "0.0.0.0",
       aSAMLRequest,
       anEmptyResponsePayload
@@ -143,7 +149,7 @@ describe("accessLogHandler", () => {
   });
 
   it("should fail if not able to get original request id from response", async () => {
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
       "0.0.0.0",
       aSAMLRequest,
       aSAMLResponseWithoutRequestId
@@ -157,7 +163,7 @@ describe("accessLogHandler", () => {
   });
 
   it("should fail if not able to get user fiscal code from response", async () => {
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter)(
+    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
       "0.0.0.0",
       aSAMLRequest,
       aSAMLResponseWithoutFiscalCode

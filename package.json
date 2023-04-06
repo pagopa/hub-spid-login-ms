@@ -67,7 +67,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.121.0",
     "@aws-sdk/credential-providers": "^3.137.0",
-    "@pagopa/io-spid-commons": "^8.1.0",
+    "@pagopa/io-spid-commons": "^10.1.1",
     "@pagopa/ts-commons": "^10.4.0",
     "@types/redis": "^2.8.32",
     "azure-storage": "^2.10.4",

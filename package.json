@@ -59,7 +59,7 @@
     "shx": "^0.3.2",
     "supertest": "^4.0.2",
     "ts-jest": "^24.0.2",
-    "typescript": "4.3"
+    "typescript": "^4.9.5"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.121.0",
@@ -73,8 +73,8 @@
     "date-fns": "^1.30.1",
     "dotenv": "^8.2.0",
     "express": "4.17.0",
-    "fp-ts": "2",
-    "io-ts": "2",
+    "fp-ts": "^2.11.1",
+    "io-ts": "^2.2.16",
     "io-ts-types": "^0.4.7",
     "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.7",

@@ -1776,12 +1776,12 @@
     eslint-plugin-sonarjs "^0.5.0"
     prettier "^2.1.2"
 
-"@pagopa/io-spid-commons@^10.1.1":
-  version "10.1.1"
-  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-10.1.1.tgz#0c26107c6f9344fae1129b2e8c3839b965664873"
-  integrity sha512-Hr/5hkVWpoIc2bInIIJDF2w1MWj2VuNrumYgXS4mpoNkOvS4/1+6DFAPclhakINmNtE8Oopatb/FQ0T9JVX9vA==
+"@pagopa/io-spid-commons@^11.0.0":
+  version "11.0.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-11.0.0.tgz#5c6bace711f546615ab65c2ab4cfd7d74b0e1455"
+  integrity sha512-cOTtsl0tDTA2VAUPa3bXZQzRvOeRyeIKJgmBCdJJv0FHCun+qnKMGBRDqLwxlWAbenHDaF9ikZBppk1jonrW8Q==
   dependencies:
-    "@pagopa/ts-commons" "^10.12.0"
+    "@pagopa/ts-commons" "^11.0.0"
     "@types/redis" "^2.8.32"
     date-fns "^1.30.1"
     fp-ts "^2.11.1"
@@ -1814,23 +1814,7 @@
     write-yaml-file "^4.1.3"
     yargs "^15.0.1"
 
-"@pagopa/ts-commons@^10.12.0":
-  version "10.15.0"
-  resolved "https://registry.yarnpkg.com/@pagopa/ts-commons/-/ts-commons-10.15.0.tgz#8e3030a2ebc16c3edb5ef99962c6e8d534826957"
-  integrity sha512-MTmD0geIN9L9vnEYjPTE7v6Bu+IRTFMre+3K4LWYjy1AaRmYcpSrc9HTZgyCRW8uLCvw1BmDKcKtSiETM817kw==
-  dependencies:
-    abort-controller "^3.0.0"
-    agentkeepalive "^4.1.4"
-    applicationinsights "^1.8.10"
-    fp-ts "^2.11.0"
-    io-ts "^2.2.16"
-    jose "^4.11.2"
-    json-set-map "^1.1.2"
-    node-fetch "^2.6.0"
-    semver "^7.3.7"
-    validator "^13.7.0"
-
-"@pagopa/ts-commons@^10.3.0", "@pagopa/ts-commons@^10.4.0":
+"@pagopa/ts-commons@^10.3.0":
   version "10.4.0"
   resolved "https://registry.yarnpkg.com/@pagopa/ts-commons/-/ts-commons-10.4.0.tgz#a422295e24735cfba26b744b055f90f718fd9aef"
   integrity sha512-4/qbF+WjyjYJqMG8otj3qBwGe4g4DqZ8haou1GkuC4cYog6Yv+BfQT7TbV+dNsTGYbuc6QRw0eHXBPvbjpD7dw==
@@ -1842,6 +1826,22 @@
     io-ts "^2.2.16"
     json-set-map "^1.1.2"
     node-fetch "^2.6.0"
+    validator "^13.7.0"
+
+"@pagopa/ts-commons@^11.0.0":
+  version "11.0.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/ts-commons/-/ts-commons-11.0.0.tgz#e0384863e564e87815c43b2ab7999af682ee5fc1"
+  integrity sha512-KA+riHTKhNcv5UGP33+AIYBWx7bAwk3c5/eQAUFl16gDYeXrceQpJ/cq0fyOC0AnUmNuMPiHQOksgjjeioaLIQ==
+  dependencies:
+    abort-controller "^3.0.0"
+    agentkeepalive "^4.1.4"
+    applicationinsights "^1.8.10"
+    fp-ts "^2.11.0"
+    io-ts "^2.2.16"
+    jose "^4.11.2"
+    json-set-map "^1.1.2"
+    node-fetch "^2.6.0"
+    semver "^7.3.7"
     validator "^13.7.0"
 
 "@types/babel__core@^7.1.0":
@@ -1996,10 +1996,10 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-13.5.0.tgz#4e498dbf355795a611a87ae5ef811a8660d42662"
   integrity sha512-Onhn+z72D2O2Pb2ql2xukJ55rglumsVo1H6Fmyi8mlU9SvKdBk/pUSUAiBY/d9bAOF7VVWajX3sths/+g6ZiAQ==
 
-"@types/node@10.14.1":
-  version "10.14.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.14.1.tgz#8701cd760acc20beba5ffe0b7a1b879f39cb8c41"
-  integrity sha512-Rymt08vh1GaW4vYB6QP61/5m/CFLGnFZP++bJpWbiNxceNa6RBipDmb413jvtSf/R1gg5a/jQVl2jY4XVRscEA==
+"@types/node@~18.13.0":
+  version "18.13.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.13.0.tgz#0400d1e6ce87e9d3032c19eb6c58205b0d3f7850"
+  integrity sha512-gC3TazRzGoOnoKAhUx+Q0t8S9Tzs74z7m0ipwGpSqQrleP14hKxP4/JUeEQcD3W1/aIpnWl8pHowI7WokuZpXg==
 
 "@types/passport-saml@1.1.1":
   version "1.1.1"

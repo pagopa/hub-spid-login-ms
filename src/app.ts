@@ -57,6 +57,7 @@ import {
   createAccessLogWriter,
   createMakeSpidLogBlobName
 } from "./utils/access_log";
+import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 
 const config = getConfigOrThrow();
 
@@ -273,10 +274,10 @@ const acs: AssertionConsumerServiceT = async user =>
       return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
         ? ResponsePermanentRedirect({
             href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
-          })
+          } as ValidUrl)
         : ResponsePermanentRedirect({
             href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-          });
+          } as ValidUrl);
     }),
     TE.toUnion
   )();
@@ -284,7 +285,7 @@ const acs: AssertionConsumerServiceT = async user =>
 const logout: LogoutT = async () =>
   ResponsePermanentRedirect({
     href: `${process.env.ENDPOINT_SUCCESS}?logout`
-  });
+  } as ValidUrl);
 
 const app = express();
 

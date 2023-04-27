@@ -22,6 +22,7 @@ import * as cors from "cors";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
+import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 import { CertificationEnum } from "../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
 import { generateToken } from "./handlers/token";
 
@@ -57,7 +58,6 @@ import {
   createAccessLogWriter,
   createMakeSpidLogBlobName
 } from "./utils/access_log";
-import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 
 const config = getConfigOrThrow();
 

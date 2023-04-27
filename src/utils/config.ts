@@ -5,6 +5,7 @@
  * The configuration is evaluate eagerly at the first access to the module. The module exposes convenient methods to access such value.
  */
 
+import { ParsedUrlQuery } from "querystring";
 import {
   IntegerFromString,
   NonNegativeInteger,
@@ -20,8 +21,10 @@ import { pipe, flow, identity } from "fp-ts/lib/function";
 import * as t from "io-ts";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { withDefault } from "@pagopa/ts-commons/lib/types";
-import { UrlFromString } from "@pagopa/ts-commons/lib/url";
+import {
+  withDefault,
+  withoutUndefinedValues
+} from "@pagopa/ts-commons/lib/types";
 
 export const RedisParams = t.intersection([
   t.interface({
@@ -60,6 +63,20 @@ const SpidLogsStorageAzureStorage = t.interface({
   )
 });
 
+// we redeclare some types because of too invasive changes during dependencies upgrade
+// to node 18 compliant versions
+export interface IValidUrl {
+  readonly hostname: string | null;
+  readonly path: string | null;
+  readonly protocol: string | null;
+  readonly href: string;
+  readonly port?: string;
+  readonly query?: string | ParsedUrlQuery;
+}
+
+export declare const UrlFromString: t.Type<IValidUrl, string, unknown>;
+export type UrlFromString = t.TypeOf<typeof UrlFromString>;
+
 /**
  * This is a workaround for UrlFromString which seems to be buggy:
  *   optional attributes are supposed to be omitted if they are not found in the original URL string
@@ -71,7 +88,7 @@ const SpidLogsStorageAzureStorage = t.interface({
 export const UrlFromStringWithoutNulls = new t.Type<
   UrlFromString & {
     readonly port?: string;
-    readonly query?: string | Record<string, string | ReadonlyArray<string>>;
+    readonly query?: string | ParsedUrlQuery;
   },
   UrlFromString,
   UrlFromString
@@ -81,7 +98,7 @@ export const UrlFromStringWithoutNulls = new t.Type<
     e
   ): e is UrlFromString & {
     readonly port?: string;
-    readonly query?: string | Record<string, string | ReadonlyArray<string>>;
+    readonly query?: string | ParsedUrlQuery;
   } =>
     typeof e === "object" &&
     e !== null &&
@@ -90,11 +107,13 @@ export const UrlFromStringWithoutNulls = new t.Type<
     UrlFromString.is(e),
   // explicitly remove optional fields during parse if they are null
   ({ port, query, ...e }) =>
-    t.success({
-      ...e,
-      ...(query === null ? {} : { query }),
-      ...(port === null ? {} : { port })
-    }),
+    t.success(
+      withoutUndefinedValues({
+        ...e,
+        port: !port ? undefined : port,
+        query: !query ? undefined : query
+      })
+    ),
   identity
 );
 

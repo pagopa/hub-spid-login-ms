@@ -18,10 +18,10 @@ export const spidLogStorage = {
   secretAccessKey: "minioadmin",
   region: "us-east-1",
   endpoint: {
-    hostname: "localhost",
+    hostname: "127.0.0.1",
     path: "/",
     port: 10000,
-    protocol: "http"
+    protocol: "http://"
   },
   forcePathStyle: true
 };

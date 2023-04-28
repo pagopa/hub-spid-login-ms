@@ -6,6 +6,7 @@
  */
 
 import { ParsedUrlQuery } from "querystring";
+import { UrlObject } from "url";
 import {
   IntegerFromString,
   NonNegativeInteger,
@@ -21,7 +22,10 @@ import { pipe, flow, identity } from "fp-ts/lib/function";
 import * as t from "io-ts";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { withDefault } from "@pagopa/ts-commons/lib/types";
+import {
+  withDefault,
+  withoutUndefinedValues
+} from "@pagopa/ts-commons/lib/types";
 import { UrlFromString } from "@pagopa/ts-commons/lib/url";
 
 export const RedisParams = t.intersection([
@@ -61,20 +65,24 @@ const SpidLogsStorageAzureStorage = t.interface({
   )
 });
 
-export const Endpoint = t.interface({
-  auth: NonEmptyString,
-  hash: NonEmptyString,
-  host: NonEmptyString,
-  hostname: NonEmptyString,
-  href: NonEmptyString,
-  path: NonEmptyString,
-  pathname: NonEmptyString,
-  port: NumberFromString,
-  protocol: NonEmptyString,
-  query: t.record(t.string, t.union([t.string, t.array(t.string)])),
-  search: NonEmptyString,
-  slashes: t.boolean
-});
+export const Endpoint = t.intersection([
+  t.interface({
+    hostname: NonEmptyString,
+    href: NonEmptyString,
+    path: NonEmptyString,
+    protocol: NonEmptyString
+  }),
+  t.partial({
+    auth: NonEmptyString,
+    hash: NonEmptyString,
+    host: NonEmptyString,
+    pathname: NonEmptyString,
+    port: NumberFromString,
+    query: t.record(t.string, t.union([t.string, t.array(t.string)])),
+    search: NonEmptyString,
+    slashes: t.boolean
+  })
+]);
 export type Endpoint = t.TypeOf<typeof Endpoint>;
 
 /**
@@ -86,7 +94,7 @@ export type Endpoint = t.TypeOf<typeof Endpoint>;
  * @example UrlFromString.pipe(UrlFromStringWithoutNulls)
  */
 export const UrlFromStringWithoutNulls = new t.Type<
-  UrlFromString & {
+  UrlObject & {
     readonly auth?: string;
     readonly hash?: string;
     readonly host?: string;
@@ -153,20 +161,22 @@ export const UrlFromStringWithoutNulls = new t.Type<
     port,
     query
   }) =>
-    t.success({
-      auth: auth ?? "-",
-      hash: hash ?? "-",
-      host: host ?? "-",
-      hostname: hostname ?? "-",
-      href: href ?? "-",
-      path: path ?? "-",
-      pathname: pathname ?? "-",
-      port: port ?? "1234",
-      protocol: protocol ?? "-",
-      query: query ?? { a: "a" },
-      search: search ?? "-",
-      slashes: slashes ?? false
-    }),
+    t.success(
+      withoutUndefinedValues({
+        auth: auth ?? undefined,
+        hash: hash ?? undefined,
+        host: host ?? undefined,
+        hostname: hostname ?? undefined,
+        href: href ?? undefined,
+        path: path ?? undefined,
+        pathname: pathname ?? undefined,
+        port: port ?? undefined,
+        protocol: protocol ?? undefined,
+        query: query ?? undefined,
+        search: search ?? undefined,
+        slashes: slashes ?? undefined
+      })
+    ),
   ({
     auth,
     hash,
@@ -180,20 +190,21 @@ export const UrlFromStringWithoutNulls = new t.Type<
     slashes,
     port,
     query
-  }) => ({
-    auth: auth ?? "-",
-    hash: hash ?? "-",
-    host: host ?? "-",
-    hostname: hostname ?? "-",
-    href: href ?? "-",
-    path: path ?? "-",
-    pathname: pathname ?? "-",
-    port: port ?? "1234",
-    protocol: protocol ?? "-",
-    query: query ?? { a: "a" },
-    search: search ?? "-",
-    slashes: slashes ?? false
-  })
+  }) =>
+    withoutUndefinedValues({
+      auth: auth ?? "-",
+      hash: hash ?? "-",
+      host: host ?? "-",
+      hostname: hostname ?? "-",
+      href: href ?? "-",
+      path: path ?? "-",
+      pathname: pathname ?? "-",
+      port: port ?? "1234",
+      protocol: protocol ?? "-",
+      query: query ?? { a: "a" },
+      search: search ?? "-",
+      slashes: slashes ?? false
+    })
 );
 
 // Refine UrlFromString codec to map Endpoint type in @aws-sdk/types/dist-types/http.d.ts

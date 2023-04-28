@@ -21,10 +21,8 @@ import { pipe, flow, identity } from "fp-ts/lib/function";
 import * as t from "io-ts";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import {
-  withDefault,
-  withoutUndefinedValues
-} from "@pagopa/ts-commons/lib/types";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
+import { UrlFromString } from "@pagopa/ts-commons/lib/url";
 
 export const RedisParams = t.intersection([
   t.interface({
@@ -63,19 +61,21 @@ const SpidLogsStorageAzureStorage = t.interface({
   )
 });
 
-// we redeclare some types because of too invasive changes during dependencies upgrade
-// to node 18 compliant versions
-export interface IValidUrl {
-  readonly hostname: string | null;
-  readonly path: string | null;
-  readonly protocol: string | null;
-  readonly href: string;
-  readonly port?: string;
-  readonly query?: string | ParsedUrlQuery;
-}
-
-export declare const UrlFromString: t.Type<IValidUrl, string, unknown>;
-export type UrlFromString = t.TypeOf<typeof UrlFromString>;
+export const Endpoint = t.interface({
+  auth: NonEmptyString,
+  hash: NonEmptyString,
+  host: NonEmptyString,
+  hostname: NonEmptyString,
+  href: NonEmptyString,
+  path: NonEmptyString,
+  pathname: NonEmptyString,
+  port: NumberFromString,
+  protocol: NonEmptyString,
+  query: t.record(t.string, t.union([t.string, t.array(t.string)])),
+  search: NonEmptyString,
+  slashes: t.boolean
+});
+export type Endpoint = t.TypeOf<typeof Endpoint>;
 
 /**
  * This is a workaround for UrlFromString which seems to be buggy:
@@ -87,18 +87,51 @@ export type UrlFromString = t.TypeOf<typeof UrlFromString>;
  */
 export const UrlFromStringWithoutNulls = new t.Type<
   UrlFromString & {
+    readonly auth?: string;
+    readonly hash?: string;
+    readonly host?: string;
+    readonly hostname?: string;
+    readonly href?: string;
+    readonly path?: string;
+    readonly pathname?: string;
     readonly port?: string;
+    readonly protocol?: string;
     readonly query?: string | ParsedUrlQuery;
+    readonly search?: string;
+    readonly slashes?: boolean;
   },
-  UrlFromString,
+  UrlFromString & {
+    readonly auth?: string;
+    readonly hash?: string;
+    readonly host?: string;
+    readonly hostname?: string;
+    readonly href?: string;
+    readonly path?: string;
+    readonly pathname?: string;
+    readonly port?: string;
+    readonly protocol?: string;
+    readonly query?: string | ParsedUrlQuery;
+    readonly search?: string;
+    readonly slashes?: boolean;
+  },
   UrlFromString
 >(
   "UrlFromStringWithoutNulls",
   (
     e
   ): e is UrlFromString & {
+    readonly auth?: string;
+    readonly hash?: string;
+    readonly host?: string;
+    readonly hostname?: string;
+    readonly href?: string;
+    readonly path?: string;
+    readonly pathname?: string;
     readonly port?: string;
+    readonly protocol?: string;
     readonly query?: string | ParsedUrlQuery;
+    readonly search?: string;
+    readonly slashes?: boolean;
   } =>
     typeof e === "object" &&
     e !== null &&
@@ -106,31 +139,66 @@ export const UrlFromStringWithoutNulls = new t.Type<
     e["query"] !== null &&
     UrlFromString.is(e),
   // explicitly remove optional fields during parse if they are null
-  ({ port, query, ...e }) =>
-    t.success(
-      withoutUndefinedValues({
-        ...e,
-        port: !port ? undefined : port,
-        query: !query ? undefined : query
-      })
-    ),
-  identity
+  ({
+    auth,
+    hash,
+    host,
+    hostname,
+    href,
+    path,
+    pathname,
+    protocol,
+    search,
+    slashes,
+    port,
+    query
+  }) =>
+    t.success({
+      auth: auth ?? "-",
+      hash: hash ?? "-",
+      host: host ?? "-",
+      hostname: hostname ?? "-",
+      href: href ?? "-",
+      path: path ?? "-",
+      pathname: pathname ?? "-",
+      port: port ?? "1234",
+      protocol: protocol ?? "-",
+      query: query ?? { a: "a" },
+      search: search ?? "-",
+      slashes: slashes ?? false
+    }),
+  ({
+    auth,
+    hash,
+    host,
+    hostname,
+    href,
+    path,
+    pathname,
+    protocol,
+    search,
+    slashes,
+    port,
+    query
+  }) => ({
+    auth: auth ?? "-",
+    hash: hash ?? "-",
+    host: host ?? "-",
+    hostname: hostname ?? "-",
+    href: href ?? "-",
+    path: path ?? "-",
+    pathname: pathname ?? "-",
+    port: port ?? "1234",
+    protocol: protocol ?? "-",
+    query: query ?? { a: "a" },
+    search: search ?? "-",
+    slashes: slashes ?? false
+  })
 );
 
 // Refine UrlFromString codec to map Endpoint type in @aws-sdk/types/dist-types/http.d.ts
 export const AWSEndpoint = UrlFromString.pipe(UrlFromStringWithoutNulls).pipe(
-  t.intersection([
-    t.interface({
-      hostname: NonEmptyString,
-      href: NonEmptyString,
-      path: NonEmptyString,
-      protocol: NonEmptyString
-    }),
-    t.partial({
-      port: NumberFromString,
-      query: t.record(t.string, t.union([t.string, t.array(t.string)]))
-    })
-  ])
+  Endpoint
 );
 
 const SpidLogsStorageAwsS3 = t.intersection([

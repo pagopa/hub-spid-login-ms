@@ -231,7 +231,7 @@ export const JWTParams = t.union([
   ]),
   t.interface({
     ENABLE_JWT: t.literal(false),
-    ENABLE_USER_REGISTRY: t.literal(false),
+    ENABLE_USER_REGISTRY: t.literal(false)
   })
 ]);
 export type JWTParams = t.TypeOf<typeof JWTParams>;

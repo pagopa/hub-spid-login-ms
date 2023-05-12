@@ -2,7 +2,7 @@ import * as express from "express";
 import { toError } from "fp-ts/lib/Either";
 
 import * as TE from "fp-ts/lib/TaskEither";
-import { RedisClient } from "redis";
+import { RedisClient } from "../utils/redis";
 import { flow, pipe } from "fp-ts/lib/function";
 import { AdeAPIClient } from "../clients/ade";
 import { getConfigOrThrow } from "../utils/config";

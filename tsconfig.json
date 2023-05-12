@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ESNext",
     "rootDir": ".",
     "outDir": "dist",
-    "module": "commonjs",
+    "module": "ESNext",
     "moduleResolution": "node",
     "noImplicitAny": false,
     "declaration": true,
     "sourceMap": true,
-    "strict": true
+    "skipLibCheck": true
   },
   "lib": [],
   "include": ["src/**/*"],

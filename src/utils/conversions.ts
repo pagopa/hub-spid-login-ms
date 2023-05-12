@@ -2,7 +2,7 @@ import {
   IResponseErrorInternal,
   ResponseErrorInternal
 } from "@pagopa/ts-commons/lib/responses";
-import express = require("express");
+import * as express from "express";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import { Errors } from "io-ts";

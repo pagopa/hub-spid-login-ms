@@ -10,7 +10,7 @@ import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import * as bodyParser from "body-parser";
 import * as express from "express";
 import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
-import passport = require("passport");
+import * as  passport from "passport";
 import { SamlConfig } from "passport-saml";
 import {
   AggregatorType,
@@ -49,7 +49,7 @@ import {
 import { AdeAPIClient } from "./clients/ade";
 import { healthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
-import { REDIS_CLIENT } from "./utils/redis";
+import { RedisClientFactory } from "./utils/redis";
 import { blurUser } from "./utils/user_registry";
 import { PersonalDatavaultAPIClient } from "./clients/pdv_client";
 import {
@@ -57,6 +57,7 @@ import {
   createAccessLogWriter,
   createMakeSpidLogBlobName
 } from "./utils/access_log";
+import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 
 const config = getConfigOrThrow();
 
@@ -125,7 +126,7 @@ const serviceProviderConfig: IServiceProviderConfig = {
       : undefined
 };
 
-const redisClient = REDIS_CLIENT;
+const redisClient =  await new RedisClientFactory(config).getInstance();
 
 process.on("SIGINT", () => {
   redisClient.quit();
@@ -271,26 +272,27 @@ const acs: AssertionConsumerServiceT = async user =>
     TE.map(({ tokenStr, tokenUser }) => {
       logger.info("ACS | Redirect to success endpoint");
       return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
-        ? ResponsePermanentRedirect({
+        ? ResponsePermanentRedirect(({
             href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
-          })
-        : ResponsePermanentRedirect({
+          } as unknown) as ValidUrl)
+        : ResponsePermanentRedirect(({
             href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-          });
+          } as unknown) as ValidUrl);
     }),
     TE.toUnion
   )();
 
 const logout: LogoutT = async () =>
-  ResponsePermanentRedirect({
+  ResponsePermanentRedirect(({
     href: `${process.env.ENDPOINT_SUCCESS}?logout`
-  });
+  } as unknown) as ValidUrl);
 
 const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(passport.initialize());
+
 if (config.ALLOW_CORS) {
   logger.info("Enabling CORS on Express");
   app.use(cors());

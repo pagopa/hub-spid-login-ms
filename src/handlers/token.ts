@@ -20,7 +20,7 @@ import {
   getTask,
   setWithExpirationTask
 } from "../utils/redis_storage";
-import { REDIS_CLIENT } from "../utils/redis";
+import { RedisClientFactory } from "../utils/redis";
 import {
   extractJwtRemainingValidTime,
   extractRawDataFromJwt,
@@ -34,7 +34,8 @@ import { SESSION_INVALIDATE_TOKEN_PREFIX, SESSION_TOKEN_PREFIX } from "../app";
 
 const config = getConfigOrThrow();
 
-const redisClient = REDIS_CLIENT;
+const redisClient = await new RedisClientFactory(config).getInstance();
+
 const getRawTokenUserFromRedis = (
   token: string,
   res: express.Response

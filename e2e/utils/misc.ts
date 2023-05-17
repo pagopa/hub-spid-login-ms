@@ -1,5 +1,4 @@
-export const delay = (ms: number) =>
-  new Promise((done) => setTimeout(done, ms));
+export const delay = (ms: number) => new Promise(done => setTimeout(done, ms));
 
 export const envFlag = (e: unknown): boolean => e === "1" || e === "true";
 
@@ -13,7 +12,7 @@ export const withBrowser = (puppeteer: any, showBrowser: boolean) => async <T>(
 ): Promise<T> => {
   const browser = await puppeteer.launch({
     headless: !showBrowser,
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: true
   });
 
   try {

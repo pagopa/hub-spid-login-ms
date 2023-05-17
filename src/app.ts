@@ -7,8 +7,7 @@ import {
   withSpid
 } from "@pagopa/io-spid-commons";
 import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
-import * as bodyParser from "body-parser";
-import * as express from "express";
+import express from "express";
 import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
 import passport = require("passport");
 import { SamlConfig } from "passport-saml";
@@ -18,7 +17,7 @@ import {
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
 import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
-import * as cors from "cors";
+import cors from "cors";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
@@ -57,6 +56,7 @@ import {
   createAccessLogWriter,
   createMakeSpidLogBlobName
 } from "./utils/access_log";
+import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 
 const config = getConfigOrThrow();
 
@@ -273,10 +273,10 @@ const acs: AssertionConsumerServiceT = async user =>
       return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
         ? ResponsePermanentRedirect({
             href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
-          })
+          } as ValidUrl)
         : ResponsePermanentRedirect({
             href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-          });
+          } as ValidUrl);
     }),
     TE.toUnion
   )();
@@ -284,12 +284,12 @@ const acs: AssertionConsumerServiceT = async user =>
 const logout: LogoutT = async () =>
   ResponsePermanentRedirect({
     href: `${process.env.ENDPOINT_SUCCESS}?logout`
-  });
+  } as ValidUrl);
 
 const app = express();
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json);
+app.use(express.urlencoded);
 app.use(passport.initialize());
 if (config.ALLOW_CORS) {
   logger.info("Enabling CORS on Express");

@@ -22,7 +22,7 @@ import {
   IPString,
   NonEmptyString,
 } from "@pagopa/ts-commons/lib/strings";
-import { SpidBlobItem, SpidLogMsg } from "../../types/access_log";
+import { SpidBlobItem } from "../../types/access_log";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
@@ -41,6 +41,8 @@ jest.mock("@pagopa/ts-commons/lib/encrypt", () => ({
 }));
 import * as encrypt from "@pagopa/ts-commons/lib/encrypt";
 const spiedToEncryptedPayload = jest.spyOn(encrypt, "toEncryptedPayload");
+
+jest.mock("azure-storage")
 
 // Mock access_log module to spy on storeSpidLogs function
 import * as blob from "../blob";
@@ -71,10 +73,6 @@ const responseWithoutRequestIdXMLDocument = new DOMParser().parseFromString(
   aSAMLResponseWithoutRequestId,
   "text/xml"
 );
-
-jest.spyOn(azs, "createBlobService").mockImplementation(() => {
-  return ({} as unknown) as BlobService;
-});
 
 describe("getFiscalNumberFromPayload", () => {
   it("Should return an option containing a fiscal number from saml response when present", async () => {

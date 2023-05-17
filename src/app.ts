@@ -10,7 +10,7 @@ import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import * as bodyParser from "body-parser";
 import * as express from "express";
 import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
-import passport = require("passport");
+import * as passport from "passport";
 import { SamlConfig } from "passport-saml";
 import {
   AggregatorType,
@@ -291,6 +291,7 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+// @ts-ignore
 app.use(passport.initialize());
 if (config.ALLOW_CORS) {
   logger.info("Enabling CORS on Express");

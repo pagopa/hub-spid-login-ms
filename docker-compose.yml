@@ -17,7 +17,7 @@ services:
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
       - "5859:5859"
-    image: node:10.14.2-alpine
+    image: node:18.13.0-alpine
     command: ["yarn", "start"]
     volumes:
       - "./certs:/usr/src/app/certs:ro"

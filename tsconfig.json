@@ -8,7 +8,8 @@
     "noImplicitAny": false,
     "declaration": true,
     "sourceMap": true,
-    "strict": true
+    "strict": true,
+    "skipLibCheck": true
   },
   "lib": [],
   "include": ["src/**/*"],

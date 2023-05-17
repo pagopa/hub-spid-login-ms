@@ -22,6 +22,7 @@ import * as cors from "cors";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
+import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 import { CertificationEnum } from "../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
 import { generateToken } from "./handlers/token";
 
@@ -271,20 +272,20 @@ const acs: AssertionConsumerServiceT = async user =>
     TE.map(({ tokenStr, tokenUser }) => {
       logger.info("ACS | Redirect to success endpoint");
       return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
-        ? ResponsePermanentRedirect({
+        ? ResponsePermanentRedirect(({
             href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
-          })
-        : ResponsePermanentRedirect({
+          } as unknown) as ValidUrl)
+        : ResponsePermanentRedirect(({
             href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-          });
+          } as unknown) as ValidUrl);
     }),
     TE.toUnion
   )();
 
 const logout: LogoutT = async () =>
-  ResponsePermanentRedirect({
+  ResponsePermanentRedirect(({
     href: `${process.env.ENDPOINT_SUCCESS}?logout`
-  });
+  } as unknown) as ValidUrl);
 
 const app = express();
 

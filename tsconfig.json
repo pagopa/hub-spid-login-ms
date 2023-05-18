@@ -1,16 +1,26 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "rootDir": ".",
-    "outDir": "dist",
     "module": "commonjs",
-    "moduleResolution": "node",
+    "target": "es6",
+    "outDir": "dist",
+    "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
-    "declaration": true,
     "sourceMap": true,
-    "strict": true
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "rootDir": ".",
+    "moduleResolution": "node",
+    "declaration": true,
+    "skipLibCheck": true
   },
-  "lib": [],
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "src/**/__mocks__/*", "src/**/__tests__/*"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/**/__tests__/*",
+    "src/**/__mocks__/*"
+  ]
 }

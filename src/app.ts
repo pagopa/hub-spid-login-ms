@@ -10,7 +10,7 @@ import { SamlAttributeT } from "@pagopa/io-spid-commons/dist/utils/saml";
 import * as bodyParser from "body-parser";
 import * as express from "express";
 import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
-import passport = require("passport");
+import * as passport from "passport";
 import { SamlConfig } from "passport-saml";
 import {
   AggregatorType,
@@ -22,6 +22,7 @@ import * as cors from "cors";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
+import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 import { CertificationEnum } from "../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
 import { generateToken } from "./handlers/token";
 
@@ -271,26 +272,30 @@ const acs: AssertionConsumerServiceT = async user =>
     TE.map(({ tokenStr, tokenUser }) => {
       logger.info("ACS | Redirect to success endpoint");
       return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
-        ? ResponsePermanentRedirect({
+        ? ResponsePermanentRedirect(({
             href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
-          })
-        : ResponsePermanentRedirect({
+          } as unknown) as ValidUrl)
+        : ResponsePermanentRedirect(({
             href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-          });
+          } as unknown) as ValidUrl);
     }),
     TE.toUnion
   )();
 
 const logout: LogoutT = async () =>
-  ResponsePermanentRedirect({
+  ResponsePermanentRedirect(({
     href: `${process.env.ENDPOINT_SUCCESS}?logout`
-  });
+  } as unknown) as ValidUrl);
 
 const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(passport.initialize());
+
+// there's a little bug that does not recognixe express.Handler
+// as an extension of RequestHandler, so we need to cast it
+app.use(passport.initialize() as express.RequestHandler);
+
 if (config.ALLOW_CORS) {
   logger.info("Enabling CORS on Express");
   app.use(cors());

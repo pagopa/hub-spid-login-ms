@@ -19,10 +19,8 @@
     "src/**/*"
   ],
   "exclude": [
-    "Dangerfile.ts",
     "node_modules",
     "src/**/__tests__/*",
-    "src/**/__mocks__/*",
-    "docker/**"
+    "src/**/__mocks__/*"
   ]
 }

@@ -291,8 +291,11 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-// @ts-ignore
-app.use(passport.initialize());
+
+// there's a little bug that does not recognixe express.Handler
+// as an extension of RequestHandler, so we need to cast it
+app.use(passport.initialize() as express.RequestHandler);
+
 if (config.ALLOW_CORS) {
   logger.info("Enabling CORS on Express");
   app.use(cors());

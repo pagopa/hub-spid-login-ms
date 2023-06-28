@@ -14,7 +14,12 @@ appInsights.context.tags[appInsights.context.keys.cloudRole] =
 
 createAppTask()
   .then(app => {
-    http.createServer(app).listen(config.SERVER_PORT);
+    let server = http.createServer(app);
+    
+    server.keepAliveTimeout = 62 * 1000;
+    server.headersTimeout = 60 * 1000;
+
+    server.listen(config.SERVER_PORT);
     // eslint-disable-next-line no-console
     console.log(`Server listening at port ${config.SERVER_PORT}`);
   })

@@ -151,17 +151,16 @@ const acs: AssertionConsumerServiceT = async user =>
     SpidUser.decode,
     TE.fromEither,
     TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs))),
-    TE.chain(_ => {
+    TE.chain(spidUser => {
       logger.info("ACS | Trying to map user to Common User");
       return pipe(
-        _,
+        spidUser,
         toCommonTokenUser,
         TE.fromEither,
         TE.mapLeft(toResponseErrorInternal)
       );
     }),
-    a => a,
-    TE.chain(_ => {
+    TE.chain(commonUser => {
       logger.info(
         "ACS | Trying to retreive UserCompanies or map over a default user"
       );
@@ -169,21 +168,20 @@ const acs: AssertionConsumerServiceT = async user =>
         ? pipe(
             getUserCompanies(
               AdeAPIClient(config.ADE_AA_API_ENDPOINT),
-              _.fiscal_number
+              commonUser.fiscal_number
             ),
             TE.map(companies => ({
-              ..._,
+              ...commonUser,
               companies,
               from_aa: config.ENABLE_ADE_AA as boolean
             }))
           )
         : TE.of({
-            ..._,
+            ...commonUser,
             from_aa: config.ENABLE_ADE_AA as boolean
           });
     }),
-    b => b,
-    TE.chainW(_ => {
+    TE.chainW(commonUser => {
       logger.info(
         `ACS | Personal Data Vault - Check for User: ${config.ENABLE_USER_REGISTRY}`
       );
@@ -192,57 +190,57 @@ const acs: AssertionConsumerServiceT = async user =>
             blurUser(
               PersonalDatavaultAPIClient(config.USER_REGISTRY_URL),
               withoutUndefinedValues({
-                fiscalCode: _.fiscal_number,
-                ...(_.email && {
+                fiscalCode: commonUser.fiscal_number,
+                ...(commonUser.email && {
                   email: {
                     certification: CertificationEnum.SPID,
-                    value: _.email
+                    value: commonUser.email
                   }
                 }),
-                ...(_.family_name && {
+                ...(commonUser.family_name && {
                   familyName: {
                     certification: CertificationEnum.SPID,
-                    value: _.family_name
+                    value: commonUser.family_name
                   }
                 }),
-                ...(_.name && {
+                ...(commonUser.name && {
                   name: {
                     certification: CertificationEnum.SPID,
-                    value: _.name
+                    value: commonUser.name
                   }
                 })
               }),
               config.USER_REGISTRY_API_KEY
             ),
             TE.map(uuid => ({
-              ..._,
+              ...commonUser,
               uid: uuid.id
             }))
           )
-        : TE.of({ ..._ });
+        : TE.of({ ...commonUser });
     }),
-    TE.chainW(_ => {
+    TE.chainW(commonUser => {
       logger.info("ACS | Trying to decode TokenUser");
       return pipe(
-        _,
+        commonUser,
         TokenUser.decode,
         TE.fromEither,
         TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
       );
     }),
     // If User is related to one company we can directly release an L2 token
-    TE.chainW(a => {
+    TE.chainW(tokenUser => {
       logger.info("ACS | Companies length decision making");
-      return a.from_aa
-        ? a.companies.length === 1
+      return tokenUser.from_aa
+        ? tokenUser.companies.length === 1
           ? pipe(
-              toTokenUserL2(a, a.companies[0]),
+              toTokenUserL2(tokenUser, tokenUser.companies[0]),
               TE.fromEither,
               TE.mapLeft(toResponseErrorInternal)
             )
-          : TE.of(a as TokenUser | TokenUserL2)
+          : TE.of(tokenUser as TokenUser | TokenUserL2)
         : pipe(
-            TokenUserL2.decode({ ...a, level: "L2" }),
+            TokenUserL2.decode({ ...tokenUser, level: "L2" }),
             TE.fromEither,
             TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
           );
@@ -258,16 +256,18 @@ const acs: AssertionConsumerServiceT = async user =>
         TE.mapLeft(toResponseErrorInternal)
       );
     }),
-    TE.mapLeft(_ => {
+    TE.mapLeft(error => {
       logger.info(
-        `ACS | Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
-          _.detail
+        `ACS | Assertion Consumer Service ERROR|${error.kind} ${JSON.stringify(
+          error.detail
         )}`
       );
       logger.error(
-        `Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(_.detail)}`
+        `Assertion Consumer Service ERROR|${error.kind} ${JSON.stringify(
+          error.detail
+        )}`
       );
-      return _;
+      return error;
     }),
     TE.map(({ tokenStr, tokenUser }) => {
       logger.info("ACS | Redirect to success endpoint");

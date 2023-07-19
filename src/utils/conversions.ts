@@ -13,7 +13,7 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   CommonTokenUser,
   FISCAL_NUMBER_INTERNATIONAL_PREFIX,
-  SpidUser,
+  SpidUserWithLevel,
   TokenUser,
   TokenUserL2,
   UserCompany
@@ -23,7 +23,7 @@ export const errorsToError = (errors: Errors): Error =>
   new Error(errorsToReadableMessages(errors).join(" / "));
 
 export const toCommonTokenUser = (
-  from: SpidUser
+  from: SpidUserWithLevel
 ): E.Either<Error, CommonTokenUser> => {
   const normalizedUser = {
     ...from,
@@ -38,7 +38,8 @@ export const toCommonTokenUser = (
       family_name: normalizedUser.familyName,
       fiscal_number: normalizedUser.fiscalNumber,
       mobile_phone: normalizedUser.mobilePhone,
-      name: normalizedUser.name
+      name: normalizedUser.name,
+      spidLevel: normalizedUser.authnContextClassRef
     },
     CommonTokenUser.decode,
     E.mapLeft(errorsToError)

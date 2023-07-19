@@ -58,6 +58,11 @@ import {
   createAccessLogWriter,
   createMakeSpidLogBlobName
 } from "./utils/access_log";
+import * as t from "io-ts";
+import * as E from "fp-ts/lib/Either";
+import { getSpidLevelFromSAMLResponse, SpidLevelEnum } from "./utils/spid";
+import * as O from "fp-ts/lib/Option";
+import { safeXMLParseFromString } from "@pagopa/io-spid-commons/dist/utils/samlUtils";
 
 const config = getConfigOrThrow();
 
@@ -149,17 +154,33 @@ const acs: AssertionConsumerServiceT = async user =>
   pipe(
     user,
     SpidUser.decode,
-    TE.fromEither,
-    TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs))),
-    TE.chain(spidUser => {
+    E.mapLeft(errs => toResponseErrorInternal(errorsToError(errs))),
+    // binds the Spid level to the SpidUser
+    E.bindW("authnContextClassRef", spidUser =>
+      pipe(
+        spidUser.getAssertionXml(),
+        t.string.decode,
+        E.chainW(assertion =>
+          pipe(
+            assertion,
+            safeXMLParseFromString,
+            O.chain(getSpidLevelFromSAMLResponse),
+            E.fromOption(() => new Error("Spid level retrieval failed"))
+          )
+        ),
+        E.getOrElse(() => SpidLevelEnum["https://www.spid.gov.it/SpidL2"]),
+        E.of
+      )
+    ),
+    E.chain(spidUser => {
       logger.info("ACS | Trying to map user to Common User");
       return pipe(
         spidUser,
         toCommonTokenUser,
-        TE.fromEither,
-        TE.mapLeft(toResponseErrorInternal)
+        E.mapLeft(toResponseErrorInternal)
       );
     }),
+    TE.fromEither,
     TE.chain(commonUser => {
       logger.info(
         "ACS | Trying to retreive UserCompanies or map over a default user"

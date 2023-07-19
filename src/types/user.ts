@@ -6,6 +6,7 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 import * as t from "io-ts";
+import { SpidLevel } from "../utils/spid";
 
 export const FISCAL_NUMBER_INTERNATIONAL_PREFIX = "TINIT-";
 
@@ -13,7 +14,6 @@ export const SpidUser = t.intersection([
   t.interface({
     // the following values may be set
     // by the calling application:
-    // authnContextClassRef -> SpidLevel,
     // issuer -> Issuer
     fiscalNumber: NonEmptyString,
     getAssertionXml: t.Function
@@ -31,6 +31,15 @@ export const SpidUser = t.intersection([
 
 export type SpidUser = t.TypeOf<typeof SpidUser>;
 
+export const SpidUserWithLevel = t.intersection([
+  SpidUser,
+  t.type({
+    authnContextClassRef: SpidLevel
+  })
+]);
+
+export type SpidUserWithLevel = t.TypeOf<typeof SpidUserWithLevel>;
+
 export const UserCompany = t.interface({
   email: EmailString,
   organization_fiscal_code: WithinRangeString(8, 16),
@@ -43,7 +52,8 @@ export type UserCompanies = t.TypeOf<typeof UserCompanies>;
 
 export const CommonTokenUser = t.intersection([
   t.interface({
-    fiscal_number: FiscalCode
+    fiscal_number: FiscalCode,
+    spidLevel: SpidLevel
   }),
   t.partial({
     email: EmailString,

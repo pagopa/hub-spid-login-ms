@@ -8,6 +8,14 @@ import { isNone } from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import { Task } from "fp-ts/lib/Task";
 import { DOMParser } from "xmldom";
+import { IConfig } from "src/utils/config";
+import * as t from "io-ts";
+import * as O from "fp-ts/lib/Option";
+import { safeXMLParseFromString } from "@pagopa/io-spid-commons/dist/utils/samlUtils";
+import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
+import { ValidUrl } from "@pagopa/ts-commons/lib/url";
+import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
+import { AssertionConsumerServiceT } from "@pagopa/io-spid-commons";
 import { SpidLogMsg } from "../types/access_log";
 import {
   AccessLogWriter,
@@ -17,6 +25,22 @@ import {
   MakeSpidLogBlobName
 } from "../utils/access_log";
 import { logger } from "../utils/logger";
+import { getSpidLevelFromSAMLResponse, SpidLevelEnum } from "../utils/spid";
+import { blurUser } from "../utils/user_registry";
+import { PersonalDatavaultAPIClient } from "../clients/pdv_client";
+import {
+  errorsToError,
+  toCommonTokenUser,
+  toRequestId,
+  toResponseErrorInternal,
+  toTokenUserL2
+} from "../utils/conversions";
+import { AdeAPIClient } from "../clients/ade";
+import { SpidUser, TokenUser, TokenUserL2 } from "../types/user";
+import { getUserCompanies } from "../utils/attribute_authority";
+import { CertificationEnum } from "../../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
+import { generateToken } from "./token";
+
 export const successHandler = (
   req: express.Request,
   res: express.Response
@@ -117,3 +141,159 @@ export const accessLogHandler = (
     }
   );
 };
+
+export const acs: (
+  config: IConfig
+) => // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+AssertionConsumerServiceT = config => async user =>
+  pipe(
+    user,
+    SpidUser.decode,
+    E.mapLeft(errs => toResponseErrorInternal(errorsToError(errs))),
+    // binds the Spid level to the SpidUser
+    E.bindW("authnContextClassRef", spidUser =>
+      pipe(
+        spidUser.getAssertionXml(),
+        t.string.decode,
+        E.chainW(assertion =>
+          pipe(
+            assertion,
+            safeXMLParseFromString,
+            O.chain(getSpidLevelFromSAMLResponse),
+            E.fromOption(() => new Error("Spid level retrieval failed"))
+          )
+        ),
+        E.getOrElse(() => SpidLevelEnum["https://www.spid.gov.it/SpidL2"]),
+        E.of
+      )
+    ),
+    E.chain(spidUser => {
+      logger.info("ACS | Trying to map user to Common User");
+      return pipe(
+        spidUser,
+        toCommonTokenUser,
+        E.mapLeft(toResponseErrorInternal)
+      );
+    }),
+    TE.fromEither,
+    TE.chain(commonUser => {
+      logger.info(
+        "ACS | Trying to retreive UserCompanies or map over a default user"
+      );
+      return config.ENABLE_ADE_AA
+        ? pipe(
+            getUserCompanies(
+              AdeAPIClient(config.ADE_AA_API_ENDPOINT),
+              commonUser.fiscal_number
+            ),
+            TE.map(companies => ({
+              ...commonUser,
+              companies,
+              from_aa: config.ENABLE_ADE_AA as boolean
+            }))
+          )
+        : TE.of({
+            ...commonUser,
+            from_aa: config.ENABLE_ADE_AA as boolean
+          });
+    }),
+    TE.chainW(commonUser => {
+      logger.info(
+        `ACS | Personal Data Vault - Check for User: ${config.ENABLE_USER_REGISTRY}`
+      );
+      return config.ENABLE_USER_REGISTRY
+        ? pipe(
+            blurUser(
+              PersonalDatavaultAPIClient(config.USER_REGISTRY_URL),
+              withoutUndefinedValues({
+                fiscalCode: commonUser.fiscal_number,
+                ...(commonUser.email && {
+                  email: {
+                    certification: CertificationEnum.SPID,
+                    value: commonUser.email
+                  }
+                }),
+                ...(commonUser.family_name && {
+                  familyName: {
+                    certification: CertificationEnum.SPID,
+                    value: commonUser.family_name
+                  }
+                }),
+                ...(commonUser.name && {
+                  name: {
+                    certification: CertificationEnum.SPID,
+                    value: commonUser.name
+                  }
+                })
+              }),
+              config.USER_REGISTRY_API_KEY
+            ),
+            TE.map(uuid => ({
+              ...commonUser,
+              uid: uuid.id
+            }))
+          )
+        : TE.of({ ...commonUser });
+    }),
+    TE.chainW(commonUser => {
+      logger.info("ACS | Trying to decode TokenUser");
+      return pipe(
+        commonUser,
+        TokenUser.decode,
+        TE.fromEither,
+        TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
+      );
+    }),
+    // If User is related to one company we can directly release an L2 token
+    TE.chainW(tokenUser => {
+      logger.info("ACS | Companies length decision making");
+      return tokenUser.from_aa
+        ? tokenUser.companies.length === 1
+          ? pipe(
+              toTokenUserL2(tokenUser, tokenUser.companies[0]),
+              TE.fromEither,
+              TE.mapLeft(toResponseErrorInternal)
+            )
+          : TE.of(tokenUser as TokenUser | TokenUserL2)
+        : pipe(
+            TokenUserL2.decode({ ...tokenUser, level: "L2" }),
+            TE.fromEither,
+            TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
+          );
+    }),
+    TE.chainW(tokenUser => {
+      logger.info("ACS | Generating token");
+      const requestId =
+        config.ENABLE_JWT && config.JWT_TOKEN_JTI_SPID
+          ? toRequestId(user as Record<string, unknown>)
+          : undefined;
+      return pipe(
+        generateToken(config)(tokenUser, requestId),
+        TE.mapLeft(toResponseErrorInternal)
+      );
+    }),
+    TE.mapLeft(error => {
+      logger.info(
+        `ACS | Assertion Consumer Service ERROR|${error.kind} ${JSON.stringify(
+          error.detail
+        )}`
+      );
+      logger.error(
+        `Assertion Consumer Service ERROR|${error.kind} ${JSON.stringify(
+          error.detail
+        )}`
+      );
+      return error;
+    }),
+    TE.map(({ tokenStr, tokenUser }) => {
+      logger.info("ACS | Redirect to success endpoint");
+      return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
+        ? ResponsePermanentRedirect(({
+            href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
+          } as unknown) as ValidUrl)
+        : ResponsePermanentRedirect(({
+            href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
+          } as unknown) as ValidUrl);
+    }),
+    TE.toUnion
+  )();

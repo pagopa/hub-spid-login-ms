@@ -340,21 +340,34 @@ export const CIEParams = t.interface({
 
 export type CIEParams = t.TypeOf<typeof CIEParams>;
 
-const AttributeAuthorityParams = t.union([
-  t.interface({
-    ADE_AA_API_ENDPOINT: NonEmptyString,
-    ENABLE_ADE_AA: t.literal(true),
-    ENDPOINT_L1_SUCCESS: NonEmptyString,
-    L1_TOKEN_EXPIRATION: NonNegativeInteger,
-    L1_TOKEN_HEADER_NAME: NonEmptyString,
-    L2_TOKEN_EXPIRATION: NonNegativeInteger
-  }),
-  t.interface({
-    ENABLE_ADE_AA: t.literal(false),
-    TOKEN_EXPIRATION: NonNegativeInteger
-  })
+export const EnabledAttributeAuthorityParams = t.interface({
+  ADE_AA_API_ENDPOINT: NonEmptyString,
+  ENABLE_ADE_AA: t.literal(true),
+  ENDPOINT_L1_SUCCESS: NonEmptyString,
+  L1_TOKEN_EXPIRATION: NonNegativeInteger,
+  L1_TOKEN_HEADER_NAME: NonEmptyString,
+  L2_TOKEN_EXPIRATION: NonNegativeInteger
+});
+export type EnabledAttributeAuthorityParams = t.TypeOf<
+  typeof EnabledAttributeAuthorityParams
+>;
+
+export const DisabledAttributeAuthorityParams = t.interface({
+  ENABLE_ADE_AA: t.literal(false),
+  TOKEN_EXPIRATION: NonNegativeInteger
+});
+
+export type DisabledAttributeAuthorityParams = t.TypeOf<
+  typeof DisabledAttributeAuthorityParams
+>;
+
+export const AttributeAuthorityParams = t.union([
+  EnabledAttributeAuthorityParams,
+  DisabledAttributeAuthorityParams
 ]);
-type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
+export type AttributeAuthorityParams = t.TypeOf<
+  typeof AttributeAuthorityParams
+>;
 
 // Authentication app configuration
 export type IConfigAuth = t.TypeOf<typeof IConfigAuth>;

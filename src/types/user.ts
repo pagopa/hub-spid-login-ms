@@ -53,7 +53,7 @@ export type UserCompanies = t.TypeOf<typeof UserCompanies>;
 export const CommonTokenUser = t.intersection([
   t.interface({
     fiscal_number: FiscalCode,
-    spidLevel: SpidLevel
+    spid_level: SpidLevel
   }),
   t.partial({
     email: EmailString,

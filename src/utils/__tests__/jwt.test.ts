@@ -32,14 +32,14 @@ const tokenUser: TokenUser | TokenUserL2 = {
   from_aa: true,
   companies,
   level: "L1",
-  spidLevel: SpidLevelEnum["https://www.spid.gov.it/SpidL2"]
+  spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"]
 };
 const tokenTtlSeconds = 3600 as NonNegativeInteger;
 const aTokenAudience = "AUDIENCE" as NonEmptyString;
 const aTokenIssuer = "ISSUER" as NonEmptyString;
 const aKeyid = "AKEYID" as NonEmptyString;
-const aTokenLengthBytesWithKeyId = 556;
-const aTokenLengthBytesWithoutKeyId = 536;
+const aTokenLengthBytesWithKeyId = 558;
+const aTokenLengthBytesWithoutKeyId = 538;
 
 describe("Generate a valid JWT Header", () => {
   it("should generate it with keyid as parameter", async () => {
@@ -62,7 +62,7 @@ describe("Generate a valid JWT Header", () => {
         fail();
       }
       expect(decodedToken["header"].kid).toEqual(aKeyid);
-      expect(decodedToken.payload.spidLevel).toEqual(
+      expect(decodedToken.payload.spid_level).toEqual(
         SpidLevelEnum["https://www.spid.gov.it/SpidL2"]
       );
     }

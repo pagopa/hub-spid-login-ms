@@ -39,7 +39,7 @@ export const toCommonTokenUser = (
       fiscal_number: normalizedUser.fiscalNumber,
       mobile_phone: normalizedUser.mobilePhone,
       name: normalizedUser.name,
-      spidLevel: normalizedUser.authnContextClassRef
+      spid_level: normalizedUser.authnContextClassRef
     },
     CommonTokenUser.decode,
     E.mapLeft(errorsToError)

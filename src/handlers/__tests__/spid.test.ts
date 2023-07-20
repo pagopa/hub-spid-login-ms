@@ -12,6 +12,7 @@ import {
   aSAMLResponse,
   aSAMLResponseWithoutRequestId,
   aSAMLResponseWithoutFiscalCode,
+  anInternationalFiscalCode,
   aFiscalCode
 } from "../../__mocks__/spid";
 import * as T from "fp-ts/lib/Task";
@@ -27,6 +28,7 @@ import { SpidBlobItem } from "../../types/access_log";
 import { pipe } from "fp-ts/lib/function";
 import { IConfig } from "../../utils/config";
 import mockRes from "../../__mocks__/response";
+import { SpidLevelEnum } from "../../utils/spid";
 
 // Mock logger to spy error
 const spiedLoggerError = jest.spyOn(logger, "error");
@@ -52,7 +54,7 @@ const mockMakeSpidLogBlobName = jest.fn<
 const mockGetAssertion = jest.fn().mockReturnValue(aSAMLResponse);
 
 const aValidAcsPayload = {
-  fiscalNumber: aFiscalCode,
+  fiscalNumber: anInternationalFiscalCode,
   getAssertionXml: mockGetAssertion
 };
 
@@ -205,6 +207,9 @@ describe("acs", () => {
         format: "pem"
       }
     });
+    const aJwtAudience = "https://localhost";
+    const aJwtIssuer = "SPID";
+    const aJwtKeyId = "key-id-for-your-jwt-key";
     const config = pipe(({
       ...process.env,
       ENABLE_JWT: true,
@@ -212,18 +217,35 @@ describe("acs", () => {
       ENABLE_SPID_ACCESS_LOGS: false,
       ENABLE_ADE_AA: false,
       REDIS_TLS_ENABLED: false,
-      JWT_TOKEN_ISSUER: "SPID",
-      JWT_TOKEN_AUDIENCE: "https://localhost",
+      JWT_TOKEN_ISSUER: aJwtIssuer,
+      JWT_TOKEN_AUDIENCE: aJwtAudience,
       JWT_TOKEN_PRIVATE_KEY: privateKey,
-      JWT_TOKEN_KID: "key-id-for-your-jwt-key"
+      JWT_TOKEN_KID: aJwtKeyId
     } as unknown) as IConfig);
     const response = await acs(config)(aValidAcsPayload);
     response.apply(aMockedResponse);
 
+    const jwt = aMockedResponse.redirect.mock.calls[0][1]
+      .replace(/^.*\#token\=/, "")
+      .split(".");
+
+    const jwtPayload = jwt[1];
+
+    const decodedPayload = JSON.parse(
+      Buffer.from(jwtPayload, "base64").toString()
+    );
     expect(response.kind).toEqual("IResponsePermanentRedirect");
     expect(aMockedResponse.redirect).toHaveBeenCalledWith(
       301,
-      expect.stringContaining("/success#token=")
+      `/success#token=${jwt.join(".")}`
+    );
+    expect(decodedPayload).toMatchObject(
+      expect.objectContaining({
+        spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
+        fiscal_number: aFiscalCode,
+        iss: aJwtIssuer,
+        aud: aJwtAudience
+      })
     );
   });
 });

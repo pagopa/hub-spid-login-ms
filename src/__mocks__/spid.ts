@@ -1,4 +1,5 @@
-export const aFiscalCode="TINIT-GDASDV00A01H501J";
+export const anInternationalFiscalCode = "TINIT-GDASDV00A01H501J";
+export const aFiscalCode = anInternationalFiscalCode.replace("TINIT-", "");
 
 export const aSAMLRequest = `<?xml version="1.0"?>
 <samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="A-REQUEST-ID"
@@ -131,7 +132,7 @@ export const aSAMLResponse = `
         NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">
-          ${aFiscalCode}
+          ${anInternationalFiscalCode}
         </saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="mobilePhone"

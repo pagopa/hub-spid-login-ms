@@ -29,6 +29,7 @@ import { pipe } from "fp-ts/lib/function";
 import { IConfig } from "../../utils/config";
 import mockRes from "../../__mocks__/response";
 import { SpidLevelEnum } from "../../utils/spid";
+import * as jwt from "jsonwebtoken";
 
 // Mock logger to spy error
 const spiedLoggerError = jest.spyOn(logger, "error");
@@ -225,21 +226,21 @@ describe("acs", () => {
     const response = await acs(config)(aValidAcsPayload);
     response.apply(aMockedResponse);
 
-    const jwt = aMockedResponse.redirect.mock.calls[0][1]
-      .replace(/^.*\#token\=/, "")
-      .split(".");
-
-    const jwtPayload = jwt[1];
-
-    const decodedPayload = JSON.parse(
-      Buffer.from(jwtPayload, "base64").toString()
+    const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
+      /^.*\#token\=/,
+      ""
     );
+
+    const decodedJwt = jwt.decode(rawJwt, {
+      complete: true
+    });
+
     expect(response.kind).toEqual("IResponsePermanentRedirect");
     expect(aMockedResponse.redirect).toHaveBeenCalledWith(
       301,
-      `/success#token=${jwt.join(".")}`
+      `/success#token=${rawJwt}`
     );
-    expect(decodedPayload).toMatchObject(
+    expect(decodedJwt?.payload).toMatchObject(
       expect.objectContaining({
         spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
         fiscal_number: aFiscalCode,

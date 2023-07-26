@@ -4,11 +4,12 @@ import {
   EmailString,
   FiscalCode,
   NonEmptyString,
-  OrganizationFiscalCode,
+  OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
 import { TokenUser, TokenUserL2, UserCompanies } from "../../types/user";
 import { getUserJwt } from "../jwt";
 import * as jwt from "jsonwebtoken";
+import { SpidLevelEnum } from "../spid";
 
 const aPrivateRsaKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIBOgIBAAJBAPX91rBDbLk5Pr0/lf4y1a8oz75sYa+slTqpfVHUrYb22qy4rY6Z
@@ -23,24 +24,25 @@ const companies: UserCompanies = [
   {
     email: "test@test.com" as EmailString,
     organization_fiscal_code: "01234567891" as OrganizationFiscalCode,
-    organization_name: "Test Company" as NonEmptyString,
-  },
+    organization_name: "Test Company" as NonEmptyString
+  }
 ];
 const tokenUser: TokenUser | TokenUserL2 = {
   fiscal_number: "AAAAAA00A00A000A" as FiscalCode,
   from_aa: true,
   companies,
   level: "L1",
+  spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"]
 };
 const tokenTtlSeconds = 3600 as NonNegativeInteger;
 const aTokenAudience = "AUDIENCE" as NonEmptyString;
 const aTokenIssuer = "ISSUER" as NonEmptyString;
 const aKeyid = "AKEYID" as NonEmptyString;
-const aTokenLengthBytesWithKeyId = 496;
-const aTokenLengthBytesWithoutKeyId = 476;
+const aTokenLengthBytesWithKeyId = 558;
+const aTokenLengthBytesWithoutKeyId = 538;
 
 describe("Generate a valid JWT Header", () => {
-  it("should generate it with keyd as parameter", async () => {
+  it("should generate it with keyid as parameter", async () => {
     const errorOrNewJwtToken = await getUserJwt(
       aPrivateRsaKey,
       tokenUser,
@@ -53,16 +55,19 @@ describe("Generate a valid JWT Header", () => {
     if (E.isRight(errorOrNewJwtToken)) {
       expect(errorOrNewJwtToken.right).toHaveLength(aTokenLengthBytesWithKeyId);
       const decodedToken = jwt.decode(errorOrNewJwtToken.right, {
-        complete: true,
+        complete: true
       });
 
       if (!decodedToken) {
         fail();
       }
       expect(decodedToken["header"].kid).toEqual(aKeyid);
+      expect(decodedToken.payload.spid_level).toEqual(
+        SpidLevelEnum["https://www.spid.gov.it/SpidL2"]
+      );
     }
   });
-  it("should generate it without keyd as parameter", async () => {
+  it("should generate it without keyid as parameter", async () => {
     const errorOrNewJwtToken = await getUserJwt(
       aPrivateRsaKey,
       tokenUser,
@@ -77,7 +82,7 @@ describe("Generate a valid JWT Header", () => {
     }
   });
 
-  it("should generate it without keyd but with audience", async () => {
+  it("should generate it without keyid but with audience", async () => {
     const errorOrNewJwtToken = await getUserJwt(
       aPrivateRsaKey,
       tokenUser,
@@ -90,7 +95,7 @@ describe("Generate a valid JWT Header", () => {
 
     if (E.isRight(errorOrNewJwtToken)) {
       const decodedToken = jwt.decode(errorOrNewJwtToken.right, {
-        complete: true,
+        complete: true
       });
 
       if (!decodedToken) {

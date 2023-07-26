@@ -1,6 +1,5 @@
 import { debug } from "console";
 import {
-  AssertionConsumerServiceT,
   IApplicationConfig,
   IServiceProviderConfig,
   LogoutT,
@@ -17,42 +16,26 @@ import {
   ContactType,
   EntityType
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
-import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 import * as cors from "cors";
 import { pipe } from "fp-ts/lib/function";
 import * as T from "fp-ts/lib/Task";
-import * as TE from "fp-ts/lib/TaskEither";
 import { ValidUrl } from "@pagopa/ts-commons/lib/url";
-import { CertificationEnum } from "../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
-import { generateToken } from "./handlers/token";
-
 import {
   accessLogHandler,
+  getAcs,
   errorHandler,
   metadataRefreshHandler,
   successHandler
 } from "./handlers/spid";
 import {
-  introspectHandler,
-  invalidateHandler,
+  getIntrospectHandler,
+  getInvalidateHandler,
   upgradeTokenHandler
 } from "./handlers/token";
-import { SpidUser, TokenUser, TokenUserL2 } from "./types/user";
-import { getUserCompanies } from "./utils/attribute_authority";
 import { getConfigOrThrow } from "./utils/config";
-import {
-  errorsToError,
-  toCommonTokenUser,
-  toRequestId,
-  toResponseErrorInternal,
-  toTokenUserL2
-} from "./utils/conversions";
-import { AdeAPIClient } from "./clients/ade";
-import { healthcheckHandler } from "./handlers/general";
+import { getHealthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
-import { blurUser } from "./utils/user_registry";
-import { PersonalDatavaultAPIClient } from "./clients/pdv_client";
 import {
   createAccessLogEncrypter,
   createAccessLogWriter,
@@ -60,9 +43,6 @@ import {
 } from "./utils/access_log";
 
 const config = getConfigOrThrow();
-
-export const SESSION_TOKEN_PREFIX = "session-token:";
-export const SESSION_INVALIDATE_TOKEN_PREFIX = "session-token-invalidate:";
 
 export const appConfig: IApplicationConfig = {
   assertionConsumerServicePath: config.ENDPOINT_ACS,
@@ -145,143 +125,6 @@ const samlConfig: SamlConfig = {
   validateInResponseTo: true
 };
 
-const acs: AssertionConsumerServiceT = async user =>
-  pipe(
-    user,
-    SpidUser.decode,
-    TE.fromEither,
-    TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs))),
-    TE.chain(_ => {
-      logger.info("ACS | Trying to map user to Common User");
-      return pipe(
-        _,
-        toCommonTokenUser,
-        TE.fromEither,
-        TE.mapLeft(toResponseErrorInternal)
-      );
-    }),
-    a => a,
-    TE.chain(_ => {
-      logger.info(
-        "ACS | Trying to retreive UserCompanies or map over a default user"
-      );
-      return config.ENABLE_ADE_AA
-        ? pipe(
-            getUserCompanies(
-              AdeAPIClient(config.ADE_AA_API_ENDPOINT),
-              _.fiscal_number
-            ),
-            TE.map(companies => ({
-              ..._,
-              companies,
-              from_aa: config.ENABLE_ADE_AA as boolean
-            }))
-          )
-        : TE.of({
-            ..._,
-            from_aa: config.ENABLE_ADE_AA as boolean
-          });
-    }),
-    b => b,
-    TE.chainW(_ => {
-      logger.info(
-        `ACS | Personal Data Vault - Check for User: ${config.ENABLE_USER_REGISTRY}`
-      );
-      return config.ENABLE_USER_REGISTRY
-        ? pipe(
-            blurUser(
-              PersonalDatavaultAPIClient(config.USER_REGISTRY_URL),
-              withoutUndefinedValues({
-                fiscalCode: _.fiscal_number,
-                ...(_.email && {
-                  email: {
-                    certification: CertificationEnum.SPID,
-                    value: _.email
-                  }
-                }),
-                ...(_.family_name && {
-                  familyName: {
-                    certification: CertificationEnum.SPID,
-                    value: _.family_name
-                  }
-                }),
-                ...(_.name && {
-                  name: {
-                    certification: CertificationEnum.SPID,
-                    value: _.name
-                  }
-                })
-              }),
-              config.USER_REGISTRY_API_KEY
-            ),
-            TE.map(uuid => ({
-              ..._,
-              uid: uuid.id
-            }))
-          )
-        : TE.of({ ..._ });
-    }),
-    TE.chainW(_ => {
-      logger.info("ACS | Trying to decode TokenUser");
-      return pipe(
-        _,
-        TokenUser.decode,
-        TE.fromEither,
-        TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
-      );
-    }),
-    // If User is related to one company we can directly release an L2 token
-    TE.chainW(a => {
-      logger.info("ACS | Companies length decision making");
-      return a.from_aa
-        ? a.companies.length === 1
-          ? pipe(
-              toTokenUserL2(a, a.companies[0]),
-              TE.fromEither,
-              TE.mapLeft(toResponseErrorInternal)
-            )
-          : TE.of(a as TokenUser | TokenUserL2)
-        : pipe(
-            TokenUserL2.decode({ ...a, level: "L2" }),
-            TE.fromEither,
-            TE.mapLeft(errs => toResponseErrorInternal(errorsToError(errs)))
-          );
-    }),
-    TE.chainW(tokenUser => {
-      logger.info("ACS | Generating token");
-      const requestId =
-        config.ENABLE_JWT && config.JWT_TOKEN_JTI_SPID
-          ? toRequestId(user as Record<string, unknown>)
-          : undefined;
-      return pipe(
-        generateToken(tokenUser, requestId),
-        TE.mapLeft(toResponseErrorInternal)
-      );
-    }),
-    TE.mapLeft(_ => {
-      logger.info(
-        `ACS | Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(
-          _.detail
-        )}`
-      );
-      logger.error(
-        `Assertion Consumer Service ERROR|${_.kind} ${JSON.stringify(_.detail)}`
-      );
-      return _;
-    }),
-    TE.map(({ tokenStr, tokenUser }) => {
-      logger.info("ACS | Redirect to success endpoint");
-      return config.ENABLE_ADE_AA && !TokenUserL2.is(tokenUser)
-        ? ResponsePermanentRedirect(({
-            href: `${config.ENDPOINT_L1_SUCCESS}#token=${tokenStr}`
-          } as unknown) as ValidUrl)
-        : ResponsePermanentRedirect(({
-            href: `${config.ENDPOINT_SUCCESS}#token=${tokenStr}`
-          } as unknown) as ValidUrl);
-    }),
-    TE.toUnion
-  )();
-
 const logout: LogoutT = async () =>
   ResponsePermanentRedirect(({
     href: `${process.env.ENDPOINT_SUCCESS}?logout`
@@ -320,7 +163,7 @@ const doneCb = config.ENABLE_SPID_ACCESS_LOGS
  */
 export const createAppTask = pipe(
   withSpid({
-    acs,
+    acs: getAcs(config),
     app,
     appConfig,
     doneCb,
@@ -334,10 +177,7 @@ export const createAppTask = pipe(
 
     if (config.ENABLE_ADE_AA) {
       withSpidApp.get(config.ENDPOINT_L1_SUCCESS, successHandler);
-      withSpidApp.post(
-        "/upgradeToken",
-        upgradeTokenHandler(config.L1_TOKEN_HEADER_NAME)
-      );
+      withSpidApp.post("/upgradeToken", upgradeTokenHandler(config));
     }
     withSpidApp.get("/error", errorHandler);
     withSpidApp.get("/refresh", metadataRefreshHandler(idpMetadataRefresher));
@@ -348,11 +188,11 @@ export const createAppTask = pipe(
       });
     });
 
-    withSpidApp.get("/healthcheck", healthcheckHandler(redisClient));
+    withSpidApp.get("/healthcheck", getHealthcheckHandler(redisClient));
 
-    withSpidApp.post("/introspect", introspectHandler);
+    withSpidApp.post("/introspect", getIntrospectHandler(config));
 
-    withSpidApp.post("/invalidate", invalidateHandler);
+    withSpidApp.post("/invalidate", getInvalidateHandler(config));
 
     withSpidApp.use(
       (

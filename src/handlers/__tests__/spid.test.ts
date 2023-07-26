@@ -1,34 +1,41 @@
+import * as crypto from "crypto";
 import {
   successHandler,
   errorHandler,
   metadataRefreshHandler,
   accessLogHandler,
+  getAcs
 } from "../spid";
 import mockReq from "../../__mocks__/request";
-import mockRes from "../../__mocks__/response";
-import { BlobService } from "azure-storage";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   aSAMLRequest,
   aSAMLResponse,
   aSAMLResponseWithoutRequestId,
   aSAMLResponseWithoutFiscalCode,
+  anInternationalFiscalCode,
+  aFiscalCode
 } from "../../__mocks__/spid";
 import * as T from "fp-ts/lib/Task";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as O from "fp-ts/lib/Option";
+import {
+  AccessLogEncrypter,
+  AccessLogWriter,
+  MakeSpidLogBlobName
+} from "../../utils/access_log";
+import { logger } from "../../utils/logger";
+import { SpidBlobItem } from "../../types/access_log";
+import { pipe } from "fp-ts/lib/function";
+import { IConfig } from "../../utils/config";
+import mockRes from "../../__mocks__/response";
+import { SpidLevelEnum } from "../../utils/spid";
+import * as jwt from "jsonwebtoken";
 
+// Mock logger to spy error
+const spiedLoggerError = jest.spyOn(logger, "error");
 // Mock an express request and response
 const aMockedRequest = mockReq();
 const aMockedResponse = mockRes();
-
-import {AccessLogEncrypter, AccessLogWriter, MakeSpidLogBlobName} from "../../utils/access_log";
-
-// Mock logger to spy error
-import { logger } from "../../utils/logger";
-import { SpidBlobItem } from "../../types/access_log";
-const spiedLoggerError = jest.spyOn(logger, "error");
 
 const mockAccessLogWriter = jest.fn<
   ReturnType<AccessLogWriter>,
@@ -43,7 +50,14 @@ const mockAccessLogEncrypter = jest.fn<
 const mockMakeSpidLogBlobName = jest.fn<
   ReturnType<MakeSpidLogBlobName>,
   Parameters<MakeSpidLogBlobName>
-  >(() => 'blobname.json');
+>(() => "blobname.json");
+
+const mockGetAssertion = jest.fn().mockReturnValue(aSAMLResponse);
+
+const aValidAcsPayload = {
+  fiscalNumber: anInternationalFiscalCode,
+  getAssertionXml: mockGetAssertion
+};
 
 // Utility functions that allows us to wait for fire&forget task to be awaited
 const flushPromises = () => new Promise(setImmediate);
@@ -62,7 +76,7 @@ describe("successHandler", () => {
     expect(aMockedResponse.json).toHaveBeenCalledTimes(1);
     expect(aMockedResponse.json).toHaveBeenCalledWith({
       success: "success",
-      token: aSpidToken,
+      token: aSpidToken
     });
   });
 });
@@ -73,7 +87,7 @@ describe("errorHandler", () => {
 
     expect(aMockedResponse.json).toHaveBeenCalledTimes(1);
     expect(aMockedResponse.json).toHaveBeenCalledWith({
-      error: "error",
+      error: "error"
     });
   });
 });
@@ -90,18 +104,18 @@ describe("metadataRefreshHandler", () => {
 
     expect(aMockedResponse.json).toHaveBeenCalledTimes(1);
     expect(aMockedResponse.json).toHaveBeenCalledWith({
-      metadataUpdate: "completed",
+      metadataUpdate: "completed"
     });
   });
 });
 
 describe("accessLogHandler", () => {
   it("should succeed calling storeSpidLogs function if it returns right", async () => {
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
-      "0.0.0.0",
-      aSAMLRequest,
-      aSAMLResponse
-    );
+    accessLogHandler(
+      mockAccessLogWriter,
+      mockAccessLogEncrypter,
+      mockMakeSpidLogBlobName
+    )("0.0.0.0", aSAMLRequest, aSAMLResponse);
 
     // await fire&forget storeSpidLogs
     await flushPromises();
@@ -135,11 +149,11 @@ describe("accessLogHandler", () => {
     // we have to cast to avoid type check at compile time
     const anEmptyResponsePayload = (undefined as unknown) as string;
 
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
-      "0.0.0.0",
-      aSAMLRequest,
-      anEmptyResponsePayload
-    );
+    accessLogHandler(
+      mockAccessLogWriter,
+      mockAccessLogEncrypter,
+      mockMakeSpidLogBlobName
+    )("0.0.0.0", aSAMLRequest, anEmptyResponsePayload);
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(
@@ -149,11 +163,11 @@ describe("accessLogHandler", () => {
   });
 
   it("should fail if not able to get original request id from response", async () => {
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
-      "0.0.0.0",
-      aSAMLRequest,
-      aSAMLResponseWithoutRequestId
-    );
+    accessLogHandler(
+      mockAccessLogWriter,
+      mockAccessLogEncrypter,
+      mockMakeSpidLogBlobName
+    )("0.0.0.0", aSAMLRequest, aSAMLResponseWithoutRequestId);
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(
@@ -163,16 +177,76 @@ describe("accessLogHandler", () => {
   });
 
   it("should fail if not able to get user fiscal code from response", async () => {
-    accessLogHandler(mockAccessLogWriter, mockAccessLogEncrypter, mockMakeSpidLogBlobName)(
-      "0.0.0.0",
-      aSAMLRequest,
-      aSAMLResponseWithoutFiscalCode
-    );
+    accessLogHandler(
+      mockAccessLogWriter,
+      mockAccessLogEncrypter,
+      mockMakeSpidLogBlobName
+    )("0.0.0.0", aSAMLRequest, aSAMLResponseWithoutFiscalCode);
 
     expect(spiedLoggerError).toHaveBeenCalledTimes(1);
     expect(spiedLoggerError).toHaveBeenCalledWith(
       "SpidLogCallback|ERROR=Cannot get user's fiscal Code from SPID XML"
     );
     expect(mockAccessLogWriter).not.toHaveBeenCalled();
+  });
+});
+
+describe("acs", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should redirect correctly with a valid payload", async () => {
+    const { privateKey } = crypto.generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: {
+        type: "spki",
+        format: "pem"
+      },
+      privateKeyEncoding: {
+        type: "pkcs8",
+        format: "pem"
+      }
+    });
+    const aJwtAudience = "https://localhost";
+    const aJwtIssuer = "SPID";
+    const aJwtKeyId = "key-id-for-your-jwt-key";
+    const config = pipe(({
+      ...process.env,
+      ENABLE_JWT: true,
+      ENABLE_USER_REGISTRY: false,
+      ENABLE_SPID_ACCESS_LOGS: false,
+      ENABLE_ADE_AA: false,
+      REDIS_TLS_ENABLED: false,
+      JWT_TOKEN_ISSUER: aJwtIssuer,
+      JWT_TOKEN_AUDIENCE: aJwtAudience,
+      JWT_TOKEN_PRIVATE_KEY: privateKey,
+      JWT_TOKEN_KID: aJwtKeyId
+    } as unknown) as IConfig);
+    const response = await getAcs(config)(aValidAcsPayload);
+    response.apply(aMockedResponse);
+
+    const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
+      /^.*\#token\=/,
+      ""
+    );
+
+    const decodedJwt = jwt.decode(rawJwt, {
+      complete: true
+    });
+
+    expect(response.kind).toEqual("IResponsePermanentRedirect");
+    expect(aMockedResponse.redirect).toHaveBeenCalledWith(
+      301,
+      `/success#token=${rawJwt}`
+    );
+    expect(decodedJwt?.payload).toMatchObject(
+      expect.objectContaining({
+        spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
+        fiscal_number: aFiscalCode,
+        iss: aJwtIssuer,
+        aud: aJwtAudience
+      })
+    );
   });
 });

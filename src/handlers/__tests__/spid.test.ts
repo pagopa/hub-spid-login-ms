@@ -4,7 +4,7 @@ import {
   errorHandler,
   metadataRefreshHandler,
   accessLogHandler,
-  acs
+  getAcs
 } from "../spid";
 import mockReq from "../../__mocks__/request";
 import {
@@ -223,7 +223,7 @@ describe("acs", () => {
       JWT_TOKEN_PRIVATE_KEY: privateKey,
       JWT_TOKEN_KID: aJwtKeyId
     } as unknown) as IConfig);
-    const response = await acs(config)(aValidAcsPayload);
+    const response = await getAcs(config)(aValidAcsPayload);
     response.apply(aMockedResponse);
 
     const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(

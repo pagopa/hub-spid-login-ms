@@ -74,7 +74,7 @@ export const getTokenExpiration = (config: IConfig) => (
       : config.L2_TOKEN_EXPIRATION
     : config.TOKEN_EXPIRATION;
 
-export const generateToken = (config: IConfig) => (
+export const getGenerateToken = (config: IConfig) => (
   tokenUser: TokenUser | TokenUserL2,
   requestId?: NonEmptyString
 ): TE.TaskEither<
@@ -121,7 +121,7 @@ export const generateToken = (config: IConfig) => (
     )
   );
 
-export const introspectHandler = (config: IConfig) => async (
+export const getIntrospectHandler = (config: IConfig) => async (
   req: express.Request,
   res: express.Response
 ): Promise<express.Response> =>
@@ -181,7 +181,7 @@ export const introspectHandler = (config: IConfig) => async (
     )
   )();
 
-export const invalidateHandler = (config: IConfig) => async (
+export const getInvalidateHandler = (config: IConfig) => async (
   req: express.Request,
   res: express.Response // first check if token is blacklisted
 ): Promise<E.Either<never, express.Response>> =>
@@ -305,7 +305,7 @@ export const upgradeTokenHandler = (
     ),
     TE.chain(tokenUserL2 =>
       pipe(
-        generateToken(config)(tokenUserL2),
+        getGenerateToken(config)(tokenUserL2),
         TE.mapLeft(err =>
           res
             .status(500)

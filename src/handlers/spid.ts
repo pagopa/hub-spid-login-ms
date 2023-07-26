@@ -39,7 +39,7 @@ import { AdeAPIClient } from "../clients/ade";
 import { SpidUser, TokenUser, TokenUserL2 } from "../types/user";
 import { getUserCompanies } from "../utils/attribute_authority";
 import { CertificationEnum } from "../../generated/pdv-userregistry-api/CertifiableFieldResourceOfLocalDate";
-import { generateToken } from "./token";
+import { getGenerateToken } from "./token";
 
 export const successHandler = (
   req: express.Request,
@@ -142,7 +142,7 @@ export const accessLogHandler = (
   );
 };
 
-export const acs: (
+export const getAcs: (
   config: IConfig
 ) => // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 AssertionConsumerServiceT = config => async user =>
@@ -163,7 +163,7 @@ AssertionConsumerServiceT = config => async user =>
             E.fromOption(() => new Error("Spid level retrieval failed"))
           )
         ),
-        E.getOrElse(() => SpidLevelEnum["https://www.spid.gov.it/SpidL2"]),
+        E.getOrElse(() => SpidLevelEnum["https://www.spid.gov.it/SpidL1"]),
         E.of
       )
     ),
@@ -268,7 +268,7 @@ AssertionConsumerServiceT = config => async user =>
           ? toRequestId(user as Record<string, unknown>)
           : undefined;
       return pipe(
-        generateToken(config)(tokenUser, requestId),
+        getGenerateToken(config)(tokenUser, requestId),
         TE.mapLeft(toResponseErrorInternal)
       );
     }),

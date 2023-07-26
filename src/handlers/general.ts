@@ -11,7 +11,7 @@ import { pingTask } from "../utils/redis_storage";
 
 const config = getConfigOrThrow();
 
-export const healthcheckHandler = (redisClient: RedisClient) => (
+export const getHealthcheckHandler = (redisClient: RedisClient) => (
   _: express.Request,
   res: express.Response
 ): Promise<express.Response> =>

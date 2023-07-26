@@ -22,18 +22,18 @@ import * as T from "fp-ts/lib/Task";
 import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 import {
   accessLogHandler,
-  acs,
+  getAcs,
   errorHandler,
   metadataRefreshHandler,
   successHandler
 } from "./handlers/spid";
 import {
-  introspectHandler,
-  invalidateHandler,
+  getIntrospectHandler,
+  getInvalidateHandler,
   upgradeTokenHandler
 } from "./handlers/token";
 import { getConfigOrThrow } from "./utils/config";
-import { healthcheckHandler } from "./handlers/general";
+import { getHealthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
 import { REDIS_CLIENT } from "./utils/redis";
 import {
@@ -163,7 +163,7 @@ const doneCb = config.ENABLE_SPID_ACCESS_LOGS
  */
 export const createAppTask = pipe(
   withSpid({
-    acs: acs(config),
+    acs: getAcs(config),
     app,
     appConfig,
     doneCb,
@@ -188,11 +188,11 @@ export const createAppTask = pipe(
       });
     });
 
-    withSpidApp.get("/healthcheck", healthcheckHandler(redisClient));
+    withSpidApp.get("/healthcheck", getHealthcheckHandler(redisClient));
 
-    withSpidApp.post("/introspect", introspectHandler(config));
+    withSpidApp.post("/introspect", getIntrospectHandler(config));
 
-    withSpidApp.post("/invalidate", invalidateHandler(config));
+    withSpidApp.post("/invalidate", getInvalidateHandler(config));
 
     withSpidApp.use(
       (

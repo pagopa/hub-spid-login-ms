@@ -126,7 +126,7 @@ stages:
             artifact: Bundle
 
   # Deploy 
-  - stage: 'Deploy_to_${{ parameters.environment }}'
+  - stage: 'Deploy_to_prod'
     dependsOn:
       - Prepare_artifact
     jobs:

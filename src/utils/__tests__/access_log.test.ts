@@ -22,7 +22,7 @@ import {
   IPString,
   NonEmptyString
 } from "@pagopa/ts-commons/lib/strings";
-import { SpidBlobItem, SpidLogMsg } from "../../types/access_log";
+import { SpidBlobItem } from "../../types/access_log";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
@@ -164,10 +164,11 @@ describe("toSpidBlobItem", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  it("should build encrypted Blob items from  valid messages", () => {
-    const blobItemOrError = createAccessLogEncrypter(aPublicKey)(
-      aValidSpidLogMessage
-    );
+  it("should build encrypted Blob items from valid messages, when encryption is required", () => {
+    const blobItemOrError = createAccessLogEncrypter({
+      SPID_LOGS_ENCRYPT_PAYLOAD: true as const,
+      SPID_LOGS_PUBLIC_KEY: aPublicKey
+    })(aValidSpidLogMessage);
 
     if (E.isRight(blobItemOrError)) {
       // both request and response payload must be encypted
@@ -215,9 +216,10 @@ describe("toSpidBlobItem", () => {
       E.left(new Error("unexpected"))
     );
 
-    const blobItemOrError = createAccessLogEncrypter(aPublicKey)(
-      aValidSpidLogMessage
-    );
+    const blobItemOrError = createAccessLogEncrypter({
+      SPID_LOGS_ENCRYPT_PAYLOAD: true as const,
+      SPID_LOGS_PUBLIC_KEY: aPublicKey
+    })(aValidSpidLogMessage);
 
     if (E.isRight(blobItemOrError)) {
       fail(`expected to be left`);
@@ -236,7 +238,10 @@ describe("createAzureStorageAccessLogWriter", () => {
   const mockedContainerName = "aContainer" as NonEmptyString;
   const mockedPublicKey = "aPublicKey" as NonEmptyString;
   const mockedSpidBLogItem = pipe(
-    createAccessLogEncrypter(mockedPublicKey)(aValidSpidLogMessage),
+    createAccessLogEncrypter({
+      SPID_LOGS_ENCRYPT_PAYLOAD: true as const,
+      SPID_LOGS_PUBLIC_KEY: mockedPublicKey
+    })(aValidSpidLogMessage),
     E.getOrElseW(err => {
       fail(
         `Cannot build SpidBlobItem, please check either the function or mock data, ${err.message}`

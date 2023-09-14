@@ -147,7 +147,7 @@ if (config.ALLOW_CORS) {
 const doneCb = config.ENABLE_SPID_ACCESS_LOGS
   ? accessLogHandler(
       createAccessLogWriter(config),
-      createAccessLogEncrypter(config.SPID_LOGS_PUBLIC_KEY),
+      createAccessLogEncrypter(config),
       createMakeSpidLogBlobName(config)
     )
   : (ip: string | null, request: string, response: string): void => {

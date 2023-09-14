@@ -3,6 +3,7 @@ import { EncryptedPayload } from "@pagopa/ts-commons/lib/encrypt";
 import {
   FiscalCode,
   IPString,
+  NonEmptyString,
   PatternString
 } from "@pagopa/ts-commons/lib/strings";
 import * as t from "io-ts";

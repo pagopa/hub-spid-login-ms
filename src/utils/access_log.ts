@@ -17,7 +17,10 @@ import {
   SpidLogMsg
 } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
-import { SpidLogsStorageConfiguration } from "./config";
+import {
+  EncryptionConfiguration,
+  SpidLogsStorageConfiguration
+} from "./config";
 import { errorsToError } from "./conversions";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
@@ -98,24 +101,40 @@ export type AccessLogStorageKind = SpidLogsStorageConfiguration["SPID_LOGS_STORA
 
 // Create an encrypted from a given public key
 export const createAccessLogEncrypter = (
-  spidLogsPublicKey: NonEmptyString
+  storageConfig: EncryptionConfiguration
 ): AccessLogEncrypter => (
   spidLogMsg: SpidLogMsg
 ): E.Either<Error, SpidBlobItem> => {
-  const encrypt = curry(toEncryptedPayload)(spidLogsPublicKey);
-  return pipe(
-    sequenceS(E.Applicative)({
-      encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
-      encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
-    }),
-    E.map(item => ({
-      ...spidLogMsg,
-      ...item
-    })),
-    E.chainW(
-      flow(t.exact(EncryptedSpidBlobItem).decode, E.mapLeft(errorsToError))
-    )
-  );
+  if (storageConfig.SPID_LOGS_ENCRYPT_PAYLOAD) {
+    const encrypt = curry(toEncryptedPayload)(
+      storageConfig.SPID_LOGS_PUBLIC_KEY
+    );
+    return pipe(
+      sequenceS(E.Applicative)({
+        encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
+        encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
+      }),
+      E.map(item => ({
+        ...spidLogMsg,
+        ...item
+      })),
+      E.chainW(
+        flow(t.exact(EncryptedSpidBlobItem).decode, E.mapLeft(errorsToError))
+      )
+    );
+  } else {
+    return pipe(
+      sequenceS(E.Applicative)({
+        requestPayload: NonEmptyString.decode(spidLogMsg.requestPayload),
+        responsePayload: NonEmptyString.decode(spidLogMsg.responsePayload)
+      }),
+      E.mapLeft(errorsToError),
+      E.map(item => ({
+        ...spidLogMsg,
+        ...item
+      }))
+    );
+  }
 };
 
 // Create a writer for azure storage

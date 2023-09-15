@@ -14,7 +14,8 @@ import { md } from "node-forge";
 import {
   EncryptedSpidBlobItem,
   SpidBlobItem,
-  SpidLogMsg
+  SpidLogMsg,
+  PlainTextSpidBlobItem
 } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 import {
@@ -125,14 +126,17 @@ export const createAccessLogEncrypter = (
   } else {
     return pipe(
       sequenceS(E.Applicative)({
-        requestPayload: NonEmptyString.decode(spidLogMsg.requestPayload),
-        responsePayload: NonEmptyString.decode(spidLogMsg.responsePayload)
+        SAMLRequest: NonEmptyString.decode(spidLogMsg.requestPayload),
+        SAMLResponse: NonEmptyString.decode(spidLogMsg.responsePayload)
       }),
       E.mapLeft(errorsToError),
       E.map(item => ({
         ...spidLogMsg,
         ...item
-      }))
+      })),
+      E.chainW(
+        flow(t.exact(PlainTextSpidBlobItem).decode, E.mapLeft(errorsToError))
+      )
     );
   }
 };

@@ -106,7 +106,7 @@ export const createAccessLogEncrypter = (
 ): AccessLogEncrypter => (
   spidLogMsg: SpidLogMsg
 ): E.Either<Error, SpidBlobItem> => {
-  if (storageConfig.SPID_LOGS_ENCRYPT_PAYLOAD) {
+  if (storageConfig.SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION) {
     const encrypt = curry(toEncryptedPayload)(
       storageConfig.SPID_LOGS_PUBLIC_KEY
     );

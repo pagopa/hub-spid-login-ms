@@ -229,9 +229,9 @@ const SpidLogsStorageAwsS3 = t.intersection([
 
 export type EncryptionConfiguration = t.TypeOf<typeof EncryptionConfiguration>;
 export const EncryptionConfiguration = t.union([
-  t.interface({ SPID_LOGS_ENCRYPT_PAYLOAD: t.literal(false) }),
+  t.interface({ SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: t.literal(false) }),
   t.interface({
-    SPID_LOGS_ENCRYPT_PAYLOAD: t.literal(true),
+    SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: t.literal(true),
     SPID_LOGS_PUBLIC_KEY: NonEmptyString
   })
 ]);
@@ -497,8 +497,8 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
     ),
     E.toUnion
   ),
-  SPID_LOGS_ENCRYPT_PAYLOAD: pipe(
-    O.fromNullable(process.env.SPID_LOGS_ENCRYPT_PAYLOAD),
+  SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: pipe(
+    O.fromNullable(process.env.SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION),
     O.map(_ => _.toLowerCase() === "true"),
     O.getOrElse(() => true)
   ),

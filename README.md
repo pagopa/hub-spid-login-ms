@@ -70,7 +70,8 @@ It is possible to log SAML requests and responses for each successful login. Ass
 |name|description|values|required|
 |-|-|-|-|
 |`ENABLE_SPID_ACCESS_LOGS`|Whether log or not SAML assertions|`true` or `false`| yes|
-|`SPID_LOGS_PUBLIC_KEY`|Key used to encypt SAML assertions payload| string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
+|`SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION`|Whether encript payload before storing or not|`true` or `false`| no, default `true`|
+|`SPID_LOGS_PUBLIC_KEY`|Key used to encypt SAML assertions payload| string | yes if `ENABLE_SPID_ACCESS_LOGS=true` and `SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION=true`|
 |`SPID_LOGS_STORAGE_KIND`|The kind of storage to be used. Default: `azurestorage` for backward compatibility| See `config.ts` for all supported storages | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 |`SPID_LOGS_STORAGE_CONTAINER_NAME`|Name of the container to store files into | string | yes if `ENABLE_SPID_ACCESS_LOGS=true`|
 

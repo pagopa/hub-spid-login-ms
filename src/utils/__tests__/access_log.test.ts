@@ -166,7 +166,7 @@ describe("toSpidBlobItem", () => {
   });
   it("should build encrypted Blob items from valid messages, when encryption is required", () => {
     const blobItemOrError = createAccessLogEncrypter({
-      SPID_LOGS_ENCRYPT_PAYLOAD: true as const,
+      SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: true as const,
       SPID_LOGS_PUBLIC_KEY: aPublicKey
     })(aValidSpidLogMessage);
 
@@ -213,7 +213,7 @@ describe("toSpidBlobItem", () => {
 
   it("should build Blob items from valid messages with no encryption, if not required", () => {
     const blobItemOrError = createAccessLogEncrypter({
-      SPID_LOGS_ENCRYPT_PAYLOAD: false as const
+      SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: false as const
     })(aValidSpidLogMessage);
 
     if (E.isRight(blobItemOrError)) {
@@ -246,7 +246,7 @@ describe("toSpidBlobItem", () => {
     );
 
     const blobItemOrError = createAccessLogEncrypter({
-      SPID_LOGS_ENCRYPT_PAYLOAD: true as const,
+      SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: true as const,
       SPID_LOGS_PUBLIC_KEY: aPublicKey
     })(aValidSpidLogMessage);
 
@@ -268,7 +268,7 @@ describe("createAzureStorageAccessLogWriter", () => {
   const mockedPublicKey = "aPublicKey" as NonEmptyString;
   const mockedSpidBLogItem = pipe(
     createAccessLogEncrypter({
-      SPID_LOGS_ENCRYPT_PAYLOAD: true as const,
+      SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: true as const,
       SPID_LOGS_PUBLIC_KEY: mockedPublicKey
     })(aValidSpidLogMessage),
     E.getOrElseW(err => {

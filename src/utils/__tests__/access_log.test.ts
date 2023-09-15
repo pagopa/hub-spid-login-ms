@@ -211,6 +211,35 @@ describe("toSpidBlobItem", () => {
     }
   });
 
+  it("should build Blob items from valid messages with no encryption, if not required", () => {
+    const blobItemOrError = createAccessLogEncrypter({
+      SPID_LOGS_ENCRYPT_PAYLOAD: false as const
+    })(aValidSpidLogMessage);
+
+    if (E.isRight(blobItemOrError)) {
+      // both request and response payload must be encypted
+      expect(spiedToEncryptedPayload).toBeCalledTimes(0);
+
+      // SpidBlobItem is correctly formatted
+      expect(SpidBlobItem.is(blobItemOrError.right)).toBe(true);
+
+      expect(blobItemOrError.right).toEqual(
+        expect.not.objectContaining({
+          requestPayload: expect.any(String),
+          responsePayload: expect.any(String)
+        })
+      );
+      expect(blobItemOrError.right).toEqual(
+        expect.objectContaining({
+          SAMLRequest: expect.any(String),
+          SAMLResponse: expect.any(String)
+        })
+      );
+    } else {
+      fail(`expected to be right, error: ${blobItemOrError.left.message}`);
+    }
+  });
+
   it("should fail if at least one encyption fail", () => {
     spiedToEncryptedPayload.mockImplementationOnce(() =>
       E.left(new Error("unexpected"))

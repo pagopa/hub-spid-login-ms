@@ -1,18 +1,24 @@
 import { toEncryptedPayload } from "@pagopa/ts-commons/lib/encrypt";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService, createBlobService } from "azure-storage";
+import * as t from "io-ts";
 import { sequenceS } from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { md } from "node-forge";
 
-import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
+import {
+  EncryptedSpidBlobItem,
+  SpidBlobItem,
+  SpidLogMsg
+} from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
 import { SpidLogsStorageConfiguration } from "./config";
+import { errorsToError } from "./conversions";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
   fn: (a: I, ...aa: II) => R
@@ -105,7 +111,10 @@ export const createAccessLogEncrypter = (
     E.map(item => ({
       ...spidLogMsg,
       ...item
-    }))
+    })),
+    E.chainW(
+      flow(t.exact(EncryptedSpidBlobItem).decode, E.mapLeft(errorsToError))
+    )
   );
 };
 

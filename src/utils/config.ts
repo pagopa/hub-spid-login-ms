@@ -227,6 +227,15 @@ const SpidLogsStorageAwsS3 = t.intersection([
   })
 ]);
 
+export type EncryptionConfiguration = t.TypeOf<typeof EncryptionConfiguration>;
+export const EncryptionConfiguration = t.union([
+  t.interface({ SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: t.literal(false) }),
+  t.interface({
+    SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: t.literal(true),
+    SPID_LOGS_PUBLIC_KEY: NonEmptyString
+  })
+]);
+
 export type SpidLogsStorageConfiguration = t.TypeOf<
   typeof SpidLogsStorageConfiguration
 >;
@@ -239,9 +248,9 @@ const SpidLogsParams = t.union([
   // When Logs are enabled, storage configuration is mandatory
   t.intersection([
     t.interface({
-      ENABLE_SPID_ACCESS_LOGS: t.literal(true),
-      SPID_LOGS_PUBLIC_KEY: NonEmptyString
+      ENABLE_SPID_ACCESS_LOGS: t.literal(true)
     }),
+    EncryptionConfiguration,
     SpidLogsStorageConfiguration
   ]),
   t.interface({
@@ -487,6 +496,11 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
       )
     ),
     E.toUnion
+  ),
+  SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: pipe(
+    O.fromNullable(process.env.SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION),
+    O.map(_ => _.toLowerCase() === "true"),
+    O.getOrElse(() => true)
   ),
   SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE: pipe(
     O.fromNullable(process.env.SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE),

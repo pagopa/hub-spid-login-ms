@@ -14,10 +14,14 @@ import { md } from "node-forge";
 import {
   EncryptedSpidBlobItem,
   SpidBlobItem,
-  SpidLogMsg
+  SpidLogMsg,
+  PlainTextSpidBlobItem
 } from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
-import { SpidLogsStorageConfiguration } from "./config";
+import {
+  EncryptionConfiguration,
+  SpidLogsStorageConfiguration
+} from "./config";
 import { errorsToError } from "./conversions";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
@@ -98,24 +102,43 @@ export type AccessLogStorageKind = SpidLogsStorageConfiguration["SPID_LOGS_STORA
 
 // Create an encrypted from a given public key
 export const createAccessLogEncrypter = (
-  spidLogsPublicKey: NonEmptyString
+  storageConfig: EncryptionConfiguration
 ): AccessLogEncrypter => (
   spidLogMsg: SpidLogMsg
 ): E.Either<Error, SpidBlobItem> => {
-  const encrypt = curry(toEncryptedPayload)(spidLogsPublicKey);
-  return pipe(
-    sequenceS(E.Applicative)({
-      encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
-      encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
-    }),
-    E.map(item => ({
-      ...spidLogMsg,
-      ...item
-    })),
-    E.chainW(
-      flow(t.exact(EncryptedSpidBlobItem).decode, E.mapLeft(errorsToError))
-    )
-  );
+  if (storageConfig.SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION) {
+    const encrypt = curry(toEncryptedPayload)(
+      storageConfig.SPID_LOGS_PUBLIC_KEY
+    );
+    return pipe(
+      sequenceS(E.Applicative)({
+        encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
+        encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
+      }),
+      E.map(item => ({
+        ...spidLogMsg,
+        ...item
+      })),
+      E.chainW(
+        flow(t.exact(EncryptedSpidBlobItem).decode, E.mapLeft(errorsToError))
+      )
+    );
+  } else {
+    return pipe(
+      sequenceS(E.Applicative)({
+        SAMLRequest: NonEmptyString.decode(spidLogMsg.requestPayload),
+        SAMLResponse: NonEmptyString.decode(spidLogMsg.responsePayload)
+      }),
+      E.mapLeft(errorsToError),
+      E.map(item => ({
+        ...spidLogMsg,
+        ...item
+      })),
+      E.chainW(
+        flow(t.exact(PlainTextSpidBlobItem).decode, E.mapLeft(errorsToError))
+      )
+    );
+  }
 };
 
 // Create a writer for azure storage

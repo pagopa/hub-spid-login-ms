@@ -3,29 +3,60 @@ import { EncryptedPayload } from "@pagopa/ts-commons/lib/encrypt";
 import {
   FiscalCode,
   IPString,
+  NonEmptyString,
   PatternString
 } from "@pagopa/ts-commons/lib/strings";
 import * as t from "io-ts";
 
 /**
- * Payload of the stored blob item
+ * Base payload of the stored blob item
  * (one for each SPID request or response).
  */
-export const SpidBlobItem = t.interface({
+export const SpidBlobItemBase = t.interface({
   // Timestamp of Request/Response creation
   createdAt: UTCISODateFromString,
 
-  // XML payload of the SPID Request
-  encryptedRequestPayload: EncryptedPayload,
-
-  // XML payload of the SPID Response
-  encryptedResponsePayload: EncryptedPayload,
   // IP of the client that made a SPID login action
   ip: IPString,
 
   // SPID request ID
   spidRequestId: t.string
 });
+
+/**
+ * Payload of the stored blob item
+ * (one for each SPID request or response).
+ */
+export const EncryptedSpidBlobItem = t.intersection([
+  SpidBlobItemBase,
+  t.interface({
+    // XML payload of the SPID Request
+    encryptedRequestPayload: EncryptedPayload,
+
+    // XML payload of the SPID Response
+    encryptedResponsePayload: EncryptedPayload
+  })
+]);
+
+/**
+ * Payload of the stored blob item
+ * (one for each SPID request or response).
+ */
+export const PlainTextSpidBlobItem = t.intersection([
+  SpidBlobItemBase,
+  t.interface({
+    // XML payload of the SPID Request
+    SAMLRequest: NonEmptyString,
+
+    // XML payload of the SPID Response
+    SAMLResponse: NonEmptyString
+  })
+]);
+
+export const SpidBlobItem = t.union([
+  EncryptedSpidBlobItem,
+  PlainTextSpidBlobItem
+]);
 
 export type SpidBlobItem = t.TypeOf<typeof SpidBlobItem>;
 

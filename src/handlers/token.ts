@@ -27,12 +27,12 @@ import {
   getUserJwt
 } from "../utils/jwt";
 import { toBadRequest, toTokenUserL2 } from "../utils/conversions";
-import { getConfigOrThrow } from "../utils/config";
+import { EnabledAttributeAuthorityParams, IConfig } from "../utils/config";
 import { TokenUser, TokenUserL2 } from "../types/user";
 import { UpgradeTokenBody } from "../types/request";
-import { SESSION_INVALIDATE_TOKEN_PREFIX, SESSION_TOKEN_PREFIX } from "../app";
 
-const config = getConfigOrThrow();
+const SESSION_TOKEN_PREFIX = "session-token:";
+const SESSION_INVALIDATE_TOKEN_PREFIX = "session-token-invalidate:";
 
 const redisClient = REDIS_CLIENT;
 const getRawTokenUserFromRedis = (
@@ -65,7 +65,7 @@ const getRawTokenUserFromRedis = (
     )
   );
 
-export const getTokenExpiration = (
+export const getTokenExpiration = (config: IConfig) => (
   tokenUser: TokenUser | TokenUserL2
 ): number & INonNegativeIntegerTag =>
   config.ENABLE_ADE_AA === true
@@ -74,7 +74,7 @@ export const getTokenExpiration = (
       : config.L2_TOKEN_EXPIRATION
     : config.TOKEN_EXPIRATION;
 
-export const generateToken = (
+export const getGenerateToken = (config: IConfig) => (
   tokenUser: TokenUser | TokenUserL2,
   requestId?: NonEmptyString
 ): TE.TaskEither<
@@ -82,7 +82,7 @@ export const generateToken = (
   { readonly tokenStr: string; readonly tokenUser: TokenUser | TokenUserL2 }
 > =>
   pipe(
-    TE.of<Error, NonNegativeInteger>(getTokenExpiration(tokenUser)),
+    TE.of<Error, NonNegativeInteger>(getTokenExpiration(config)(tokenUser)),
     TE.chain(tokenExpiration =>
       config.ENABLE_JWT
         ? pipe(
@@ -95,7 +95,9 @@ export const generateToken = (
               config.JWT_TOKEN_AUDIENCE,
               requestId
             ),
-            TE.mapLeft(() => new Error("Error generating JWT Token")),
+            TE.mapLeft(
+              e => new Error("Error generating JWT Token " + e.message)
+            ),
             TE.map(_ => ({ tokenStr: _, tokenUser }))
           )
         : pipe(
@@ -119,7 +121,7 @@ export const generateToken = (
     )
   );
 
-export const introspectHandler = async (
+export const getIntrospectHandler = (config: IConfig) => async (
   req: express.Request,
   res: express.Response
 ): Promise<express.Response> =>
@@ -179,7 +181,7 @@ export const introspectHandler = async (
     )
   )();
 
-export const invalidateHandler = async (
+export const getInvalidateHandler = (config: IConfig) => async (
   req: express.Request,
   res: express.Response // first check if token is blacklisted
 ): Promise<E.Either<never, express.Response>> =>
@@ -206,7 +208,9 @@ export const invalidateHandler = async (
     )
   )();
 
-export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
+export const upgradeTokenHandler = (
+  config: IConfig & EnabledAttributeAuthorityParams
+) => async (
   req: express.Request,
   res: express.Response
 ): Promise<express.Response> => {
@@ -218,11 +222,14 @@ export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
     TE.fromEither,
     TE.chain(body =>
       pipe(
-        req.headers[tokenHeaderName],
+        req.headers[config.L1_TOKEN_HEADER_NAME],
         NonEmptyString.decode,
         TE.fromEither,
         TE.mapLeft(e =>
-          fromErrToBadRequest(e, `Missing required header ${tokenHeaderName}`)
+          fromErrToBadRequest(
+            e,
+            `Missing required header ${config.L1_TOKEN_HEADER_NAME}`
+          )
         ),
         TE.map(header => ({
           jwtEnabled: config.ENABLE_JWT,
@@ -298,7 +305,7 @@ export const upgradeTokenHandler = (tokenHeaderName: NonEmptyString) => async (
     ),
     TE.chain(tokenUserL2 =>
       pipe(
-        generateToken(tokenUserL2),
+        getGenerateToken(config)(tokenUserL2),
         TE.mapLeft(err =>
           res
             .status(500)

@@ -1,18 +1,28 @@
 import { toEncryptedPayload } from "@pagopa/ts-commons/lib/encrypt";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService, createBlobService } from "azure-storage";
+import * as t from "io-ts";
 import { sequenceS } from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { md } from "node-forge";
 
-import { SpidBlobItem, SpidLogMsg } from "../types/access_log";
+import {
+  EncryptedSpidBlobItem,
+  SpidBlobItem,
+  SpidLogMsg,
+  PlainTextSpidBlobItem
+} from "../types/access_log";
 import { upsertBlobFromObject } from "./blob";
-import { SpidLogsStorageConfiguration } from "./config";
+import {
+  EncryptionConfiguration,
+  SpidLogsStorageConfiguration
+} from "./config";
+import { errorsToError } from "./conversions";
 
 const curry = <I, II extends ReadonlyArray<unknown>, R>(
   fn: (a: I, ...aa: II) => R
@@ -92,21 +102,43 @@ export type AccessLogStorageKind = SpidLogsStorageConfiguration["SPID_LOGS_STORA
 
 // Create an encrypted from a given public key
 export const createAccessLogEncrypter = (
-  spidLogsPublicKey: NonEmptyString
+  storageConfig: EncryptionConfiguration
 ): AccessLogEncrypter => (
   spidLogMsg: SpidLogMsg
 ): E.Either<Error, SpidBlobItem> => {
-  const encrypt = curry(toEncryptedPayload)(spidLogsPublicKey);
-  return pipe(
-    sequenceS(E.Applicative)({
-      encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
-      encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
-    }),
-    E.map(item => ({
-      ...spidLogMsg,
-      ...item
-    }))
-  );
+  if (storageConfig.SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION) {
+    const encrypt = curry(toEncryptedPayload)(
+      storageConfig.SPID_LOGS_PUBLIC_KEY
+    );
+    return pipe(
+      sequenceS(E.Applicative)({
+        encryptedRequestPayload: encrypt(spidLogMsg.requestPayload),
+        encryptedResponsePayload: encrypt(spidLogMsg.responsePayload)
+      }),
+      E.map(item => ({
+        ...spidLogMsg,
+        ...item
+      })),
+      E.chainW(
+        flow(t.exact(EncryptedSpidBlobItem).decode, E.mapLeft(errorsToError))
+      )
+    );
+  } else {
+    return pipe(
+      sequenceS(E.Applicative)({
+        SAMLRequest: NonEmptyString.decode(spidLogMsg.requestPayload),
+        SAMLResponse: NonEmptyString.decode(spidLogMsg.responsePayload)
+      }),
+      E.mapLeft(errorsToError),
+      E.map(item => ({
+        ...spidLogMsg,
+        ...item
+      })),
+      E.chainW(
+        flow(t.exact(PlainTextSpidBlobItem).decode, E.mapLeft(errorsToError))
+      )
+    );
+  }
 };
 
 // Create a writer for azure storage

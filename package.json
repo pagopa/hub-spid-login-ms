@@ -1,6 +1,6 @@
 {
   "name": "@italia/spid-express",
-  "version": "5.0.3",
+  "version": "5.2.0",
   "description": "SPID (Italian Public Digital Identity System) middleware for Express",
   "repository": {
     "type": "git",
@@ -18,7 +18,7 @@
     "docker:stop": "docker-compose down",
     "premake-certs": "shx rm -rf certs && shx mkdir certs",
     "make-certs": "./scripts/make-certs.sh",
-    "dev": "nodemon --inspect=0.0.0.0 dist/src/server.js",
+    "dev": "nodemon --inspect=127.0.0.1:5859 dist/src/server.js",
     "postversion": "git push && git push --tags",
     "dist:modules": "modclean -r -n default:safe && yarn install --production",
     "generate:api-ade": "rm -rf generated/ade-api && gen-api-models --api-spec https://raw.githubusercontent.com/pagopa/ade-aa-ms-mock/master/openapi/index.yaml --no-strict --out-dir generated/ade-api --request-types --response-decoders --client",
@@ -91,6 +91,9 @@
     "yargs": "^15.3.0"
   },
   "jest": {
+    "setupFiles": [
+      "<rootDir>/src/__mocks__/setupEnvVars.ts"
+    ],
     "testEnvironment": "node",
     "collectCoverage": true,
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(js|ts)$",

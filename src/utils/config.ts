@@ -227,6 +227,15 @@ const SpidLogsStorageAwsS3 = t.intersection([
   })
 ]);
 
+export type EncryptionConfiguration = t.TypeOf<typeof EncryptionConfiguration>;
+export const EncryptionConfiguration = t.union([
+  t.interface({ SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: t.literal(false) }),
+  t.interface({
+    SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: t.literal(true),
+    SPID_LOGS_PUBLIC_KEY: NonEmptyString
+  })
+]);
+
 export type SpidLogsStorageConfiguration = t.TypeOf<
   typeof SpidLogsStorageConfiguration
 >;
@@ -239,9 +248,9 @@ const SpidLogsParams = t.union([
   // When Logs are enabled, storage configuration is mandatory
   t.intersection([
     t.interface({
-      ENABLE_SPID_ACCESS_LOGS: t.literal(true),
-      SPID_LOGS_PUBLIC_KEY: NonEmptyString
+      ENABLE_SPID_ACCESS_LOGS: t.literal(true)
     }),
+    EncryptionConfiguration,
     SpidLogsStorageConfiguration
   ]),
   t.interface({
@@ -340,21 +349,34 @@ export const CIEParams = t.interface({
 
 export type CIEParams = t.TypeOf<typeof CIEParams>;
 
-const AttributeAuthorityParams = t.union([
-  t.interface({
-    ADE_AA_API_ENDPOINT: NonEmptyString,
-    ENABLE_ADE_AA: t.literal(true),
-    ENDPOINT_L1_SUCCESS: NonEmptyString,
-    L1_TOKEN_EXPIRATION: NonNegativeInteger,
-    L1_TOKEN_HEADER_NAME: NonEmptyString,
-    L2_TOKEN_EXPIRATION: NonNegativeInteger
-  }),
-  t.interface({
-    ENABLE_ADE_AA: t.literal(false),
-    TOKEN_EXPIRATION: NonNegativeInteger
-  })
+export const EnabledAttributeAuthorityParams = t.interface({
+  ADE_AA_API_ENDPOINT: NonEmptyString,
+  ENABLE_ADE_AA: t.literal(true),
+  ENDPOINT_L1_SUCCESS: NonEmptyString,
+  L1_TOKEN_EXPIRATION: NonNegativeInteger,
+  L1_TOKEN_HEADER_NAME: NonEmptyString,
+  L2_TOKEN_EXPIRATION: NonNegativeInteger
+});
+export type EnabledAttributeAuthorityParams = t.TypeOf<
+  typeof EnabledAttributeAuthorityParams
+>;
+
+export const DisabledAttributeAuthorityParams = t.interface({
+  ENABLE_ADE_AA: t.literal(false),
+  TOKEN_EXPIRATION: NonNegativeInteger
+});
+
+export type DisabledAttributeAuthorityParams = t.TypeOf<
+  typeof DisabledAttributeAuthorityParams
+>;
+
+export const AttributeAuthorityParams = t.union([
+  EnabledAttributeAuthorityParams,
+  DisabledAttributeAuthorityParams
 ]);
-type AttributeAuthorityParams = t.TypeOf<typeof AttributeAuthorityParams>;
+export type AttributeAuthorityParams = t.TypeOf<
+  typeof AttributeAuthorityParams
+>;
 
 // Authentication app configuration
 export type IConfigAuth = t.TypeOf<typeof IConfigAuth>;
@@ -474,6 +496,11 @@ const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
       )
     ),
     E.toUnion
+  ),
+  SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION: pipe(
+    O.fromNullable(process.env.SPID_LOGS_ENABLE_PAYLOAD_ENCRYPTION),
+    O.map(_ => _.toLowerCase() === "true"),
+    O.getOrElse(() => true)
   ),
   SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE: pipe(
     O.fromNullable(process.env.SPID_LOGS_STORAGE_NAME_HIDE_FISCALCODE),

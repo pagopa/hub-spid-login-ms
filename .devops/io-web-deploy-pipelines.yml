@@ -139,7 +139,7 @@ stages:
 
           - task: AzureWebApp@1
             inputs:
-              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              azureSubscription: '${{ variables.AZURE_SUBSCRIPTION }}'
               resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
               appType: 'webApp'
               appName: '$(WEB_APP_NAME)'
@@ -151,7 +151,7 @@ stages:
 
           - template: templates/rest-healthcheck/template.yaml@pagopaCommons
             parameters:
-              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              azureSubscription: '${{ variables.AZURE_SUBSCRIPTION }}'
               appName: '$(WEB_APP_NAME)'
               endpoint: '$(HEALTHCHECK_ENDPOINT)'
               endpointType: 'private'
@@ -161,7 +161,7 @@ stages:
 
           - task: AzureAppServiceManage@0
             inputs:
-              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              azureSubscription: '${{ variables.AZURE_SUBSCRIPTION }}'
               resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
               webAppName: '$(WEB_APP_NAME)'
               sourceSlot: 'staging'
@@ -177,7 +177,7 @@ stages:
 
           - task: AzureWebApp@1
             inputs:
-              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              azureSubscription: '${{ variables.AZURE_SUBSCRIPTION }}'
               resourceGroupName: '$(WEB_APP_RESOURCE_GROUP_NAME)'
               appType: 'webApp'
               appName: '$(WEB_APP_NAME)'

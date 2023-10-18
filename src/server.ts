@@ -28,5 +28,4 @@ createAppTask()
       })
     );
   })
-  // eslint-disable-next-line no-console
   .catch(e => logger.error("Application error: ", e));

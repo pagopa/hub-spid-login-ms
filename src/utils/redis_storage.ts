@@ -64,7 +64,7 @@ export const integerReplyAsync = (expectedReply?: number) => (
       if (expectedReply !== undefined && expectedReply !== reply) {
         return TE.right(false);
       }
-      return TE.right(isNumber(reply));
+      return TE.right(typeof reply === "number");
     })
   );
 

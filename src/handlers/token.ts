@@ -14,13 +14,13 @@ import * as J from "fp-ts/Json";
 import * as b from "fp-ts/boolean";
 import * as t from "io-ts";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
+import * as redis from "redis";
 import {
   deleteTask,
   existsKeyTask,
   getTask,
   setWithExpirationTask
 } from "../utils/redis_storage";
-import { REDIS_CLIENT } from "../utils/redis";
 import {
   extractJwtRemainingValidTime,
   extractRawDataFromJwt,
@@ -34,10 +34,10 @@ import { UpgradeTokenBody } from "../types/request";
 const SESSION_TOKEN_PREFIX = "session-token:";
 const SESSION_INVALIDATE_TOKEN_PREFIX = "session-token-invalidate:";
 
-const redisClient = REDIS_CLIENT;
 const getRawTokenUserFromRedis = (
   token: string,
-  res: express.Response
+  res: express.Response,
+  redisClient: redis.RedisClientType | redis.RedisClusterType
 ): TE.TaskEither<express.Response, J.Json> =>
   pipe(
     getTask(redisClient, `${SESSION_TOKEN_PREFIX}${token}`),
@@ -74,12 +74,18 @@ export const getTokenExpiration = (config: IConfig) => (
       : config.L2_TOKEN_EXPIRATION
     : config.TOKEN_EXPIRATION;
 
-export const getGenerateToken = (config: IConfig) => (
+export const getGenerateToken = (
+  config: IConfig,
+  redisClient: redis.RedisClusterType | redis.RedisClientType
+) => (
   tokenUser: TokenUser | TokenUserL2,
   requestId?: NonEmptyString
 ): TE.TaskEither<
   Error,
-  { readonly tokenStr: string; readonly tokenUser: TokenUser | TokenUserL2 }
+  {
+    readonly tokenStr: string;
+    readonly tokenUser: TokenUser | TokenUserL2;
+  }
 > =>
   pipe(
     TE.of<Error, NonNegativeInteger>(getTokenExpiration(config)(tokenUser)),
@@ -121,7 +127,10 @@ export const getGenerateToken = (config: IConfig) => (
     )
   );
 
-export const getIntrospectHandler = (config: IConfig) => async (
+export const getIntrospectHandler = (
+  config: IConfig,
+  redisClient: redis.RedisClusterType | redis.RedisClientType
+) => async (
   req: express.Request,
   res: express.Response
 ): Promise<express.Response> =>
@@ -147,7 +156,7 @@ export const getIntrospectHandler = (config: IConfig) => async (
         () => res.status(200).json({ active: true })
       )
     ),
-    TE.chain(() => getRawTokenUserFromRedis(req.body.token, res)),
+    TE.chain(() => getRawTokenUserFromRedis(req.body.token, res, redisClient)),
     // ensure raw token is in the correct shape
     TE.chain(
       flow(
@@ -181,7 +190,10 @@ export const getIntrospectHandler = (config: IConfig) => async (
     )
   )();
 
-export const getInvalidateHandler = (config: IConfig) => async (
+export const getInvalidateHandler = (
+  config: IConfig,
+  redisClient: redis.RedisClusterType | redis.RedisClientType
+) => async (
   req: express.Request,
   res: express.Response // first check if token is blacklisted
 ): Promise<E.Either<never, express.Response>> =>
@@ -209,7 +221,8 @@ export const getInvalidateHandler = (config: IConfig) => async (
   )();
 
 export const upgradeTokenHandler = (
-  config: IConfig & EnabledAttributeAuthorityParams
+  config: IConfig & EnabledAttributeAuthorityParams,
+  redisClient: redis.RedisClusterType | redis.RedisClientType
 ) => async (
   req: express.Request,
   res: express.Response
@@ -244,7 +257,7 @@ export const upgradeTokenHandler = (
         b.fold(
           () =>
             pipe(
-              getRawTokenUserFromRedis(req.body.token, res),
+              getRawTokenUserFromRedis(req.body.token, res, redisClient),
               TE.map(_ => ({
                 organizationFiscalCode,
                 rawTokenUser: _
@@ -305,11 +318,12 @@ export const upgradeTokenHandler = (
     ),
     TE.chain(tokenUserL2 =>
       pipe(
-        getGenerateToken(config)(tokenUserL2),
+        getGenerateToken(config, redisClient)(tokenUserL2),
         TE.mapLeft(err =>
-          res
-            .status(500)
-            .json({ detail: err.message, error: "Error generating L2 Token" })
+          res.status(500).json({
+            detail: err.message,
+            error: "Error generating L2 Token"
+          })
         )
       )
     ),

@@ -18,8 +18,9 @@ import {
 } from "@pagopa/io-spid-commons/dist/utils/middleware";
 import * as cors from "cors";
 import { pipe } from "fp-ts/lib/function";
-import * as T from "fp-ts/lib/Task";
 import { ValidUrl } from "@pagopa/ts-commons/lib/url";
+import * as TE from "fp-ts/TaskEither";
+import * as T from "fp-ts/Task";
 import {
   accessLogHandler,
   getAcs,
@@ -35,7 +36,7 @@ import {
 import { getConfigOrThrow } from "./utils/config";
 import { getHealthcheckHandler } from "./handlers/general";
 import { logger } from "./utils/logger";
-import { REDIS_CLIENT } from "./utils/redis";
+import { CreateRedisClientTask } from "./utils/redis";
 import {
   createAccessLogEncrypter,
   createAccessLogWriter,
@@ -44,7 +45,7 @@ import {
 
 const config = getConfigOrThrow();
 
-export const appConfig: IApplicationConfig = {
+export const appConfig: IApplicationConfig<never> = {
   assertionConsumerServicePath: config.ENDPOINT_ACS,
   // clientErrorRedirectionUrl: CLIENT_ERROR_REDIRECTION_URL,
   // clientLoginRedirectionUrl: CLIENT_REDIRECTION_URL,
@@ -106,12 +107,6 @@ const serviceProviderConfig: IServiceProviderConfig = {
       : undefined
 };
 
-const redisClient = REDIS_CLIENT;
-
-process.on("SIGINT", () => {
-  redisClient.quit();
-});
-
 const samlConfig: SamlConfig = {
   RACComparison: "minimum",
   acceptedClockSkewMs: 2000,
@@ -162,22 +157,36 @@ const doneCb = config.ENABLE_SPID_ACCESS_LOGS
  *
  */
 export const createAppTask = pipe(
-  withSpid({
-    acs: getAcs(config),
-    app,
-    appConfig,
-    doneCb,
-    logout,
-    redisClient, // redisClient for authN request
-    samlConfig,
-    serviceProviderConfig
+  CreateRedisClientTask,
+  TE.chainTaskK(REDIS_CLIENT => {
+    process.on("SIGINT", () => {
+      REDIS_CLIENT.quit().catch(err =>
+        logger.error(`Error closing the redis connection: [${err}]`)
+      );
+    });
+    return pipe(
+      withSpid({
+        acs: getAcs(config, REDIS_CLIENT),
+        app,
+        appConfig,
+        doneCb,
+        logout,
+        redisClient: REDIS_CLIENT, // redisClient for authN request
+        samlConfig,
+        serviceProviderConfig
+      }),
+      T.map(_ => ({ ..._, REDIS_CLIENT }))
+    );
   }),
-  T.map(({ app: withSpidApp, idpMetadataRefresher }) => {
+  TE.map(({ app: withSpidApp, idpMetadataRefresher, REDIS_CLIENT }) => {
     withSpidApp.get(config.ENDPOINT_SUCCESS, successHandler);
 
     if (config.ENABLE_ADE_AA) {
       withSpidApp.get(config.ENDPOINT_L1_SUCCESS, successHandler);
-      withSpidApp.post("/upgradeToken", upgradeTokenHandler(config));
+      withSpidApp.post(
+        "/upgradeToken",
+        upgradeTokenHandler(config, REDIS_CLIENT)
+      );
     }
     withSpidApp.get("/error", errorHandler);
     withSpidApp.get("/refresh", metadataRefreshHandler(idpMetadataRefresher));
@@ -188,11 +197,11 @@ export const createAppTask = pipe(
       });
     });
 
-    withSpidApp.get("/healthcheck", getHealthcheckHandler(redisClient));
+    withSpidApp.get("/healthcheck", getHealthcheckHandler(REDIS_CLIENT));
 
-    withSpidApp.post("/introspect", getIntrospectHandler(config));
+    withSpidApp.post("/introspect", getIntrospectHandler(config, REDIS_CLIENT));
 
-    withSpidApp.post("/invalidate", getInvalidateHandler(config));
+    withSpidApp.post("/invalidate", getInvalidateHandler(config, REDIS_CLIENT));
 
     withSpidApp.use(
       (

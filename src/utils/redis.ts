@@ -107,7 +107,7 @@ export const CreateRedisClientTask: TE.TaskEither<
           config.REDIS_PORT,
           config.REDIS_TLS_ENABLED
         ),
-      () => new Error("Error Connecting redis cluster")
+      () => new Error("Error Connecting to redis")
     )
   ),
   TE.chain(REDIS_CLIENT => {

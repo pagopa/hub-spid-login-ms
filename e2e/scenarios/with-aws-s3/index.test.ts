@@ -21,6 +21,7 @@ import {
   testCredentials,
   spidLogStorage
 } from "./config";
+import fetch from "node-fetch";
 
 const puppeteer = require("puppeteer");
 
@@ -146,5 +147,13 @@ describe("With AWS S3", () => {
         ])
       })
     );
+  });
+  it("healthcheck should return a success", async () => {
+    const result = await fetch(`${host}/healthcheck`)
+      .then(res => res.json())
+      .catch(err => new Error(err));
+
+    expect(result).not.toBeInstanceOf(Error);
+    expect(result).toStrictEqual("OK");
   });
 });

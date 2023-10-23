@@ -17,7 +17,7 @@ beforeAll(async () => {
   // somehow we need to wait idp metadata are loaded
   await delay(startupTime);
 });
-describe("Basic", () => {
+describe("Basic with redis cluster", () => {
   it("should login with an existing user", () =>
     withBrowser(
       puppeteer,

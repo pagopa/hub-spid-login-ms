@@ -30,6 +30,7 @@ import { IConfig } from "../../utils/config";
 import mockRes from "../../__mocks__/response";
 import { SpidLevelEnum } from "../../utils/spid";
 import * as jwt from "jsonwebtoken";
+import * as redis from "redis";
 
 // Mock logger to spy error
 const spiedLoggerError = jest.spyOn(logger, "error");
@@ -53,6 +54,8 @@ const mockMakeSpidLogBlobName = jest.fn<
 >(() => "blobname.json");
 
 const mockGetAssertion = jest.fn().mockReturnValue(aSAMLResponse);
+
+const mockRedisClient = {} as redis.RedisClientType | redis.RedisClusterType;
 
 const aValidAcsPayload = {
   fiscalNumber: anInternationalFiscalCode,
@@ -223,7 +226,7 @@ describe("acs", () => {
       JWT_TOKEN_PRIVATE_KEY: privateKey,
       JWT_TOKEN_KID: aJwtKeyId
     } as unknown) as IConfig);
-    const response = await getAcs(config)(aValidAcsPayload);
+    const response = await getAcs(config, mockRedisClient)(aValidAcsPayload);
     response.apply(aMockedResponse);
 
     const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(

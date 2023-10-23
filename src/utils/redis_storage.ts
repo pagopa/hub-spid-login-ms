@@ -1,4 +1,3 @@
-import { isNumber } from "util";
 import { fromNullable, Option } from "fp-ts/lib/Option";
 import * as redis from "redis";
 import { pipe } from "fp-ts/lib/function";

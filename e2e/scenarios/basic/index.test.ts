@@ -4,9 +4,10 @@ import {
   littleTime,
   withBrowser,
   clickAnyway,
-  startupTime,
+  startupTime
 } from "../../utils/misc";
 import { host, showBrowser, testEntityID, testCredentials } from "./config";
+import fetch from "node-fetch";
 
 const puppeteer = require("puppeteer");
 
@@ -21,7 +22,7 @@ describe("Basic", () => {
     withBrowser(
       puppeteer,
       showBrowser
-    )(async (browser) => {
+    )(async browser => {
       const page = await browser.newPage();
 
       /* open login page */ {
@@ -56,4 +57,12 @@ describe("Basic", () => {
         expect(url).toEqual(expect.stringContaining("/success"));
       }
     }));
+  it("healthcheck should return a success", async () => {
+    const result = await fetch(`${host}/healthcheck`)
+      .then(res => res.json())
+      .catch(err => new Error(err));
+
+    expect(result).not.toBeInstanceOf(Error);
+    expect(result).toStrictEqual("OK");
+  });
 });

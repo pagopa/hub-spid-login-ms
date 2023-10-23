@@ -60,6 +60,7 @@ export const createClusterRedisClient = async (
       socket: {
         checkServerIdentity: (_hostname, _cert) => undefined,
         keepAlive: 2000,
+        reconnectStrategy: retries => Math.min(retries * 100, 3000),
         tls: enableTls
       }
     },
@@ -81,34 +82,32 @@ export const CreateRedisClientTask: TE.TaskEither<
   O.fromPredicate<boolean>(_ => _)(config.isProduction),
   O.mapNullable(_ => config.REDIS_CLUSTER_ENABLED),
   O.chain(O.fromPredicate(_ => _)),
-  O.map<
+  O.fold<
     boolean,
-    TE.TaskEither<Error, redis.RedisClusterType | redis.RedisClientType>
-  >(() =>
-    TE.tryCatch(
-      () =>
-        createClusterRedisClient(
-          config.REDIS_URL,
-          config.REDIS_PASSWORD,
-          config.REDIS_PORT,
-          config.REDIS_TLS_ENABLED
-        ),
-      () => new Error("Error Connecting redis cluster")
-    )
-  ),
-  O.getOrElseW<
-    TE.TaskEither<Error, redis.RedisClusterType | redis.RedisClientType>
-  >(() =>
-    TE.tryCatch(
-      () =>
-        createSimpleRedisClient(
-          config.REDIS_URL,
-          config.REDIS_PASSWORD,
-          config.REDIS_PORT,
-          config.REDIS_TLS_ENABLED
-        ),
-      () => new Error("Error Connecting to redis")
-    )
+    TE.TaskEither<Error, redis.RedisClientType | redis.RedisClusterType>
+  >(
+    () =>
+      TE.tryCatch(
+        () =>
+          createSimpleRedisClient(
+            config.REDIS_URL,
+            config.REDIS_PASSWORD,
+            config.REDIS_PORT,
+            config.REDIS_TLS_ENABLED
+          ),
+        () => new Error("Error Connecting to redis")
+      ),
+    () =>
+      TE.tryCatch(
+        () =>
+          createClusterRedisClient(
+            config.REDIS_URL,
+            config.REDIS_PASSWORD,
+            config.REDIS_PORT,
+            config.REDIS_TLS_ENABLED
+          ),
+        () => new Error("Error Connecting redis cluster")
+      )
   ),
   TE.chain(REDIS_CLIENT => {
     REDIS_CLIENT.on("connect", () => {

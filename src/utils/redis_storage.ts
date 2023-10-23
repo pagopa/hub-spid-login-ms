@@ -1,4 +1,4 @@
-import { fromNullable, Option } from "fp-ts/lib/Option";
+import { Option } from "fp-ts/lib/Option";
 import * as redis from "redis";
 import { pipe } from "fp-ts/lib/function";
 import * as E from "fp-ts/lib/Either";
@@ -43,7 +43,7 @@ export const singleValueReplyAsync = (
     command,
     TE.map(value => {
       if (value && typeof value === "string") {
-        return fromNullable(value);
+        return O.some(value);
       }
       return O.none;
     })
@@ -66,20 +66,6 @@ export const integerReplyAsync = (expectedReply?: number) => (
       return TE.right(typeof reply === "number");
     })
   );
-
-export const falsyResponseToError = (
-  response: E.Either<Error, boolean>,
-  error: Error
-): E.Either<Error, true> => {
-  if (E.isLeft(response)) {
-    return E.left(response.left);
-  } else {
-    if (response.right) {
-      return E.right(true);
-    }
-    return E.left(error);
-  }
-};
 
 export const falsyResponseToErrorAsync = (error: Error) => (
   response: TE.TaskEither<Error, boolean>

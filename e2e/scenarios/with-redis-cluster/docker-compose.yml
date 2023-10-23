@@ -52,7 +52,6 @@ services:
     volumes:
       - redis-node-0-data:/bitnami/redis/data
     environment:
-      - 'REDIS_PASSWORD=bitnami'
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
 
   redis-node-1:
@@ -64,7 +63,6 @@ services:
     volumes:
       - redis-node-1-data:/bitnami/redis/data
     environment:
-      - 'REDIS_PASSWORD=bitnami'
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
 
   redis-node-2:
@@ -76,7 +74,6 @@ services:
     volumes:
       - redis-node-2-data:/bitnami/redis/data
     environment:
-      - 'REDIS_PASSWORD=bitnami'
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
 
   redis-node-3:
@@ -88,7 +85,6 @@ services:
     volumes:
       - redis-node-3-data:/bitnami/redis/data
     environment:
-      - 'REDIS_PASSWORD=bitnami'
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
 
   redis-cluster:
@@ -105,8 +101,7 @@ services:
       - redis-node-2
       - redis-node-3
     environment:
-      - 'REDIS_PASSWORD=bitnami'
-      - 'REDISCLI_AUTH=bitnami'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
       - 'REDIS_CLUSTER_CREATOR=yes'
   #

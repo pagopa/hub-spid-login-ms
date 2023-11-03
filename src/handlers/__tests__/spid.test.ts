@@ -244,11 +244,12 @@ describe("acs", () => {
     { ...company, organization_fiscal_code: "COMPANY2" }
   ] as UserCompanies;
 
-  const expectedPaylaod = {
+  const expectedPayloadBase = {
     spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
     fiscal_number: aFiscalCode,
     iss: aJwtIssuer,
-    aud: aJwtAudience
+    aud: aJwtAudience,
+    level: "L2"
   };
 
   it("should redirect correctly with a valid payload", async () => {
@@ -263,69 +264,40 @@ describe("acs", () => {
       `/success#token=${rawJwt}`
     );
     expect(decodedJwt?.payload).toMatchObject(
-      expect.objectContaining(expectedPaylaod)
+      expect.objectContaining(expectedPayloadBase)
     );
   });
 
-  it("should redirect correctly with a valid L2 payload containing company info, when one company has been found", async () => {
-    mockGetUserCompanies.mockImplementationOnce(() =>
-      TE.of([company] as UserCompanies)
-    );
+  it.each`
+    title                                                                       | companies    | expectedPayload                                       | expectedPath
+    ${"L2 payload containing company info, when one company has been found"}    | ${[company]} | ${{ ...expectedPayloadBase, company }}                | ${"/success"}
+    ${"L1 payload containing companies info, when more company has been found"} | ${companies} | ${{ ...expectedPayloadBase, level: "L1", companies }} | ${"/success/l1"}
+  `(
+    "should redirect correctly with a valid $title",
+    async ({ companies, expectedPayload, expectedPath }) => {
+      mockGetUserCompanies.mockImplementationOnce(() => TE.of(companies));
 
-    const configWithAdeMock = pipe(({
-      ...config,
-      ENABLE_ADE_AA: true
-    } as unknown) as IConfig);
-    const response = await getAcs(
-      configWithAdeMock,
-      mockRedisClient
-    )(aValidAcsPayload);
-    response.apply(aMockedResponse);
+      const response = await getAcs(
+        ({
+          ...config,
+          ENABLE_ADE_AA: true
+        } as any) as IConfig,
+        mockRedisClient
+      )(aValidAcsPayload);
+      response.apply(aMockedResponse);
 
-    const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
+      const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
 
-    expect(response.kind).toEqual("IResponsePermanentRedirect");
-    expect(aMockedResponse.redirect).toHaveBeenCalledWith(
-      301,
-      `/success#token=${rawJwt}`
-    );
-    expect(decodedJwt?.payload).toMatchObject(
-      expect.objectContaining({
-        ...expectedPaylaod,
-        level: "L2",
-        company
-      })
-    );
-  });
-
-  it("should redirect correctly with a valid L1 payload containing companies info, when more company has been found", async () => {
-    mockGetUserCompanies.mockImplementationOnce(() => TE.of(companies));
-
-    const configWithAdeMock = pipe(({
-      ...config,
-      ENABLE_ADE_AA: true
-    } as unknown) as IConfig);
-    const response = await getAcs(
-      configWithAdeMock,
-      mockRedisClient
-    )(aValidAcsPayload);
-    response.apply(aMockedResponse);
-
-    const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
-
-    expect(response.kind).toEqual("IResponsePermanentRedirect");
-    expect(aMockedResponse.redirect).toHaveBeenCalledWith(
-      301,
-      `/success/l1#token=${rawJwt}`
-    );
-    expect(decodedJwt?.payload).toMatchObject(
-      expect.objectContaining({
-        ...expectedPaylaod,
-        level: "L1",
-        companies
-      })
-    );
-  });
+      expect(response.kind).toEqual("IResponsePermanentRedirect");
+      expect(aMockedResponse.redirect).toHaveBeenCalledWith(
+        301,
+        `${expectedPath}#token=${rawJwt}`
+      );
+      expect(decodedJwt?.payload).toMatchObject(
+        expect.objectContaining(expectedPayload)
+      );
+    }
+  );
 });
 
 function getJwt(aMockedResponse: any) {

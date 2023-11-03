@@ -16,6 +16,7 @@ import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 import { ValidUrl } from "@pagopa/ts-commons/lib/url";
 import { ResponsePermanentRedirect } from "@pagopa/ts-commons/lib/responses";
 import { AssertionConsumerServiceT } from "@pagopa/io-spid-commons";
+import * as redis from "redis";
 import { SpidLogMsg } from "../types/access_log";
 import {
   AccessLogWriter,
@@ -143,9 +144,10 @@ export const accessLogHandler = (
 };
 
 export const getAcs: (
-  config: IConfig
+  config: IConfig,
+  redisClient: redis.RedisClientType | redis.RedisClusterType
 ) => // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-AssertionConsumerServiceT = config => async user =>
+AssertionConsumerServiceT<never> = (config, redisClient) => async user =>
   pipe(
     user,
     SpidUser.decode,
@@ -268,7 +270,7 @@ AssertionConsumerServiceT = config => async user =>
           ? toRequestId(user as Record<string, unknown>)
           : undefined;
       return pipe(
-        getGenerateToken(config)(tokenUser, requestId),
+        getGenerateToken(config, redisClient)(tokenUser, requestId),
         TE.mapLeft(toResponseErrorInternal)
       );
     }),

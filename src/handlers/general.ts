@@ -2,7 +2,7 @@ import * as express from "express";
 import { toError } from "fp-ts/lib/Either";
 
 import * as TE from "fp-ts/lib/TaskEither";
-import { RedisClient } from "redis";
+import * as redis from "redis";
 import { flow, pipe } from "fp-ts/lib/function";
 import { AdeAPIClient } from "../clients/ade";
 import { getConfigOrThrow } from "../utils/config";
@@ -11,13 +11,13 @@ import { pingTask } from "../utils/redis_storage";
 
 const config = getConfigOrThrow();
 
-export const getHealthcheckHandler = (redisClient: RedisClient) => (
-  _: express.Request,
-  res: express.Response
-): Promise<express.Response> =>
+export const getHealthcheckHandler = (
+  redisClient: redis.RedisClientType | redis.RedisClusterType
+) => (_: express.Request, res: express.Response): Promise<express.Response> =>
   // first ping for redis
   pipe(
-    pingTask(redisClient),
+    // TODO: Check if the casting will cause an error with RedisClusterType
+    pingTask(redisClient as redis.RedisClientType),
     TE.chain(() =>
       // if Attribute Authority is enabled check for service is up&running
       config.ENABLE_ADE_AA

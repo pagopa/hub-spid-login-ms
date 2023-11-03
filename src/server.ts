@@ -1,7 +1,10 @@
 import * as http from "http";
+import { pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/Either";
 import { createAppTask } from "./app";
 import { initAppInsights } from "./utils/appinsights";
 import { getConfigOrThrow } from "./utils/config";
+import { logger } from "./utils/logger";
 
 const config = getConfigOrThrow();
 const appInsights = initAppInsights(config.APPINSIGHTS_INSTRUMENTATIONKEY, {
@@ -13,15 +16,20 @@ appInsights.context.tags[appInsights.context.keys.cloudRole] =
   "hub-spid-login-ms";
 
 createAppTask()
-  .then(app => {
-    let server = http.createServer(app);
-    
-    server.keepAliveTimeout = 62 * 1000;
-    server.headersTimeout = 60 * 1000;
+  .then(errorOrApp => {
+    pipe(
+      errorOrApp,
+      E.map(app => {
+        const server = http.createServer(app);
+        // eslint-disable-next-line functional/immutable-data
+        server.keepAliveTimeout = 62 * 1000;
 
-    server.listen(config.SERVER_PORT);
-    // eslint-disable-next-line no-console
-    console.log(`Server listening at port ${config.SERVER_PORT}`);
+        server.listen(config.SERVER_PORT);
+        logger.info(`Server listening at port ${config.SERVER_PORT}`);
+      }),
+      E.mapLeft(error => {
+        logger.error(`Error starting the App: [${error}]`);
+      })
+    );
   })
-  // eslint-disable-next-line no-console
-  .catch(e => console.error("Application error: ", e));
+  .catch(e => logger.error("Application error: ", e));

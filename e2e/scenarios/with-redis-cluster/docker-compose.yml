@@ -1,0 +1,123 @@
+version: "2.2"
+
+services:
+  hub-spid-login:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    env_file:
+      - env.scenario
+    depends_on:
+      - redis-cluster
+      - spid-saml-check
+    expose:
+      - ${SERVER_PORT}
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    command: ["yarn", "start"]
+    volumes:
+      - "./res/certs:/usr/src/app/certs:ro"
+      # - "../../../:/usr/src/app/"
+    networks:
+      - spid-net
+
+  spid-saml-check:
+    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot
+    restart: unless-stopped
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    ports:
+      - ${SPID_DEMO_IDP_PORT}:${SPID_DEMO_IDP_PORT}
+    volumes:
+      - "./res/spidsamlcheck-conf:/spid-saml-check/spid-validator/config"
+      - "./res/hsl-conf:/data/bootstrap"
+    networks:
+      - spid-net
+
+  #
+  #                   __ __            __             __ 
+  #   .----.-----.--|  |__.-----.----|  .--.--.-----|  |_.-----.----.
+  #  |   _|  -__|  _  |  |__ --|  __|  |  |  |__ --|   _|  -__|   _|
+  # |__| |_____|_____|__|_____|____|__|_____|_____|____|_____|__|
+  #
+  #
+  redis-node-0:
+    image: docker.io/bitnami/redis-cluster:6.2
+    networks:
+      - spid-net
+    ports:
+      - 6380:6379
+    volumes:
+      - redis-node-0-data:/bitnami/redis/data
+    environment:
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+
+  redis-node-1:
+    image: docker.io/bitnami/redis-cluster:6.2
+    networks:
+      - spid-net
+    ports:
+      - 6381:6379
+    volumes:
+      - redis-node-1-data:/bitnami/redis/data
+    environment:
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+
+  redis-node-2:
+    image: docker.io/bitnami/redis-cluster:6.2
+    networks:
+      - spid-net
+    ports:
+      - 6382:6379
+    volumes:
+      - redis-node-2-data:/bitnami/redis/data
+    environment:
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+
+  redis-node-3:
+    image: docker.io/bitnami/redis-cluster:6.2
+    networks:
+      - spid-net
+    ports:
+      - 6383:6379
+    volumes:
+      - redis-node-3-data:/bitnami/redis/data
+    environment:
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+
+  redis-cluster:
+    image: docker.io/bitnami/redis-cluster:6.2
+    networks:
+      - spid-net
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-cluster-data:/bitnami/redis/data
+    depends_on:
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+    environment:
+      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'REDIS_CLUSTER_CREATOR=yes'
+  #
+  #
+  #
+  #
+
+networks:
+  spid-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
+
+volumes:
+  redis-node-0-data:
+  redis-node-1-data:
+  redis-node-2-data:
+  redis-node-3-data:
+  redis-cluster-data:

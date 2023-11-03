@@ -15,3 +15,5 @@ yarn-error.log
 # eslint section
 !.eslintrc.js
 .eslintcache
+# docker section
+docker-compose.override.yml

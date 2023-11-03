@@ -251,11 +251,7 @@ AssertionConsumerServiceT<never> = (config, redisClient) => async user =>
       logger.info("ACS | Companies length decision making");
       return tokenUser.from_aa
         ? tokenUser.companies.length === 1
-          ? pipe(
-              toTokenUserL2(tokenUser, tokenUser.companies[0]),
-              TE.fromEither,
-              TE.mapLeft(toResponseErrorInternal)
-            )
+          ? TE.of(toTokenUserL2(tokenUser, tokenUser.companies[0]))
           : TE.of(tokenUser as TokenUser | TokenUserL2)
         : pipe(
             TokenUserL2.decode({ ...tokenUser, level: "L2" }),

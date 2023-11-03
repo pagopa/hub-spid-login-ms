@@ -47,7 +47,7 @@ export const toCommonTokenUser = (
 };
 
 export const toTokenUserL2 = (
-  from: TokenUser,
+  from: TokenUser & { readonly from_aa: true },
   company: UserCompany
 ): E.Either<Error, TokenUserL2> =>
   pipe(
@@ -57,10 +57,13 @@ export const toTokenUserL2 = (
       family_name: from.family_name,
       fiscal_number: from.fiscal_number,
       from_aa: from.from_aa,
+      level: "L2",
       mobile_phone: from.mobile_phone,
-      name: from.name
+      name: from.name,
+      spid_level: from.spid_level
     },
-    TokenUserL2.decode,
+    // raise error at compile time if new properties have been added to the model
+    (token: TokenUserL2) => TokenUserL2.decode(token),
     E.mapLeft(errorsToError)
   );
 

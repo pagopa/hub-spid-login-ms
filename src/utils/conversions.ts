@@ -47,22 +47,19 @@ export const toCommonTokenUser = (
 };
 
 export const toTokenUserL2 = (
-  from: TokenUser,
+  from: TokenUser & { readonly from_aa: true },
   company: UserCompany
-): E.Either<Error, TokenUserL2> =>
-  pipe(
-    {
-      company,
-      email: from.email,
-      family_name: from.family_name,
-      fiscal_number: from.fiscal_number,
-      from_aa: from.from_aa,
-      mobile_phone: from.mobile_phone,
-      name: from.name
-    },
-    TokenUserL2.decode,
-    E.mapLeft(errorsToError)
-  );
+): TokenUserL2 => ({
+  company,
+  email: from.email,
+  family_name: from.family_name,
+  fiscal_number: from.fiscal_number,
+  from_aa: from.from_aa,
+  level: "L2",
+  mobile_phone: from.mobile_phone,
+  name: from.name,
+  spid_level: from.spid_level
+});
 
 export const toResponseErrorInternal = (err: Error): IResponseErrorInternal =>
   ResponseErrorInternal(err.message);

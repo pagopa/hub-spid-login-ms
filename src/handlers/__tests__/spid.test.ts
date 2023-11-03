@@ -32,6 +32,13 @@ import { SpidLevelEnum } from "../../utils/spid";
 import * as jwt from "jsonwebtoken";
 import * as redis from "redis";
 
+import * as attribute_authority from "../../utils/attribute_authority";
+import { UserCompanies } from "../../types/user";
+const mockGetUserCompanies = jest.spyOn(
+  attribute_authority,
+  "getUserCompanies"
+);
+
 // Mock logger to spy error
 const spiedLoggerError = jest.spyOn(logger, "error");
 // Mock an express request and response
@@ -199,44 +206,57 @@ describe("acs", () => {
     jest.clearAllMocks();
   });
 
+  const { privateKey } = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+      type: "spki",
+      format: "pem"
+    },
+    privateKeyEncoding: {
+      type: "pkcs8",
+      format: "pem"
+    }
+  });
+  const aJwtAudience = "https://localhost";
+  const aJwtIssuer = "SPID";
+  const aJwtKeyId = "key-id-for-your-jwt-key";
+  const config = pipe(({
+    ...process.env,
+    ENABLE_JWT: true,
+    ENABLE_USER_REGISTRY: false,
+    ENABLE_SPID_ACCESS_LOGS: false,
+    ENABLE_ADE_AA: false,
+    REDIS_TLS_ENABLED: false,
+    JWT_TOKEN_ISSUER: aJwtIssuer,
+    JWT_TOKEN_AUDIENCE: aJwtAudience,
+    JWT_TOKEN_PRIVATE_KEY: privateKey,
+    JWT_TOKEN_KID: aJwtKeyId
+  } as unknown) as IConfig);
+
+  const company = {
+    email: "company1@email.it",
+    organization_fiscal_code: "COMPANY1",
+    organization_name: "Org name 1"
+  };
+
+  const companies = [
+    company,
+    { ...company, organization_fiscal_code: "COMPANY2" }
+  ] as UserCompanies;
+
+  const expectedPayloadBase = {
+    spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
+    fiscal_number: aFiscalCode,
+    iss: aJwtIssuer,
+    aud: aJwtAudience,
+    level: "L2"
+  };
+
   it("should redirect correctly with a valid payload", async () => {
-    const { privateKey } = crypto.generateKeyPairSync("rsa", {
-      modulusLength: 2048,
-      publicKeyEncoding: {
-        type: "spki",
-        format: "pem"
-      },
-      privateKeyEncoding: {
-        type: "pkcs8",
-        format: "pem"
-      }
-    });
-    const aJwtAudience = "https://localhost";
-    const aJwtIssuer = "SPID";
-    const aJwtKeyId = "key-id-for-your-jwt-key";
-    const config = pipe(({
-      ...process.env,
-      ENABLE_JWT: true,
-      ENABLE_USER_REGISTRY: false,
-      ENABLE_SPID_ACCESS_LOGS: false,
-      ENABLE_ADE_AA: false,
-      REDIS_TLS_ENABLED: false,
-      JWT_TOKEN_ISSUER: aJwtIssuer,
-      JWT_TOKEN_AUDIENCE: aJwtAudience,
-      JWT_TOKEN_PRIVATE_KEY: privateKey,
-      JWT_TOKEN_KID: aJwtKeyId
-    } as unknown) as IConfig);
     const response = await getAcs(config, mockRedisClient)(aValidAcsPayload);
     response.apply(aMockedResponse);
 
-    const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
-      /^.*\#token\=/,
-      ""
-    );
-
-    const decodedJwt = jwt.decode(rawJwt, {
-      complete: true
-    });
+    const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
 
     expect(response.kind).toEqual("IResponsePermanentRedirect");
     expect(aMockedResponse.redirect).toHaveBeenCalledWith(
@@ -244,12 +264,50 @@ describe("acs", () => {
       `/success#token=${rawJwt}`
     );
     expect(decodedJwt?.payload).toMatchObject(
-      expect.objectContaining({
-        spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
-        fiscal_number: aFiscalCode,
-        iss: aJwtIssuer,
-        aud: aJwtAudience
-      })
+      expect.objectContaining(expectedPayloadBase)
     );
   });
+
+  it.each`
+    title                                                                       | companies    | expectedPayload                                       | expectedPath
+    ${"L2 payload containing company info, when one company has been found"}    | ${[company]} | ${{ ...expectedPayloadBase, company }}                | ${"/success"}
+    ${"L1 payload containing companies info, when more company has been found"} | ${companies} | ${{ ...expectedPayloadBase, level: "L1", companies }} | ${"/success/l1"}
+  `(
+    "should redirect correctly with a valid $title",
+    async ({ companies, expectedPayload, expectedPath }) => {
+      mockGetUserCompanies.mockImplementationOnce(() => TE.of(companies));
+
+      const response = await getAcs(
+        ({
+          ...config,
+          ENABLE_ADE_AA: true
+        } as any) as IConfig,
+        mockRedisClient
+      )(aValidAcsPayload);
+      response.apply(aMockedResponse);
+
+      const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
+
+      expect(response.kind).toEqual("IResponsePermanentRedirect");
+      expect(aMockedResponse.redirect).toHaveBeenCalledWith(
+        301,
+        `${expectedPath}#token=${rawJwt}`
+      );
+      expect(decodedJwt?.payload).toMatchObject(
+        expect.objectContaining(expectedPayload)
+      );
+    }
+  );
 });
+
+function getJwt(aMockedResponse: any) {
+  const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
+    /^.*\#token\=/,
+    ""
+  );
+
+  const decodedJwt = jwt.decode(rawJwt, {
+    complete: true
+  });
+  return { rawJwt, decodedJwt };
+}

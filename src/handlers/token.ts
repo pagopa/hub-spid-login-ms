@@ -294,16 +294,9 @@ export const upgradeTokenHandler = (
                   e => e.organization_fiscal_code === organizationFiscalCode
                 ),
                 O.fromNullable,
-                O.fold(
+                O.foldW(
                   () => TE.left(res.status(404).json("Organization Not Found")),
-                  _ =>
-                    pipe(
-                      toTokenUserL2(tokenUser, _),
-                      TE.fromEither,
-                      TE.mapLeft(() =>
-                        res.status(500).json("Error decoding L2 Token")
-                      )
-                    )
+                  _ => pipe(toTokenUserL2(tokenUser, _), TE.of)
                 )
               )
             : TE.left(

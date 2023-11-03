@@ -233,18 +233,29 @@ describe("acs", () => {
     JWT_TOKEN_KID: aJwtKeyId
   } as unknown) as IConfig);
 
+  const company = {
+    email: "company1@email.it",
+    organization_fiscal_code: "COMPANY1",
+    organization_name: "Org name 1"
+  };
+
+  const companies = [
+    company,
+    { ...company, organization_fiscal_code: "COMPANY2" }
+  ] as UserCompanies;
+
+  const expectedPaylaod = {
+    spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
+    fiscal_number: aFiscalCode,
+    iss: aJwtIssuer,
+    aud: aJwtAudience
+  };
+
   it("should redirect correctly with a valid payload", async () => {
     const response = await getAcs(config, mockRedisClient)(aValidAcsPayload);
     response.apply(aMockedResponse);
 
-    const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
-      /^.*\#token\=/,
-      ""
-    );
-
-    const decodedJwt = jwt.decode(rawJwt, {
-      complete: true
-    });
+    const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
 
     expect(response.kind).toEqual("IResponsePermanentRedirect");
     expect(aMockedResponse.redirect).toHaveBeenCalledWith(
@@ -252,20 +263,9 @@ describe("acs", () => {
       `/success#token=${rawJwt}`
     );
     expect(decodedJwt?.payload).toMatchObject(
-      expect.objectContaining({
-        spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
-        fiscal_number: aFiscalCode,
-        iss: aJwtIssuer,
-        aud: aJwtAudience
-      })
+      expect.objectContaining(expectedPaylaod)
     );
   });
-
-  const company = {
-    email: "company1@email.it",
-    organization_fiscal_code: "COMPANY1",
-    organization_name: "Org name 1"
-  };
 
   it("should redirect correctly with a valid L2 payload containing company info, when one company has been found", async () => {
     mockGetUserCompanies.mockImplementationOnce(() =>
@@ -282,14 +282,7 @@ describe("acs", () => {
     )(aValidAcsPayload);
     response.apply(aMockedResponse);
 
-    const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
-      /^.*\#token\=/,
-      ""
-    );
-
-    const decodedJwt = jwt.decode(rawJwt, {
-      complete: true
-    });
+    const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
 
     expect(response.kind).toEqual("IResponsePermanentRedirect");
     expect(aMockedResponse.redirect).toHaveBeenCalledWith(
@@ -298,10 +291,7 @@ describe("acs", () => {
     );
     expect(decodedJwt?.payload).toMatchObject(
       expect.objectContaining({
-        spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
-        fiscal_number: aFiscalCode,
-        iss: aJwtIssuer,
-        aud: aJwtAudience,
+        ...expectedPaylaod,
         level: "L2",
         company
       })
@@ -309,10 +299,6 @@ describe("acs", () => {
   });
 
   it("should redirect correctly with a valid L1 payload containing companies info, when more company has been found", async () => {
-    const companies = [
-      company,
-      { ...company, organization_fiscal_code: "COMPANY2" }
-    ] as UserCompanies;
     mockGetUserCompanies.mockImplementationOnce(() => TE.of(companies));
 
     const configWithAdeMock = pipe(({
@@ -325,14 +311,7 @@ describe("acs", () => {
     )(aValidAcsPayload);
     response.apply(aMockedResponse);
 
-    const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
-      /^.*\#token\=/,
-      ""
-    );
-
-    const decodedJwt = jwt.decode(rawJwt, {
-      complete: true
-    });
+    const { rawJwt, decodedJwt } = getJwt(aMockedResponse);
 
     expect(response.kind).toEqual("IResponsePermanentRedirect");
     expect(aMockedResponse.redirect).toHaveBeenCalledWith(
@@ -341,13 +320,22 @@ describe("acs", () => {
     );
     expect(decodedJwt?.payload).toMatchObject(
       expect.objectContaining({
-        spid_level: SpidLevelEnum["https://www.spid.gov.it/SpidL2"],
-        fiscal_number: aFiscalCode,
-        iss: aJwtIssuer,
-        aud: aJwtAudience,
+        ...expectedPaylaod,
         level: "L1",
         companies
       })
     );
   });
 });
+
+function getJwt(aMockedResponse: any) {
+  const rawJwt = aMockedResponse.redirect.mock.calls[0][1].replace(
+    /^.*\#token\=/,
+    ""
+  );
+
+  const decodedJwt = jwt.decode(rawJwt, {
+    complete: true
+  });
+  return { rawJwt, decodedJwt };
+}

@@ -20,7 +20,11 @@ createAppTask()
     pipe(
       errorOrApp,
       E.map(app => {
-        http.createServer(app).listen(config.SERVER_PORT);
+        const server = http.createServer(app);
+        // eslint-disable-next-line functional/immutable-data
+        server.keepAliveTimeout = 62 * 1000;
+
+        server.listen(config.SERVER_PORT);
         logger.info(`Server listening at port ${config.SERVER_PORT}`);
       }),
       E.mapLeft(error => {

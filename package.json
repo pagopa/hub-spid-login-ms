@@ -1,6 +1,6 @@
 {
   "name": "@italia/spid-express",
-  "version": "5.3.1",
+  "version": "5.3.2",
   "description": "SPID (Italian Public Digital Identity System) middleware for Express",
   "repository": {
     "type": "git",

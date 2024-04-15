@@ -1915,10 +1915,10 @@
     eslint-plugin-sonarjs "^0.5.0"
     prettier "^2.1.2"
 
-"@pagopa/io-spid-commons@^13.2.2":
-  version "13.2.2"
-  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-13.2.2.tgz#55c233abd70d3d49ea6d3e58864211803df7afcb"
-  integrity sha512-IzcIy5KBFB58aBh7yd+Qyoek0IG+YVNpZycpU1KeIZ53EgW6YPB9yIFGXziNtJY3z38V+3J0XL/b2Yn6bMTrDQ==
+"@pagopa/io-spid-commons@^13.4.0":
+  version "13.4.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/io-spid-commons/-/io-spid-commons-13.4.0.tgz#ed487b5e53942d6173dff38e7d943c8045f50a71"
+  integrity sha512-yoQla62zx2/w6kF/A+T32C+dMH82AEuiXstutNRpY8pA9kcWOAXOelmVSQWXE4zzNZzG0MMsR7yo6CJha7INpA==
   dependencies:
     "@pagopa/ts-commons" "^12.0.0"
     "@xmldom/xmldom" "^0.8.7"
@@ -7378,7 +7378,7 @@ rechoir@^0.6.2:
   dependencies:
     resolve "^1.1.6"
 
-redis@4.5.1, redis@^4.5.1:
+redis@^4.5.1:
   version "4.5.1"
   resolved "https://registry.yarnpkg.com/redis/-/redis-4.5.1.tgz#f5a818970bb2dc5d60540bab41308640604c7d33"
   integrity sha512-oxXSoIqMJCQVBTfxP6BNTCtDMyh9G6Vi5wjdPdV/sRKkufyZslDqCScSGcOr6XGR/reAWZefz7E4leM31RgdBA==

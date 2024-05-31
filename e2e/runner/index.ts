@@ -17,7 +17,8 @@ const dockerCmd = (name: string): string =>
 const testCmdForScenario = (name: string): string =>
   `node ${JEST_BIN_PATH} --config ${JEST_CONFIG_PATH} --roots ${SCENARIOS_ROOT_PATH}/${name} --forceExit`;
 
-const setupCmdForScenario = (name: string): string => `${dockerCmd(name)} up`;
+const setupCmdForScenario = (name: string): string =>
+  `${dockerCmd(name)} up ${DEBUG ? "" : "-d"}`;
 
 const teardownCmdForScenario = (name: string): string =>
   `${dockerCmd(name)} down`;

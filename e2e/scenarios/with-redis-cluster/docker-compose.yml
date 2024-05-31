@@ -53,6 +53,7 @@ services:
       - redis-node-0-data:/bitnami/redis/data
     environment:
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-1:
     image: docker.io/bitnami/redis-cluster:6.2
@@ -64,6 +65,7 @@ services:
       - redis-node-1-data:/bitnami/redis/data
     environment:
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-2:
     image: docker.io/bitnami/redis-cluster:6.2
@@ -75,6 +77,7 @@ services:
       - redis-node-2-data:/bitnami/redis/data
     environment:
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-3:
     image: docker.io/bitnami/redis-cluster:6.2
@@ -86,6 +89,7 @@ services:
       - redis-node-3-data:/bitnami/redis/data
     environment:
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-cluster:
     image: docker.io/bitnami/redis-cluster:6.2

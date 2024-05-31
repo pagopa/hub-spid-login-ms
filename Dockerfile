@@ -21,7 +21,7 @@ LABEL maintainer="https://pagopa.it"
 LABEL org.opencontainers.image.source https://github.com/$OWNER/$REPO
 
 RUN addgroup -S nonroot \
-    && adduser -S nonroot -G nonroot
+  && adduser -S nonroot -G nonroot
 
 WORKDIR /usr/src/app
 
@@ -33,4 +33,3 @@ COPY --from=builder /usr/src/build/node_modules /usr/src/app/node_modules
 USER nonroot
 
 EXPOSE 9090
-ENTRYPOINT ["node", "dist/src/server.js"]

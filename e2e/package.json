@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/runner/index.js"
+    "start": "DEBUG=1 node dist/runner/index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.121.0",

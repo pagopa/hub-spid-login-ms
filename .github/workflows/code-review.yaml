@@ -58,6 +58,16 @@ jobs:
         with:
           node-version-file: '.node-version'
 
+      # Building the main project is required to execute e2e tests.
+      # for reference, the current Dockerfile copies most of the assets 
+      # produced by the build steps
+      - name: Build the main project
+        run: |
+          yarn install --frozen-lockfile
+          # prebuild script includes generate steps
+          yarn build
+        shell: bash
+
       - name: Install dependencies for e2e tests
         run: |
           cd e2e

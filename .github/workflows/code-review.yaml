@@ -9,7 +9,7 @@ on:
       - package.json
       - openapi/**
       - src/**
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   code_review:
@@ -18,23 +18,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
-        with:
-          node-version-file: '.node-version'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-        shell: bash
-
       - name: Build the project
-        run: |
-          yarn generate
-          yarn build
-        shell: bash
+        uses: ./.github/actions/build-project
 
       - name: Lint
         run: yarn lint
@@ -50,23 +35,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
-        with:
-          node-version-file: '.node-version'
-
       # Building the main project is required to execute e2e tests.
       # for reference, the current Dockerfile copies most of the assets 
       # produced by the build steps
-      - name: Build the main project
-        run: |
-          yarn install --frozen-lockfile
-          # prebuild script includes generate steps
-          yarn build
-        shell: bash
+      - name: Build the project
+        # prebuild script includes generate steps
+        uses: ./.github/actions/build-project
 
       - name: Install dependencies for e2e tests
         run: |

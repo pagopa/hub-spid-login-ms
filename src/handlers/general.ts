@@ -16,7 +16,7 @@ export const getHealthcheckHandler = (
 ) => (_: express.Request, res: express.Response): Promise<express.Response> =>
   // first ping for redis
   pipe(
-    incrTask(redisClient as redis.RedisClientType),
+    incrTask(redisClient),
     TE.chain(() =>
       // if Attribute Authority is enabled check for service is up&running
       config.ENABLE_ADE_AA

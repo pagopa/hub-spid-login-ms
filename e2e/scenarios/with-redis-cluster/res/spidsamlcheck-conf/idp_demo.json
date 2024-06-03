@@ -1,7 +1,7 @@
 {
 	"enabled": true,
 	"basepath": "/demo",
-	"entityID": "http://spid-saml-check:8088/demo",
+	"entityID": "http://spid-saml-check:8089/demo",
 	"signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
 	"credentials": [
 		{

@@ -1,6 +1,6 @@
 {
-  "host": "http://localhost:8088",
-  "port": 8088,
+  "host": "http://localhost:8089",
+  "port": 8089,
   "useProxy": true,
   "useHttps": false
 }

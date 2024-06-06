@@ -134,10 +134,10 @@ export const existsKeyTask = (
     integerReplyAsync(1)
   );
 
-export const pingTask = (
-  redisClient: redis.RedisClientType
+export const incrTask = (
+  redisClient: redis.RedisClientType | redis.RedisClusterType
 ): TE.TaskEither<Error, boolean> =>
   pipe(
-    TE.tryCatch(() => redisClient.ping(), E.toError),
-    givenStringReplyAsync("PONG")
+    TE.tryCatch(() => redisClient.incr("dummy"), E.toError),
+    integerReplyAsync()
   );

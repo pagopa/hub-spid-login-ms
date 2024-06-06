@@ -10,8 +10,10 @@ services:
     env_file:
       - env.scenario
     depends_on:
-      - redis-cluster
-      - spid-saml-check
+      redis-cluster:
+        condition: service_healthy
+      spid-saml-check:
+        condition: service_started
     expose:
       - ${SERVER_PORT}
     ports:
@@ -52,7 +54,8 @@ services:
     volumes:
       - redis-node-0-data:/bitnami/redis/data
     environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-1:
     image: docker.io/bitnami/redis-cluster:6.2
@@ -63,7 +66,8 @@ services:
     volumes:
       - redis-node-1-data:/bitnami/redis/data
     environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-2:
     image: docker.io/bitnami/redis-cluster:6.2
@@ -74,7 +78,8 @@ services:
     volumes:
       - redis-node-2-data:/bitnami/redis/data
     environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-3:
     image: docker.io/bitnami/redis-cluster:6.2
@@ -85,7 +90,20 @@ services:
     volumes:
       - redis-node-3-data:/bitnami/redis/data
     environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
+
+  redis-node-4:
+    image: docker.io/bitnami/redis-cluster:6.2
+    networks:
+      - spid-net
+    ports:
+      - 6384:6379
+    volumes:
+      - redis-node-4-data:/bitnami/redis/data
+    environment:
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
+      - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-cluster:
     image: docker.io/bitnami/redis-cluster:6.2
@@ -93,16 +111,22 @@ services:
       - spid-net
     ports:
       - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "-c", "--raw", "incr", "foo"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
     volumes:
       - redis-cluster-data:/bitnami/redis/data
     depends_on:
       - redis-node-0
       - redis-node-1
       - redis-node-2
-      - redis-node-3
+      - redis-node-3 
+      - redis-node-4
     environment:
       - 'ALLOW_EMPTY_PASSWORD=yes'
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3'
+      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
       - 'REDIS_CLUSTER_CREATOR=yes'
   #
   #
@@ -120,4 +144,5 @@ volumes:
   redis-node-1-data:
   redis-node-2-data:
   redis-node-3-data:
+  redis-node-4-data:
   redis-cluster-data:

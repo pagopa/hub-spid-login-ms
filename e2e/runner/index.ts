@@ -32,7 +32,7 @@ const runProcess = (sh: string): ChildProcess => {
 const promisifyProcess = (cp: ChildProcess): Promise<ProcessResult> =>
   new Promise(async (resolve, reject) =>
     cp
-      .on("exit", (code) => {
+      .on("exit", code => {
         resolve(code === 0 ? "ok" : "ko");
       })
       .on("error", reject)
@@ -53,7 +53,7 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   try {
     await promisifyProcess(runProcess(setupCmdForScenario(name)));
 
-    await new Promise((ok) => setTimeout(ok, 5000));
+    await new Promise(ok => setTimeout(ok, 5000));
 
     const result = await promisifyProcess(runProcess(testCmdForScenario(name)));
 
@@ -77,7 +77,7 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
 
   // scenario may be filtered if are provided in input
   const selectedScenarios = inputScenarios.length
-    ? scenarios.filter((e) => inputScenarios.includes(e))
+    ? scenarios.filter(e => inputScenarios.includes(e))
     : scenarios;
 
   // create child process for each scenario
@@ -103,11 +103,11 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   if (computedResult === "ok") return;
   else throw new Error("at least one test scenario failed");
 })(process.argv.slice(2))
-  .then((_) => {
+  .then(_ => {
     console.log("All test scenarios succeeded");
     process.exit(0);
   })
-  .catch((e) => {
+  .catch(e => {
     console.error(e);
     process.exit(1);
   });

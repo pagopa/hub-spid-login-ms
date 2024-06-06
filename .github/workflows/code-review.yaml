@@ -1,0 +1,62 @@
+name: "Continuous Integration"
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+    paths:
+      - .github/workflows/code-review.yaml
+      - e2e/**
+      - package.json
+      - openapi/**
+      - src/**
+  workflow_dispatch:
+
+jobs:
+  code_review:
+    name: Run linting, build and unit tests
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+
+      - name: Build the project
+        uses: ./.github/actions/build-project
+
+      - name: Lint
+        run: yarn lint
+        shell: bash
+
+      - name: Unit Tests
+        run: yarn test:coverage
+        shell: bash
+
+  integration_tests:
+    name: E2E Tests
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+
+      # Building the main project is required to execute e2e tests.
+      # for reference, the current Dockerfile copies most of the assets 
+      # produced by the build steps
+      - name: Build the project
+        # prebuild script includes generate steps
+        uses: ./.github/actions/build-project
+
+      - name: Install dependencies for e2e tests
+        run: |
+          cd e2e
+          yarn install --frozen-lockfile
+        shell: bash
+
+      - name: Run e2e tests
+        run: |
+          cd e2e
+          yarn build
+          yarn start
+        shell: bash

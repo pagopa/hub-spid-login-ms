@@ -14,6 +14,7 @@ export const withBrowser = (puppeteer: any, showBrowser: boolean) => async <T>(
   const browser = await puppeteer.launch({
     headless: !showBrowser,
     ignoreHTTPSErrors: true,
+    args: ["--no-sandbox"],
   });
 
   try {

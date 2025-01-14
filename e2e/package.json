@@ -12,7 +12,7 @@
     "@aws-sdk/client-s3": "^3.121.0",
     "@types/jest": "27",
     "@types/jest-environment-puppeteer": "^5.0.2",
-    "@types/node": "18.13.0",
+    "@types/node": "20.12.14",
     "@types/node-fetch": "^2.1.2",
     "aws-sdk": "^2.1158.0",
     "jest": "27",

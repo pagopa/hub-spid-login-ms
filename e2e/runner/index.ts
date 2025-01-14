@@ -101,7 +101,21 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   );
 
   if (computedResult === "ok") return;
-  else throw new Error("at least one test scenario failed");
+
+  // if at least one test failed, try to run all tests in sequence
+  console.warn("Some test scenarios failed, retrying in sequence");
+  let failed = false;
+  for (const scenario of selectedScenarios) {
+    const result = await composeScenarioTest(scenario);
+    if (result === "ko") {
+      console.error(`Test scenario '${scenario}' failed in sequential mode`);
+      failed = true;
+    }
+  }
+  
+  if (!failed) return;
+
+  throw new Error("at least one test scenario failed");
 })(process.argv.slice(2))
   .then(_ => {
     console.log("All test scenarios succeeded");

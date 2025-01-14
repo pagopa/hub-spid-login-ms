@@ -63,6 +63,7 @@ describe("Basic with redis cluster", () => {
       .catch(err => new Error(err));
 
     expect(result).not.toBeInstanceOf(Error);
+    console.log("Healthcheck result", result);
     expect(result).toStrictEqual("OK");
   });
 });

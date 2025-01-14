@@ -102,6 +102,11 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
 
   if (computedResult === "ok") return;
 
+  // if only one test was selected, throw an error
+  if (selectedScenarios.length === 1) { 
+    throw new Error(`Test scenario '${selectedScenarios[0]}' failed`);
+  }
+
   // if at least one test failed, try to run all tests in sequence
   console.warn("Some test scenarios failed, retrying in sequence");
   let failed = false;

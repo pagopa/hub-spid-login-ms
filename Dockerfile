@@ -33,3 +33,4 @@ COPY --from=builder /usr/src/build/node_modules /usr/src/app/node_modules
 USER nonroot
 
 EXPOSE 9090
+ENTRYPOINT ["node", "dist/src/server.js"]

@@ -80,47 +80,18 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
     ? scenarios.filter(e => inputScenarios.includes(e))
     : scenarios;
 
-  // create child process for each scenario
-  const runs = selectedScenarios.map(composeScenarioTest);
-
-  // collect results from each run
-  const results = await Promise.allSettled(runs);
-
-  // merge all results into a single result
-  const computedResult = results.reduce(
-    (p, e) =>
-      // if at least one test is failed, the whole test suite fails
-      p === "ko"
-        ? "ko"
-        : // if any test has an unexpected error, the whole test suite fails
-        e.status === "rejected"
-        ? "ko"
-        : // the result for the current test is passed to the computation
-          e.value,
-    "ok" as ProcessResult
-  );
-
-  if (computedResult === "ok") return;
-
-  // if only one test was selected, throw an error
-  if (selectedScenarios.length === 1) { 
-    throw new Error(`Test scenario '${selectedScenarios[0]}' failed`);
-  }
-
-  // if at least one test failed, try to run all tests in sequence
-  console.warn("Some test scenarios failed, retrying in sequence");
   let failed = false;
   for (const scenario of selectedScenarios) {
     const result = await composeScenarioTest(scenario);
     if (result === "ko") {
-      console.error(`Test scenario '${scenario}' failed in sequential mode`);
+      console.error(`Test scenario '${scenario}' failed`);
       failed = true;
     }
   }
   
   if (!failed) return;
 
-  throw new Error("at least one test scenario failed");
+  throw new Error("At least one test scenario failed");
 })(process.argv.slice(2))
   .then(_ => {
     console.log("All test scenarios succeeded");

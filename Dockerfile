@@ -1,4 +1,4 @@
-ARG NODE_VERSION=18.13.0
+ARG NODE_VERSION=20.12.2
 ARG OWNER=pagopa
 ARG REPO=repo
 
@@ -33,3 +33,4 @@ COPY --from=builder /usr/src/build/node_modules /usr/src/app/node_modules
 USER nonroot
 
 EXPOSE 9090
+ENTRYPOINT ["node", "dist/src/server.js"]

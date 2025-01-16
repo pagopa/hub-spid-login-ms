@@ -108,7 +108,7 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   }
 
   // if at least one test failed, try to run all tests in sequence
-  console.warn("Some test scenarios failed, retrying in sequence");
+  console.warn(`\n========== Some test scenarios failed, retrying in sequence ==========\n`);
   let failed = false;
   for (const scenario of selectedScenarios) {
     const result = await composeScenarioTest(scenario);
@@ -120,7 +120,7 @@ const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   
   if (!failed) return;
 
-  throw new Error("at least one test scenario failed");
+  throw new Error("At least one test scenario failed");
 })(process.argv.slice(2))
   .then(_ => {
     console.log("All test scenarios succeeded");

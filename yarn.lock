@@ -2393,6 +2393,11 @@
     "@typescript-eslint/types" "4.33.0"
     eslint-visitor-keys "^2.0.0"
 
+"@xmldom/xmldom@^0.7.9":
+  version "0.7.13"
+  resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.7.13.tgz#ff34942667a4e19a9f4a0996a76814daac364cf3"
+  integrity sha512-lm2GW5PkosIzccsaZIz7tp8cPADSIlIHWDFTR1N0SzfinhhYgeIQjFMz4rYzanCScr3DqQLeomUDArp6MWKm+g==
+
 "@xmldom/xmldom@^0.8.7":
   version "0.8.10"
   resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.8.10.tgz#a1337ca426aa61cef9fe15b5b28e340a72f6fa99"
@@ -8970,6 +8975,14 @@ xml-crypto@^1.4.0:
     xmldom "0.1.27"
     xpath "0.0.27"
 
+xml-crypto@^2.0.0:
+  version "2.1.5"
+  resolved "https://registry.yarnpkg.com/xml-crypto/-/xml-crypto-2.1.5.tgz#e201ee51dca18dd9ae158ac101b6e995c983dca8"
+  integrity sha512-xOSJmGFm+BTXmaPYk8pPV3duKo6hJuZ5niN4uMzoNcTlwYs0jAu/N3qY+ud9MhE4N7eMRuC1ayC7Yhmb7MmAWg==
+  dependencies:
+    "@xmldom/xmldom" "^0.7.9"
+    xpath "0.0.32"
+
 xml-encryption@1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/xml-encryption/-/xml-encryption-1.2.1.tgz#e6d18817c4309fd07ca7793cca93c3fd06745baa"
@@ -9029,6 +9042,11 @@ xpath@0.0.27:
   version "0.0.27"
   resolved "https://registry.yarnpkg.com/xpath/-/xpath-0.0.27.tgz#dd3421fbdcc5646ac32c48531b4d7e9d0c2cfa92"
   integrity sha512-fg03WRxtkCV6ohClePNAECYsmpKKTv5L8y/X3Dn1hQrec3POx2jHZ/0P2qQ6HvsrU1BmeqXcof3NGGueG6LxwQ==
+
+xpath@0.0.32:
+  version "0.0.32"
+  resolved "https://registry.yarnpkg.com/xpath/-/xpath-0.0.32.tgz#1b73d3351af736e17ec078d6da4b8175405c48af"
+  integrity sha512-rxMJhSIoiO8vXcWvSifKqhvV96GjiD5wYb8/QHdoRyQvraTpp4IEv944nhGausZZ3u7dhQXteZuZbaqfpB7uYw==
 
 y18n@^4.0.0:
   version "4.0.3"

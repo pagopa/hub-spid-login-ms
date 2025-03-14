@@ -13,9 +13,9 @@ import * as appInsights from "applicationinsights";
  * - Realtime API metrics
  */
 export const initAppInsights = (
-  instrumentationKey: string,
+  connectionString: string,
   config: ApplicationInsightsConfig = {}
 ): appInsights.TelemetryClient => {
-  startAppInsights(instrumentationKey, config);
+  startAppInsights(connectionString, config);
   return appInsights.defaultClient;
 };

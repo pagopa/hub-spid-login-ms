@@ -1,10 +1,10 @@
 import * as t from "io-ts";
 // eslint-disable-next-line import/no-internal-modules
-import { createNonEmptyArrayFromArray } from "io-ts-types/lib/fp-ts/createNonEmptyArrayFromArray";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { nonEmptyArray } from "io-ts-types";
 
 export const IDPEntityDescriptor = t.interface({
-  cert: createNonEmptyArrayFromArray(NonEmptyString),
+  cert: nonEmptyArray(NonEmptyString),
 
   entityID: t.string,
 

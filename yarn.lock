@@ -2085,37 +2085,7 @@
     write-yaml-file "^4.1.3"
     yargs "^15.0.1"
 
-"@pagopa/ts-commons@^10.3.0":
-  version "10.4.0"
-  resolved "https://registry.yarnpkg.com/@pagopa/ts-commons/-/ts-commons-10.4.0.tgz#a422295e24735cfba26b744b055f90f718fd9aef"
-  integrity sha512-4/qbF+WjyjYJqMG8otj3qBwGe4g4DqZ8haou1GkuC4cYog6Yv+BfQT7TbV+dNsTGYbuc6QRw0eHXBPvbjpD7dw==
-  dependencies:
-    abort-controller "^3.0.0"
-    agentkeepalive "^4.1.4"
-    applicationinsights "^1.8.10"
-    fp-ts "^2.11.0"
-    io-ts "^2.2.16"
-    json-set-map "^1.1.2"
-    node-fetch "^2.6.0"
-    validator "^13.7.0"
-
-"@pagopa/ts-commons@^12.0.0":
-  version "12.0.0"
-  resolved "https://registry.yarnpkg.com/@pagopa/ts-commons/-/ts-commons-12.0.0.tgz#913ef473f15df9fd594e51394bf12d17a72d6f29"
-  integrity sha512-h+RlSWBgBld/ij1rePH0oGaxYm097dUiIwxxhQwD2AVz9iMpeVPzbneoOzKt4Irwra8+IcSOExEX4rW15xyggQ==
-  dependencies:
-    abort-controller "^3.0.0"
-    agentkeepalive "^4.1.4"
-    applicationinsights "^1.8.10"
-    fp-ts "2.14.0"
-    io-ts "2.2.20"
-    jose "^4.11.2"
-    json-set-map "^1.1.2"
-    node-fetch "^2.6.0"
-    semver "^7.3.7"
-    validator "^13.7.0"
-
-"@pagopa/ts-commons@^13.1.0":
+"@pagopa/ts-commons@13.1.2", "@pagopa/ts-commons@^13.1.0":
   version "13.1.2"
   resolved "https://registry.yarnpkg.com/@pagopa/ts-commons/-/ts-commons-13.1.2.tgz#c98b0ae2d9700ab670edfcda5b1cd46f3b79b35d"
   integrity sha512-TAdqhbaTG5YPQIRyC5qs1qWYr/YPB1aPb1fEwCTOKVVmKZrguQxkAWqdkz6uDaKmKlkUKfOxsJTmMZu2/tpyfg==
@@ -2129,6 +2099,20 @@
     node-fetch "^2.6.0"
     semver "^7.5.2"
     ulid "^2.3.0"
+    validator "^13.7.0"
+
+"@pagopa/ts-commons@^10.3.0":
+  version "10.4.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/ts-commons/-/ts-commons-10.4.0.tgz#a422295e24735cfba26b744b055f90f718fd9aef"
+  integrity sha512-4/qbF+WjyjYJqMG8otj3qBwGe4g4DqZ8haou1GkuC4cYog6Yv+BfQT7TbV+dNsTGYbuc6QRw0eHXBPvbjpD7dw==
+  dependencies:
+    abort-controller "^3.0.0"
+    agentkeepalive "^4.1.4"
+    applicationinsights "^1.8.10"
+    fp-ts "^2.11.0"
+    io-ts "^2.2.16"
+    json-set-map "^1.1.2"
+    node-fetch "^2.6.0"
     validator "^13.7.0"
 
 "@redis/bloom@1.1.0":
@@ -4713,15 +4697,15 @@ forwarded@0.2.0:
   resolved "https://registry.yarnpkg.com/forwarded/-/forwarded-0.2.0.tgz#2269936428aad4c15c7ebe9779a84bf0b2a81811"
   integrity sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==
 
-fp-ts@2.14.0:
-  version "2.14.0"
-  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.14.0.tgz#97ac3d9f002dcd02f93ca1269ae14a7fcb805582"
-  integrity sha512-QLagLSYAgMA00pZzUzeksH/78Sd14y7+Gc2A8Yaja3/IpGOFMdm/gYBuDMxYqLsJ58iT5lz+bJb953RAeFfp1A==
-
 fp-ts@^2.11.0:
   version "2.12.1"
   resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.12.1.tgz#e389488bfd1507af06bd5965e97367edcd4fabad"
   integrity sha512-oxvgqUYR6O9VkKXrxkJ0NOyU0FrE705MeqgBUMEPWyTu6Pwn768cJbHChw2XOBlgFLKfIHxjr2OOBFpv2mUGZw==
+
+fp-ts@^2.16.5:
+  version "2.16.9"
+  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.16.9.tgz#99628fc5e0bb3b432c4a16d8f4455247380bae8a"
+  integrity sha512-+I2+FnVB+tVaxcYyQkHUq7ZdKScaBlX53A41mxQtpIccsfyv8PzdzP7fzp2AY832T4aoK6UZ5WRX/ebGd8uZuQ==
 
 fragment-cache@^0.2.1:
   version "0.2.1"
@@ -5258,25 +5242,25 @@ invariant@^2.2.4:
   dependencies:
     loose-envify "^1.0.0"
 
-io-ts-types@^0.4.7:
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/io-ts-types/-/io-ts-types-0.4.8.tgz#e5fd8940ce7a5ddd780083c33989b3f8978918c2"
-  integrity sha512-E/o4y8I/yP5sVcC731K3T2Zi6BTvJljyJLqhHYkxzkc9fr9vAC2cU0y0xZ5aJqEDfl76zMeEiXkAkf/3gQYlvA==
-
 io-ts-types@^0.5.16:
   version "0.5.16"
   resolved "https://registry.yarnpkg.com/io-ts-types/-/io-ts-types-0.5.16.tgz#e9eed75371e217c97050cc507915e8eedc250946"
   integrity sha512-h9noYVfY9rlbmKI902SJdnV/06jgiT2chxG6lYDxaYNp88HscPi+SBCtmcU+m0E7WT5QSwt7sIMj93+qu0FEwQ==
 
-io-ts@2.2.20:
-  version "2.2.20"
-  resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-2.2.20.tgz#be42b75f6668a2c44f706f72ee6e4c906777c7f5"
-  integrity sha512-Rq2BsYmtwS5vVttie4rqrOCIfHCS9TgpRLFpKQCM1wZBBRY9nWVGmEvm2FnDbSE2un1UE39DvFpTR5UL47YDcA==
+io-ts-types@^0.5.19:
+  version "0.5.19"
+  resolved "https://registry.yarnpkg.com/io-ts-types/-/io-ts-types-0.5.19.tgz#9c04fa73f15992436605218a5686b610efa7a5d3"
+  integrity sha512-kQOYYDZG5vKre+INIDZbLeDJe+oM+4zLpUkjXyTMyUfoCpjJNyi29ZLkuEAwcPufaYo3yu/BsemZtbdD+NtRfQ==
 
 io-ts@^2.2.16:
   version "2.2.16"
   resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-2.2.16.tgz#597dffa03db1913fc318c9c6df6931cb4ed808b2"
   integrity sha512-y5TTSa6VP6le0hhmIyN0dqEXkrZeJLeC5KApJq6VLci3UEKF80lZ+KuoUs02RhBxNWlrqSNxzfI7otLX1Euv8Q==
+
+io-ts@^2.2.21:
+  version "2.2.22"
+  resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-2.2.22.tgz#5ab0d3636fe8494a275f0266461ab019da4b8d0b"
+  integrity sha512-FHCCztTkHoV9mdBsHpocLpdTAfh956ZQcIkWQxxS0U5HT53vtrcuYdQneEJKH6xILaLNzXVl2Cvwtoy8XNN0AA==
 
 ipaddr.js@1.9.1:
   version "1.9.1"

@@ -26,7 +26,7 @@ services:
       - spid-net
 
   spid-saml-check:
-    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot
+    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot@sha256:6349005e929962ab612feedb228130bce42b1f3cffb7bb0434e716bfac243638
     restart: unless-stopped
     environment:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
@@ -46,7 +46,7 @@ services:
   #
   #
   redis-node-0:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: docker.io/bitnami/redis-cluster:6.2@sha256:d973a2aa8b6688190ca4e4544b2ff859ef1e9f8081518558270df34e23ff1df7
     networks:
       - spid-net
     ports:
@@ -58,7 +58,7 @@ services:
       - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-1:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: docker.io/bitnami/redis-cluster:6.2@sha256:d973a2aa8b6688190ca4e4544b2ff859ef1e9f8081518558270df34e23ff1df7
     networks:
       - spid-net
     ports:
@@ -70,7 +70,7 @@ services:
       - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-2:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: docker.io/bitnami/redis-cluster:6.2@sha256:d973a2aa8b6688190ca4e4544b2ff859ef1e9f8081518558270df34e23ff1df7
     networks:
       - spid-net
     ports:
@@ -82,7 +82,7 @@ services:
       - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-3:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: docker.io/bitnami/redis-cluster:6.2@sha256:d973a2aa8b6688190ca4e4544b2ff859ef1e9f8081518558270df34e23ff1df7
     networks:
       - spid-net
     ports:
@@ -94,7 +94,7 @@ services:
       - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-node-4:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: docker.io/bitnami/redis-cluster:6.2@sha256:d973a2aa8b6688190ca4e4544b2ff859ef1e9f8081518558270df34e23ff1df7
     networks:
       - spid-net
     ports:
@@ -106,7 +106,7 @@ services:
       - 'ALLOW_EMPTY_PASSWORD=yes'
 
   redis-cluster:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: docker.io/bitnami/redis-cluster:6.2@sha256:d973a2aa8b6688190ca4e4544b2ff859ef1e9f8081518558270df34e23ff1df7
     networks:
       - spid-net
     ports:

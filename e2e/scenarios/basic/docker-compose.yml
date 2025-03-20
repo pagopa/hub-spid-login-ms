@@ -24,7 +24,7 @@ services:
       - spid-net
 
   spid-saml-check:
-    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot
+    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot@sha256:6349005e929962ab612feedb228130bce42b1f3cffb7bb0434e716bfac243638
     restart: unless-stopped
     environment:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
@@ -37,7 +37,7 @@ services:
       - spid-net
 
   redis:
-    image: wodby/redis:6
+    image: wodby/redis:6@sha256:3b45e12191a35fca81f833b188b9938a840e22d7e5445405b5039fc88a9cec18
     environment:
       REDIS_TIMEOUT: 300
       REDIS_TCP_KEEPALIVE: 60

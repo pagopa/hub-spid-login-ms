@@ -26,7 +26,7 @@ services:
 
   spid-testenv2:
     container_name: spid-testenv2
-    image: italia/spid-testenv2
+    image: italia/spid-testenv2@sha256:196c9121f6e50d197e251704518ec487c24579f2e3e9c88e7094d9c2ea7c4ded
     restart: unless-stopped
     ports:
       - "8088:8088"
@@ -40,7 +40,7 @@ services:
 
   redis:
     container_name: redis
-    image: wodby/redis:6-3.15.4
+    image: wodby/redis:6-3.15.4@sha256:19dca469b9e7f791edb5c3d14213ca324755710a3bc844ada22fdce9d0ea77f2
     ports:
       - "6379:6379"
     environment:
@@ -52,7 +52,7 @@ services:
 
   storage:
     container_name: storage
-    image: mcr.microsoft.com/azure-storage/azurite
+    image: mcr.microsoft.com/azure-storage/azurite@sha256:0a47e12e3693483cef5c71f35468b91d751611f172d2f97414e9c69113b106d9
     ports:
       - "10000:10000"
       - "10001:10001"

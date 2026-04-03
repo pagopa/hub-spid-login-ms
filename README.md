@@ -2,6 +2,8 @@
 
 This is a Microservice that is responsible to provide a single entry point for SPID authentication.
 
+The repository pins Node 22.22.0 via `.node-version` for nodenv and uses Corepack-managed Yarn 4.
+
 ## Usage
 
 <details>
@@ -31,7 +33,8 @@ This is a Microservice that is responsible to provide a single entry point for S
 Configure environment as described above, then:
 
 ```sh
-yarn install --frozen-lockfile
+corepack enable
+yarn install --immutable
 yarn build
 yarn start
 ```

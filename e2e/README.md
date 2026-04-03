@@ -1,12 +1,14 @@
 # E2E TEST SUITES
 
+This project pins Node 22.22.0 via `e2e/.node-version` for nodenv and uses Corepack-managed Yarn 4.
+
 ## How to run
 ### Quick start
 First build `hub-spid-login` application in parent project, then
 
 ```sh
 # install dependencies 
-yarn install --frozen-lockfile
+yarn install --immutable
 
 # build runner
 yarn build

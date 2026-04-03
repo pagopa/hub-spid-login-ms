@@ -24,9 +24,9 @@ jobs:
           ls .node-version && echo ".node-version found, value: '$(cat .node-version)'" || echo ".node-version not found" 
           ls .nvmrc && echo ".nvmrc found, value: '$(cat .nvmrc)'" || echo ".nvmrc not found"
           echo "set FROM_SOURCE='$FROM_SOURCE'"
-          echo "::set-output name=NODE_VERSION::$FROM_SOURCE"
+          echo "NODE_VERSION=$FROM_SOURCE" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
           node-version: '${{ steps.node_version.outputs.NODE_VERSION }}'
 

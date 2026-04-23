@@ -39,91 +39,134 @@ services:
       - spid-net
 
   #
-  #                   __ __            __             __ 
+  #                   __ __            __             __
   #   .----.-----.--|  |__.-----.----|  .--.--.-----|  |_.-----.----.
   #  |   _|  -__|  _  |  |__ --|  __|  |  |  |__ --|   _|  -__|   _|
   # |__| |_____|_____|__|_____|____|__|_____|_____|____|_____|__|
   #
   #
   redis-node-0:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: redis:7.0-alpine
     networks:
-      - spid-net
+      io-fn:
+        ipv4_address: 172.18.0.100
     ports:
-      - 6380:6379
+      - 6380:6380
     volumes:
-      - redis-node-0-data:/bitnami/redis/data
-    environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
-      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - ./docker/redis/6380/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-node-0-data:/data
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-1:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: redis:7.0-alpine
     networks:
-      - spid-net
+      io-fn:
+        ipv4_address: 172.18.0.101
     ports:
-      - 6381:6379
+      - 6381:6381
     volumes:
-      - redis-node-1-data:/bitnami/redis/data
-    environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
-      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - ./docker/redis/6381/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-node-1-data:/data
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-2:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: redis:7.0-alpine
     networks:
-      - spid-net
+      io-fn:
+        ipv4_address: 172.18.0.102
     ports:
-      - 6382:6379
+      - 6382:6382
     volumes:
-      - redis-node-2-data:/bitnami/redis/data
-    environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
-      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - ./docker/redis/6382/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-node-2-data:/data
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-3:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: redis:7.0-alpine
     networks:
-      - spid-net
+      io-fn:
+        ipv4_address: 172.18.0.103
     ports:
-      - 6383:6379
+      - 6383:6383
     volumes:
-      - redis-node-3-data:/bitnami/redis/data
-    environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
-      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - ./docker/redis/6383/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-node-3-data:/data
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-4:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: redis:7.0-alpine
     networks:
-      - spid-net
+      io-fn:
+        ipv4_address: 172.18.0.104
     ports:
-      - 6384:6379
+      - 6384:6384
     volumes:
-      - redis-node-4-data:/bitnami/redis/data
-    environment:
-      - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'
-      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - ./docker/redis/6384/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-node-4-data:/data
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+  redis-node-5:
+    image: redis:7.0-alpine
+    networks:
+      - io-fn
+    ports:
+      - 6385:6385
+    volumes:
+      - ./docker/redis/6385/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-node-5-data:/data
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-cluster:
-    image: docker.io/bitnami/redis-cluster:6.2
+    image: redis:7.0-alpine
     networks:
-      - spid-net
+      io-fn:
+        ipv4_address: 172.18.0.99
     ports:
       - 6379:6379
-    healthcheck:
-      test: ["CMD", "redis-cli", "-c", "--raw", "incr", "foo"]
-      interval: 1s
-      timeout: 3s
-      retries: 5
     volumes:
-      - redis-cluster-data:/bitnami/redis/data
+      - ./docker/redis/6379/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-cluster-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "bitnami", "-c", "--raw", "incr", "ping"]
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    # The following depends_on is needed to ensure that all nodes are started
+    # by simply starting the `redis-cluster` service.
     depends_on:
       - redis-node-0
       - redis-node-1
       - redis-node-2
-      - redis-node-3 
+      - redis-node-3
       - redis-node-4
+      - redis-node-5
+
+  cluster-builder:
+    image: redis:7.0-alpine
+    ports:
+      - 6999:6999
+    networks:
+      - io-fn
+    command: |-
+      redis-cli
+      -a bitnami
+      -p 6379
+      --cluster create
+      redis-cluster:6379
+      redis-node-0:6380
+      redis-node-1:6381
+      redis-node-2:6382
+      redis-node-3:6383
+      redis-node-4:6384
+      redis-node-5:6385
+      --cluster-replicas 1
+      --cluster-yes
+    depends_on:
+      - redis-cluster
+      - redis-node-0
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
     environment:
       - 'ALLOW_EMPTY_PASSWORD=yes'
       - 'REDIS_NODES=redis-cluster redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4'

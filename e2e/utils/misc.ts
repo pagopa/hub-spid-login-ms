@@ -5,7 +5,7 @@ export const envFlag = (e: unknown): boolean => e === "1" || e === "true";
 
 export const littleTime = 1000;
 export const bigTime = 5000;
-export const startupTime = 30 * 1000;
+export const startupTime = 60 * 1000;
 
 // ensure browser is disposed
 export const withBrowser = (puppeteer: any, showBrowser: boolean) => async <T>(

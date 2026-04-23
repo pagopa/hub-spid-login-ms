@@ -10,13 +10,17 @@ services:
     env_file:
       - env.scenario
     depends_on:
-      - redis
-      - spid-saml-check
-      - storage
+      redis:
+        condition: service_healthy
+      spid-saml-check:
+        condition: service_healthy
+      storage:
+        condition: service_started
     expose:
       - ${SERVER_PORT}
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
+    restart: on-failure
     command: ["yarn", "start"]
     volumes:
       - "./res/certs:/usr/src/app/certs:ro"
@@ -34,6 +38,12 @@ services:
     volumes:
       - "./res/spidsamlcheck-conf:/spid-saml-check/spid-validator/config"
       - "./res/hsl-conf:/data/bootstrap"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:${SPID_DEMO_IDP_PORT}/demo', res => process.exit(res.statusCode >= 200 && res.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
     networks:
       - spid-net
 
@@ -43,6 +53,11 @@ services:
       REDIS_TIMEOUT: 300
       REDIS_TCP_KEEPALIVE: 60
       REDIS_MAXMEMORY: 182m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     networks:
       - spid-net
 

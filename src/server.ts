@@ -32,4 +32,7 @@ createAppTask()
       })
     );
   })
-  .catch(e => logger.error("Application error: ", e));
+  .catch(e => {
+    logger.error("Application error: ", e);
+    process.exit(1);
+  });

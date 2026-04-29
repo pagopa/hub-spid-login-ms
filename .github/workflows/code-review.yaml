@@ -45,13 +45,13 @@ jobs:
       # for reference, the current Dockerfile copies most of the assets 
       # produced by the build steps
       - name: Build the project
-        # prebuild script includes generate steps
+        # build includes the generate steps
         uses: ./.github/actions/build-project
 
       - name: Install dependencies for e2e tests
         run: |
           cd e2e
-          yarn install --frozen-lockfile
+          yarn install --immutable
         shell: bash
 
       - name: Run e2e tests

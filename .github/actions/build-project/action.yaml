@@ -18,6 +18,5 @@ runs:
 
     - name: Build the project
       run: |
-        yarn generate
         yarn build
       shell: bash

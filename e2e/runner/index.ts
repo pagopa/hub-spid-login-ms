@@ -20,6 +20,9 @@ const testCmdForScenario = (name: string): string =>
 const setupCmdForScenario = (name: string): string =>
   `${dockerCmd(name)} up ${DEBUG ? "" : "-d"}`;
 
+const logsCmdForScenario = (name: string): string =>
+  `${dockerCmd(name)} logs --tail 200`;
+
 const teardownCmdForScenario = (name: string): string =>
   `${dockerCmd(name)} down`;
 
@@ -51,11 +54,24 @@ const promisifyProcess = (cp: ChildProcess): Promise<ProcessResult> =>
  */
 const composeScenarioTest = async (name: string): Promise<ProcessResult> => {
   try {
-    await promisifyProcess(runProcess(setupCmdForScenario(name)));
+    const setupResult = await promisifyProcess(runProcess(setupCmdForScenario(name)));
+
+    console.log(`\n========== Logs for scenario '${name}' after startup ==========`);
+    await promisifyProcess(runProcess(logsCmdForScenario(name)));
+
+    if (setupResult === "ko") {
+      await promisifyProcess(runProcess(teardownCmdForScenario(name)));
+      return "ko";
+    }
 
     await new Promise(ok => setTimeout(ok, 5000));
 
     const result = await promisifyProcess(runProcess(testCmdForScenario(name)));
+
+    if (result === "ko") {
+      console.log(`\n========== Logs for scenario '${name}' after test failure ==========`);
+      await promisifyProcess(runProcess(logsCmdForScenario(name)));
+    }
 
     await promisifyProcess(runProcess(teardownCmdForScenario(name)));
 

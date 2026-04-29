@@ -1,4 +1,4 @@
-ARG NODE_VERSION=20.12.2
+ARG NODE_VERSION=22.22.0
 ARG OWNER=pagopa
 ARG REPO=repo
 
@@ -6,6 +6,8 @@ FROM node:$NODE_VERSION-alpine as builder
 
 WORKDIR /usr/src/build
 
+COPY /.yarnrc.yml /usr/src/build/.yarnrc.yml
+COPY /.yarn/releases /usr/src/build/.yarn/releases
 COPY /package.json /usr/src/build/package.json
 COPY /src /usr/src/build/src
 COPY /generated /usr/src/build/generated
@@ -13,7 +15,7 @@ COPY /openapi /usr/src/build/openapi
 COPY /yarn.lock /usr/src/build/yarn.lock
 COPY /tsconfig.json /usr/src/build/tsconfig.json
 
-RUN yarn install --ignore-scripts --frozen-lockfile\
+RUN yarn install --immutable --mode=skip-build\
   && yarn build
 
 FROM node:$NODE_VERSION-alpine

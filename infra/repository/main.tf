@@ -17,3 +17,8 @@ import {
   id = "hub-spid-login-ms"
   to = module.repo.github_repository.this
 }
+
+import {
+  id = "hub-spid-login-ms:master"
+  to = module.repo.github_branch.main
+}

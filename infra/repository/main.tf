@@ -9,7 +9,7 @@ module "repo" {
     default_branch_name = "master"
     jira_boards_ids     = ["IOPLT", "IOPID"]
     reviewers_teams     = ["io-platform-admins", "io-auth-n-identity-backend", "engineering-team-devex"]
-    app_cd_policy_tags  = ["master", "*"]
+    app_cd_policy_tags  = ["master"]
   }
 }
 

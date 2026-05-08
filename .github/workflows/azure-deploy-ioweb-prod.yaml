@@ -1,0 +1,108 @@
+name: Deploy io-web (prod)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-cd
+  cancel-in-progress: true
+
+env:
+  RESOURCE_GROUP_NAME: io-p-weu-ioweb-common-rg
+  WEB_APP_NAME: io-p-weu-ioweb-spid-login
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642195f572a2b2b8a0a4682 # v4.4.0
+        with:
+          node-version-file: ".node-version"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build and prepare production bundle
+        run: yarn predeploy
+
+      - name: Create bundle archive
+        run: |
+          zip -r bundle.zip . \
+            -x '.git/*' \
+            -x '.vscode/*' \
+            -x '.devops/*' \
+            -x '.github/*' \
+            -x 'conf-testenv/*' \
+            -x 'scripts/*' \
+            -x 'e2e/*' \
+            -x 'coverage/*' \
+            -x 'infra/*' \
+            -x 'certs/*' \
+            -x 'openapi/*' \
+            -x 'src/*' \
+            -x '*.ts' \
+            -x '*.js.map' \
+            -x '*.md' \
+            -x 'docker-compose.yml' \
+            -x 'Dockerfile' \
+            -x 'jest.config.js' \
+            -x 'tsconfig.json' \
+            -x '.eslintrc.js' \
+            -x '.env*' \
+            -x '.node-version' \
+            -x '.yarnrc.yml' \
+            -x '.yarn/*' \
+            -x 'yarn.lock'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bundle
+          path: bundle.zip
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: [build]
+    environment: app-prod-cd
+
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: bundle
+
+      - name: Azure Login
+        uses: pagopa/dx/actions/csp-login@3df354dace70a58b27af56d0c33099b90ac6ceab
+
+      - name: Deploy to Azure App Service
+        run: |
+          az webapp deploy \
+            --resource-group "${{ env.RESOURCE_GROUP_NAME }}" \
+            --name "${{ env.WEB_APP_NAME }}" \
+            --src-path bundle.zip \
+            --type zip \
+            --async false

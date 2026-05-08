@@ -96,7 +96,7 @@ jobs:
           name: bundle
 
       - name: Azure Login
-        uses: pagopa/dx/actions/csp-login@main
+        uses: pagopa/dx/actions/csp-login@3df354dace70a58b27af56d0c33099b90ac6ceab
 
       - name: Deploy to Azure App Service
         run: |

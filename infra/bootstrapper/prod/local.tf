@@ -44,8 +44,8 @@ locals {
   }
 
   key_vault = {
-    name                = "${local.prefix}-${local.env_short}-kv-common"
-    resource_group_name = "${local.prefix}-${local.env_short}-rg-common"
+    name                = "io-p-itn-common-kv-01"
+    resource_group_name = "io-p-itn-common-rg-01"
   }
 
   tags = {

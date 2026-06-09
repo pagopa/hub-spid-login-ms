@@ -10,15 +10,8 @@ module "repo" {
     jira_boards_ids     = ["IOPLT", "IOPID"]
     reviewers_teams     = ["io-platform-admins", "io-auth-n-identity-backend", "engineering-team-devex"]
     app_cd_policy_tags  = ["master"]
+    app_cd_policy_branches = ["master"]
+    bootstrapper_cd_policy_tags = ["master"]
+    bootstrapper_cd_policy_branches = ["master"]
   }
-}
-
-import {
-  id = "hub-spid-login-ms"
-  to = module.repo.github_repository.this
-}
-
-import {
-  id = "hub-spid-login-ms:master"
-  to = module.repo.github_branch.main
 }

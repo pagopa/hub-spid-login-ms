@@ -7,9 +7,12 @@ import { getConfigOrThrow } from "./utils/config";
 import { logger } from "./utils/logger";
 
 const config = getConfigOrThrow();
-const appInsights = initAppInsights(config.APPINSIGHTS_INSTRUMENTATIONKEY, {
-  disableAppInsights: config.APPINSIGHTS_DISABLED
-});
+const appInsights = initAppInsights(
+  config.APPLICATIONINSIGHTS_CONNECTION_STRING,
+  {
+    disableAppInsights: config.APPINSIGHTS_DISABLED
+  }
+);
 
 // eslint-disable-next-line functional/immutable-data
 appInsights.context.tags[appInsights.context.keys.cloudRole] =

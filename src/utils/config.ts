@@ -391,7 +391,7 @@ export type IConfigUtility = t.TypeOf<typeof IConfigUtility>;
 export const IConfigUtility = t.intersection([
   t.interface({
     APPINSIGHTS_DISABLED: t.boolean,
-    APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
+    APPLICATIONINSIGHTS_CONNECTION_STRING: NonEmptyString,
     SERVER_PORT: NonNegativeInteger,
     isProduction: t.boolean
   }),

@@ -25,7 +25,7 @@ services:
       - spid-net
 
   spid-saml-check:
-    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot
+    image: ghcr.io/pagopa/spid-saml-check:v.1.8.3-snapshot@sha256:6349005e929962ab612feedb228130bce42b1f3cffb7bb0434e716bfac243638
     restart: unless-stopped
     environment:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
@@ -51,7 +51,7 @@ services:
   #
   #
   redis-node-0:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     networks:
       spid-net:
         ipv4_address: 172.18.0.100
@@ -63,7 +63,7 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-1:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     networks:
       spid-net:
         ipv4_address: 172.18.0.101
@@ -75,7 +75,7 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-2:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     networks:
       spid-net:
         ipv4_address: 172.18.0.102
@@ -87,7 +87,7 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-3:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     networks:
       spid-net:
         ipv4_address: 172.18.0.103
@@ -99,7 +99,7 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-4:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     networks:
       spid-net:
         ipv4_address: 172.18.0.104
@@ -111,7 +111,7 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-node-5:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     networks:
       spid-net:
         ipv4_address: 172.18.0.105
@@ -123,7 +123,7 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
   redis-cluster:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     networks:
       spid-net:
         ipv4_address: 172.18.0.99
@@ -149,7 +149,7 @@ services:
       - redis-node-5
 
   cluster-builder:
-    image: redis:7.0-alpine
+    image: redis:7.0-alpine@sha256:c9d92d840fd011c908f040592857c724ae6d877f2aba5c40ad963276507386b2
     ports:
       - 6999:6999
     networks:

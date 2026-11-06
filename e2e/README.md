@@ -1,6 +1,6 @@
 # E2E TEST SUITES
 
-This project pins Node 22.22.0 via `e2e/.node-version` for nodenv and uses Corepack-managed Yarn 4.
+This project pins Node 22.23.4 via `e2e/.node-version` for nodenv and uses Corepack-managed Yarn 4.
 
 ## How to run
 ### Quick start

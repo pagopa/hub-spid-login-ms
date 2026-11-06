@@ -63,3 +63,7 @@ temp
 # --- Docker / Local override ---
 # Local override files for Docker Compose
 docker-compose.override.yml
+
+# --- macOS ---
+# macOS-specific files to ignore
+.DS_Store

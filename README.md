@@ -2,7 +2,7 @@
 
 This is a Microservice that is responsible to provide a single entry point for SPID authentication.
 
-The repository pins Node 22.22.0 via `.node-version` for nodenv and uses Corepack-managed Yarn 4.
+The repository pins Node 22.23.4 via `.node-version` for nodenv and uses Corepack-managed Yarn 4.
 
 ## Usage
 

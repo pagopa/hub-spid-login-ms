@@ -1,6 +1,6 @@
 {
   "name": "@italia/spid-express",
-  "version": "5.5.3",
+  "version": "6.0.1",
   "description": "SPID (Italian Public Digital Identity System) middleware for Express",
   "repository": {
     "type": "git",
@@ -10,7 +10,7 @@
   "license": "MIT",
   "packageManager": "yarn@4.13.0+sha512.5c20ba010c99815433e5c8453112165e673f1c7948d8d2b267f4b5e52097538658388ebc9f9580656d9b75c5cc996f990f611f99304a2197d4c56d21eea370e7",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=22.23.4"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

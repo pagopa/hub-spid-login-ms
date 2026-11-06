@@ -2,7 +2,7 @@
 
 ## Build and Test
 
-- Use Corepack-managed Yarn 4 in both workspaces. The repo targets Node 22.22.0 via `.node-version` and `e2e/.node-version`.
+- Use Corepack-managed Yarn 4 in both workspaces. The repo targets Node 22.23.4 via `.node-version` and `e2e/.node-version`.
 - Root workflow:
   - `corepack enable`
   - `yarn install --immutable`
